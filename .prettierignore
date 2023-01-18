@@ -1,9 +1,12 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
 # dependencies
 /node_modules
+/.pnp
+.pnp.js
 
 # testing
 /coverage
-coverage.json
 
 # next.js
 .next
@@ -47,14 +50,7 @@ out*
 
 # Forge files
 cache/
-out/
+forge-cache/
 foundry-cache/
-bin/
-
-# Ignores development broadcast logs
-!/broadcast
-/broadcast/*/31337/
-/broadcast/**/dry-run/
-
-# Dotenv file
-.env
+out/
+lib/

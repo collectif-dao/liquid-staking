@@ -1,0 +1,21 @@
+{
+  "exclude": ["node_modules", "./dist", "/out", "/cache"],
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "CommonJS",
+    "rootDir": ".",
+    "outDir": "dist",
+    "composite": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "declarationMap": true,
+    "moduleResolution": "node",
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "incremental": false
+  },
+  "include": ["./deploy", "./test", "./typechain-types"],
+  "files": ["./hardhat.config.ts"]
+}

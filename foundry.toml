@@ -1,6 +1,11 @@
 [profile.default]
-src = 'src'
+src = 'contracts'
 out = 'out'
 libs = ['lib']
+test = 'contracts/test'
+cache_path = 'foundry-cache'
+optimizer = false
+# optimizer_runs = 1000
+auto_detect_solc = true
 
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config

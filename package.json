@@ -1,0 +1,43 @@
+{
+  "name": "@collective-dao/liquid-staking",
+  "version": "0.1.0",
+  "author": "Collective DAO",
+  "license": "MIT",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "lint:check": "solhint -f table contracts/*.sol",
+    "lint:fix": "solhint --fix contracts/*.sol",
+    "prepare": "husky install",
+    "prettier:check": "prettier --check '**/*.{ts,js,json,sol}'",
+    "prettier:fix": "prettier --write '**/*.{ts,js,json,sol}'",
+    "slither": "slither contracts/ --config-file slither.config.json",
+    "test": "forge test -vvv",
+    "test:gas": "forge test --gas-report"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/collective-dao/liquid-staking.git"
+  },
+  "bugs": {
+    "url": "https://github.com/collective-dao/liquid-staking/issues"
+  },
+  "homepage": "https://github.com/collective-dao/liquid-staking#readme",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^2.0.0",
+    "@typechain/ethers-v5": "^10.2.0",
+    "@typechain/hardhat": "^6.1.5",
+    "dotenv": "^16.0.3",
+    "hardhat": "^2.12.4",
+    "hardhat-preprocessor": "^0.1.5",
+    "husky": "^8.0.2",
+    "prettier": "^2.8.1",
+    "prettier-plugin-solidity": "^1.1.0",
+    "solhint": "^3.3.7",
+    "solhint-plugin-prettier": "^0.0.5",
+    "typechain": "^8.1.1",
+    "typescript": "^4.9.4"
+  }
+}
