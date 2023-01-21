@@ -22,3 +22,6 @@
 	path = lib/solidity-BigNumber
 	url = https://github.com/Zondax/solidity-BigNumber
 	branch = v0.1.0
+[submodule "lib/ERC4626"]
+	path = lib/ERC4626
+	url = https://github.com/collective-dao/ERC4626
