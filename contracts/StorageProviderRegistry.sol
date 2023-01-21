@@ -120,7 +120,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry {
 		MinerTypes.ChangeBeneficiaryParams memory params;
 
 		params.new_beneficiary = _beneficiaryAddress;
-		params.new_quota = BigIntCBOR.deserializeBigNum(Bytes.toBytes(storageProvider.allocationLimit));
+		params.new_quota = BigIntCBOR.deserializeBigInt(Bytes.toBytes(storageProvider.allocationLimit));
 		params.new_expiration = SafeCastLib.safeCastTo64(storageProvider.maxRedeemablePeriod);
 
 		MinerAPI.changeBeneficiary(abi.encodePacked(msg.sender), params);
@@ -143,7 +143,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry {
 		MinerTypes.ChangeBeneficiaryParams memory params;
 
 		params.new_beneficiary = _beneficiaryAddress;
-		params.new_quota = BigIntCBOR.deserializeBigNum(Bytes.toBytes(storageProvider.allocationLimit));
+		params.new_quota = BigIntCBOR.deserializeBigInt(Bytes.toBytes(storageProvider.allocationLimit));
 		params.new_expiration = SafeCastLib.safeCastTo64(storageProvider.maxRedeemablePeriod);
 
 		storageProviders[provider].active = true;
