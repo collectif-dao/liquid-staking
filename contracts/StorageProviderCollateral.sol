@@ -102,7 +102,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral {
 		(, , , uint256 allocationLimit, uint256 usedAllocation, , uint256 lockedRewards, ) = registry
 			.getStorageProvider(_provider);
 
-		require(allocationLimit <= usedAllocation + _allocated, "ALLOCATION_OVERFLOW");
+		require(usedAllocation + _allocated <= allocationLimit, "ALLOCATION_OVERFLOW");
 
 		uint256 totalRequirements = calcCollateralRequirements(usedAllocation, lockedRewards, _allocated);
 
@@ -114,10 +114,14 @@ contract StorageProviderCollateral is IStorageProviderCollateral {
 
 		registry.increaseUsedAllocation(_provider, _allocated);
 
-		collateral.lockedCollateral = collateral.lockedCollateral + _allocated;
-		collateral.availableCollateral = collateral.availableCollateral - _allocated;
+		uint256 lockAmount = calcLockAmount(_allocated);
+
+		collateral.lockedCollateral = collateral.lockedCollateral + lockAmount;
+		collateral.availableCollateral = collateral.availableCollateral - lockAmount;
 
 		collaterals[_provider] = collateral;
+
+		emit StorageProviderCollateralLock(_provider, _allocated, lockAmount);
 	}
 
 	/**
@@ -170,6 +174,14 @@ contract StorageProviderCollateral is IStorageProviderCollateral {
 		uint256 usedAllocation = _allocationToUse > 0 ? _usedAllocation + _allocationToUse : _usedAllocation;
 
 		totalRequirements = ((usedAllocation - _lockedRewards) * collateralRequirements) / BASIS_POINTS;
+	}
+
+	/**
+	 * @notice Calculates total lock amount for a given allocation
+	 * @param _usedAllocation Used FIL allocation amount
+	 */
+	function calcLockAmount(uint256 _usedAllocation) internal view returns (uint256 lockAmount) {
+		lockAmount = (_usedAllocation * collateralRequirements) / BASIS_POINTS;
 	}
 
 	/**

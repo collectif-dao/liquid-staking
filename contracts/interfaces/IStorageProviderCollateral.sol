@@ -4,6 +4,7 @@ pragma solidity ^0.8.16;
 interface IStorageProviderCollateral {
 	event StorageProviderCollateralDeposit(address indexed provider, uint256 amount);
 	event StorageProviderCollateralWithdraw(address indexed provider, uint256 amount);
+	event StorageProviderCollateralLock(address indexed provider, uint256 allocation, uint256 lockAmount);
 
 	/**
 	 * @dev Deposit `msg.value` FIL funds by the msg.sender into collateral

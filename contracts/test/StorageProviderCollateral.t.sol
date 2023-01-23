@@ -25,6 +25,9 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	uint256 private constant MIN_TIME_PERIOD = 90 days;
 	uint256 private constant MAX_TIME_PERIOD = 360 days;
 
+	uint256 public collateralRequirements = 1500;
+	uint256 public constant BASIS_POINTS = 10000;
+
 	function setUp() public {
 		wfil = IWETH9(address(new WFIL()));
 		staking = IERC4626(address(new MockERC4626(wfil, "Collective FIL Liquid Staking", "clFIL")));
@@ -123,5 +126,50 @@ contract StorageProviderCollateralTest is DSTestPlus {
 
 		require(wfil.balanceOf(address(collateral)) == 0, "INVALID_BALANCE");
 		require(wfil.balanceOf(bob) == 0, "INVALID_BALANCE");
+	}
+
+	function testLock(uint256 amount) public {
+		hevm.assume(amount != 0 && amount <= MAX_ALLOCATION);
+		hevm.deal(alice, amount);
+
+		hevm.startPrank(alice);
+		registry.register(alice, address(staking), amount, MIN_TIME_PERIOD);
+
+		bytes memory aliceBytes = abi.encodePacked(alice);
+		bytes memory stakingBytes = abi.encodePacked(address(staking));
+
+		registry.acceptBeneficiaryAddress(aliceBytes, stakingBytes);
+		collateral.deposit{value: amount}();
+		assertEq(collateral.getAvailableCollateral(alice), amount);
+		hevm.stopPrank();
+
+		collateral.lock(alice, amount);
+
+		uint256 lockedAmount = (amount * collateralRequirements) / BASIS_POINTS;
+		assertEq(collateral.getLockedCollateral(alice), lockedAmount);
+
+		require(wfil.balanceOf(address(collateral)) == amount, "INVALID_BALANCE");
+		require(wfil.balanceOf(alice) == 0, "INVALID_BALANCE");
+	}
+
+	function testLockReverts(uint256 amount) public {
+		hevm.assume(amount != 0 && amount <= MAX_ALLOCATION);
+		hevm.deal(alice, amount);
+
+		hevm.startPrank(alice);
+		registry.register(alice, address(staking), amount, MIN_TIME_PERIOD);
+
+		bytes memory aliceBytes = abi.encodePacked(alice);
+		bytes memory stakingBytes = abi.encodePacked(address(staking));
+
+		registry.acceptBeneficiaryAddress(aliceBytes, stakingBytes);
+		collateral.deposit{value: amount}();
+		hevm.stopPrank();
+
+		hevm.expectRevert("ALLOCATION_OVERFLOW");
+		collateral.lock(alice, amount * 2);
+
+		assertEq(collateral.getAvailableCollateral(alice), amount);
+		assertEq(collateral.getLockedCollateral(alice), 0);
 	}
 }
