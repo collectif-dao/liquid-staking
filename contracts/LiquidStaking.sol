@@ -3,6 +3,7 @@ pragma solidity ^0.8.16;
 
 import {ClFILToken} from "./ClFIL.sol";
 import {Multicall} from "fei-protocol/erc4626/external/Multicall.sol";
+import {SelfPermit} from "fei-protocol/erc4626/external/SelfPermit.sol";
 import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {Owned} from "solmate/auth/Owned.sol";
@@ -35,7 +36,7 @@ import "./interfaces/IStorageProviderRegistry.sol";
  *     data[1] = abi.encodeWithSelector(PeripheryPayments.unwrapWFIL.selector, amount, address(this));
  *     router.multicall{value: amount}(data);
  */
-contract LiquidStaking is ClFILToken, Multicall, ReentrancyGuard, Owned {
+contract LiquidStaking is ClFILToken, Multicall, SelfPermit, ReentrancyGuard, Owned {
 	using SafeTransferLib for *;
 
 	/**
@@ -70,9 +71,6 @@ contract LiquidStaking is ClFILToken, Multicall, ReentrancyGuard, Owned {
 	/// @notice The current total amount of FIL that is allocated to SPs.
 	uint256 public totalFilPledged;
 
-	/// @notice The current total amount of FIL that is available for SP's pledges.
-	uint256 public totalFilAvailable;
-
 	/// @notice The current total amount of FIL that accrued as available rewards.
 	uint256 public totalAvailableRewards;
 
@@ -101,10 +99,8 @@ contract LiquidStaking is ClFILToken, Multicall, ReentrancyGuard, Owned {
 	 * @param assets Total wFIL amount to stake
 	 */
 	function stake(uint256 assets) external nonReentrant returns (uint256 shares) {
-		require(assets > 0, "INVALID_ASSETS_AMOUNT");
-
 		shares = deposit(assets, msg.sender);
-		totalFilAvailable += assets;
+
 		getTotalFilStaked[msg.sender] += assets;
 
 		emit Staked(msg.sender, assets, shares);
@@ -120,7 +116,7 @@ contract LiquidStaking is ClFILToken, Multicall, ReentrancyGuard, Owned {
 		assets = previewRedeem(shares);
 
 		redeem(shares, msg.sender, msg.sender);
-		totalFilAvailable -= assets;
+
 		getTotalFilStaked[msg.sender] -= assets;
 
 		emit Unstaked(msg.sender, assets, shares);
@@ -134,12 +130,11 @@ contract LiquidStaking is ClFILToken, Multicall, ReentrancyGuard, Owned {
 		require(assets <= maxWithdraw(msg.sender), "INVALID_ASSETS_AMOUNT");
 		shares = previewWithdraw(assets);
 
-		emit Unstaked(msg.sender, assets, shares);
-
 		withdraw(assets, msg.sender, msg.sender);
 
-		totalFilAvailable -= assets;
 		getTotalFilStaked[msg.sender] -= assets;
+
+		emit Unstaked(msg.sender, assets, shares);
 	}
 
 	/**
@@ -154,7 +149,6 @@ contract LiquidStaking is ClFILToken, Multicall, ReentrancyGuard, Owned {
 
 		WFIL.withdraw(assets);
 
-		totalFilAvailable -= assets;
 		totalFilPledged += assets;
 
 		msg.sender.safeTransferETH(assets);
@@ -167,7 +161,7 @@ contract LiquidStaking is ClFILToken, Multicall, ReentrancyGuard, Owned {
 	 * buffered capital in the pool and pledged capital to the SPs.
 	 */
 	function totalAssets() public view virtual override returns (uint256) {
-		return totalFilAvailable + totalFilPledged;
+		return totalFilAvailable() + totalFilPledged;
 	}
 
 	/**
@@ -175,7 +169,7 @@ contract LiquidStaking is ClFILToken, Multicall, ReentrancyGuard, Owned {
 	 * is pledged compared to the total amount of FIL staked.
 	 */
 	function getUsageRatio() public view virtual returns (uint256) {
-		return (totalFilPledged * BASIS_POINTS) / (totalFilAvailable + totalFilPledged);
+		return (totalFilPledged * BASIS_POINTS) / (totalFilAvailable() + totalFilPledged);
 	}
 
 	/**
@@ -186,6 +180,13 @@ contract LiquidStaking is ClFILToken, Multicall, ReentrancyGuard, Owned {
 		collateral = IStorageProviderCollateral(newAddr);
 
 		emit SetCollateralAddress(newAddr);
+	}
+
+	/**
+	 * @notice Returns the amount of WFIL available on the liquid staking contract
+	 */
+	function totalFilAvailable() public view returns (uint256) {
+		return asset.balanceOf(address(this));
 	}
 
 	/**
