@@ -6,4 +6,4 @@ fei-protocol/erc4626=lib/ERC4626/src/
 filecoin-solidity=lib/filecoin-solidity/
 solidity-cborutils/contracts/=lib/solidity-cborutils/contracts/
 @ensdomains/buffer=lib/buffer
-@zondax/solidity-bignumber/=lib/solidity-bignumber/
+@zondax/solidity-bignumber/=lib/solidity-BigNumber/

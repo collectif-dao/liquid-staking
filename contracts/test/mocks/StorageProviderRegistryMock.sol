@@ -2,7 +2,7 @@
 pragma solidity ^0.8.16;
 
 import "../../StorageProviderRegistry.sol";
-import {MinerAPI as MockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerAPI.sol";
+import {MinerMockAPI as MockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {Bytes} from "../../libraries/Bytes.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
@@ -47,7 +47,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 		MinerTypes.ChangeBeneficiaryParams memory params;
 
 		params.new_beneficiary = _beneficiaryAddress;
-		params.new_quota = BigIntCBOR.deserializeBigNum(Bytes.toBytes(storageProvider.allocationLimit));
+		params.new_quota = BigIntCBOR.deserializeBigInt(Bytes.toBytes(storageProvider.allocationLimit));
 		params.new_expiration = SafeCastLib.safeCastTo64(storageProvider.maxRedeemablePeriod);
 
 		MockAPI.changeBeneficiary(params);
@@ -70,7 +70,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 		MinerTypes.ChangeBeneficiaryParams memory params;
 
 		params.new_beneficiary = _beneficiaryAddress;
-		params.new_quota = BigIntCBOR.deserializeBigNum(Bytes.toBytes(storageProvider.allocationLimit));
+		params.new_quota = BigIntCBOR.deserializeBigInt(Bytes.toBytes(storageProvider.allocationLimit));
 		params.new_expiration = SafeCastLib.safeCastTo64(storageProvider.maxRedeemablePeriod);
 
 		storageProviders[provider].active = true;
