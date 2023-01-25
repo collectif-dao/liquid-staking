@@ -112,4 +112,11 @@ interface IStorageProviderRegistry {
 	 * @param _allocated FIL amount that is going to be pledged for Storage Provider
 	 */
 	function increaseUsedAllocation(address _provider, uint256 _allocated) external;
+
+	/**
+	 * @notice Update StorageProviderCollateral smart contract
+	 * @param _collateral StorageProviderCollateral smart contract address
+	 * @dev Only triggered by owner contract
+	 */
+	function setCollateralAddress(address _collateral) external;
 }

@@ -7,6 +7,7 @@ import {SelfPermit} from "fei-protocol/erc4626/external/SelfPermit.sol";
 import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {Owned} from "solmate/auth/Owned.sol";
+import "./interfaces/ILiquidStaking.sol";
 import "./interfaces/IStorageProviderCollateral.sol";
 import "./interfaces/IStorageProviderRegistry.sol";
 
@@ -36,37 +37,8 @@ import "./interfaces/IStorageProviderRegistry.sol";
  *     data[1] = abi.encodeWithSelector(PeripheryPayments.unwrapWFIL.selector, amount, address(this));
  *     router.multicall{value: amount}(data);
  */
-contract LiquidStaking is ClFILToken, Multicall, SelfPermit, ReentrancyGuard, Owned {
+contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, ReentrancyGuard, Owned {
 	using SafeTransferLib for *;
-
-	/**
-	 * @notice Emitted when user is staked wFIL to the Liquid Staking
-	 * @param user User's address
-	 * @param assets Total wFIL amount staked
-	 * @param shares Total clFIL amount staked
-	 */
-	event Staked(address indexed user, uint256 assets, uint256 shares);
-
-	/**
-	 * @notice Emitted when user is staked wFIL to the Liquid Staking
-	 * @param user User's address
-	 * @param assets Total wFIL amount unstaked
-	 * @param shares Total clFIL amount unstaked
-	 */
-	event Unstaked(address indexed user, uint256 assets, uint256 shares);
-
-	/**
-	 * @notice Emitted when storage provider is withdrawing FIL for pledge
-	 * @param user Storage Provider address
-	 * @param assets Total wFIL amount pledged
-	 */
-	event Pledge(address indexed user, uint256 assets);
-
-	/**
-	 * @notice Emitted when collateral address is updated
-	 * @param collateral StorageProviderCollateral contract address
-	 */
-	event SetCollateralAddress(address indexed collateral);
 
 	/// @notice The current total amount of FIL that is allocated to SPs.
 	uint256 public totalFilPledged;
@@ -82,12 +54,6 @@ contract LiquidStaking is ClFILToken, Multicall, SelfPermit, ReentrancyGuard, Ow
 	IStorageProviderCollateral public collateral;
 	IStorageProviderRegistry public registry;
 
-	/**
-	 * @notice Maps staker's address to the total amount of wFIL staked.
-	 * @dev Used to determine the amount of fees to be paid to the Liquid Staking pool
-	 */
-	mapping(address => uint256) public getTotalFilStaked;
-
 	constructor(address _wFIL) ClFILToken(_wFIL) Owned(msg.sender) {}
 
 	receive() external payable virtual {}
@@ -95,29 +61,36 @@ contract LiquidStaking is ClFILToken, Multicall, SelfPermit, ReentrancyGuard, Ow
 	fallback() external payable virtual {}
 
 	/**
-	 * @notice Stake wFIL to the Liquid Staking pool and get clFIL in return
-	 * @param assets Total wFIL amount to stake
+	 * @notice Stake FIL to the Liquid Staking pool and get clFIL in return
+	 * native FIL is wrapped into WFIL and deposited into LiquidStaking
+	 *
+	 * @notice msg.value is the amount of FIL to stake
 	 */
-	function stake(uint256 assets) external nonReentrant returns (uint256 shares) {
-		shares = deposit(assets, msg.sender);
+	function stake() external payable nonReentrant returns (uint256 shares) {
+		uint256 assets = msg.value;
 
-		getTotalFilStaked[msg.sender] += assets;
+		// Check for rounding error since we round down in previewDeposit.
+		require((shares = previewDeposit(assets)) != 0, "ZERO_SHARES");
 
-		emit Staked(msg.sender, assets, shares);
+		_wrapWETH9(address(this));
+
+		_mint(msg.sender, shares);
+
+		emit Deposit(msg.sender, msg.sender, assets, shares);
+
+		afterDeposit(assets, shares);
 	}
 
 	/**
 	 * @notice Unstake wFIL from the Liquid Staking pool and burn clFIL tokens
 	 * @param shares Total clFIL amount to burn (unstake)
-	 * @dev Please note that unstake amount has to be clFIL shares (not wFIL assets)
+	 * @dev Please note that unstake amount has to be clFIL shares (not FIL assets)
 	 */
 	function unstake(uint256 shares) external nonReentrant returns (uint256 assets) {
 		require(shares <= maxRedeem(msg.sender), "INVALID_SHARES_AMOUNT");
 		assets = previewRedeem(shares);
 
 		redeem(shares, msg.sender, msg.sender);
-
-		getTotalFilStaked[msg.sender] -= assets;
 
 		emit Unstaked(msg.sender, assets, shares);
 	}
@@ -131,8 +104,6 @@ contract LiquidStaking is ClFILToken, Multicall, SelfPermit, ReentrancyGuard, Ow
 		shares = previewWithdraw(assets);
 
 		withdraw(assets, msg.sender, msg.sender);
-
-		getTotalFilStaked[msg.sender] -= assets;
 
 		emit Unstaked(msg.sender, assets, shares);
 	}
@@ -190,12 +161,36 @@ contract LiquidStaking is ClFILToken, Multicall, SelfPermit, ReentrancyGuard, Ow
 	}
 
 	/**
-	 * @notice Updates StorageProviderCollateral contract address
-	 * @param newAddr StorageProviderCollateral contract address
+	 * @notice Updates StorageProviderRegistry contract address
+	 * @param newAddr StorageProviderRegistry contract address
 	 */
 	function setRegistryAddress(address newAddr) public onlyOwner {
 		registry = IStorageProviderRegistry(newAddr);
 
-		emit SetCollateralAddress(newAddr);
+		emit SetRegistryAddress(newAddr);
+	}
+
+	/**
+	 * @notice Wraps FIL into WFIL and transfers it to the `_recipient` address
+	 * @param _recipient WFIL recipient address
+	 */
+	function _wrapWETH9(address _recipient) internal {
+		uint256 amount = msg.value;
+		WFIL.deposit{value: amount}();
+		WFIL.safeTransfer(_recipient, amount);
+	}
+
+	/**
+	 * @notice Unwraps `_amount` of WFIL into FIL and transfers it to the `_recipient` address
+	 * @param _recipient WFIL recipient address
+	 */
+	function _unwrapWFIL(address _recipient, uint256 _amount) internal {
+		uint256 balanceWETH9 = WFIL.balanceOf(address(this));
+		require(balanceWETH9 >= _amount, "Insufficient WETH9");
+
+		if (balanceWETH9 > 0) {
+			WFIL.withdraw(_amount);
+			_recipient.safeTransferETH(_amount);
+		}
 	}
 }

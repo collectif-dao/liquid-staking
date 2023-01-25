@@ -6,7 +6,6 @@ import {MinerTypes} from "filecoin-solidity/contracts/v0.8/types/MinerTypes.sol"
 import {BigIntCBOR} from "filecoin-solidity/contracts/v0.8/cbor/BigIntCbor.sol";
 import {StorageProviderTypes} from "./types/StorageProviderTypes.sol";
 import {SafeCastLib} from "solmate/utils/SafeCastLib.sol";
-import {Bytes} from "./libraries/Bytes.sol";
 
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -120,7 +119,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry {
 		MinerTypes.ChangeBeneficiaryParams memory params;
 
 		params.new_beneficiary = _beneficiaryAddress;
-		params.new_quota = BigIntCBOR.deserializeBigInt(Bytes.toBytes(storageProvider.allocationLimit));
+		params.new_quota = BigIntCBOR.deserializeBigInt(toBytes(storageProvider.allocationLimit));
 		params.new_expiration = SafeCastLib.safeCastTo64(storageProvider.maxRedeemablePeriod);
 
 		MinerAPI.changeBeneficiary(abi.encodePacked(msg.sender), params);
@@ -143,7 +142,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry {
 		MinerTypes.ChangeBeneficiaryParams memory params;
 
 		params.new_beneficiary = _beneficiaryAddress;
-		params.new_quota = BigIntCBOR.deserializeBigInt(Bytes.toBytes(storageProvider.allocationLimit));
+		params.new_quota = BigIntCBOR.deserializeBigInt(toBytes(storageProvider.allocationLimit));
 		params.new_expiration = SafeCastLib.safeCastTo64(storageProvider.maxRedeemablePeriod);
 
 		storageProviders[provider].active = true;
@@ -297,5 +296,12 @@ contract StorageProviderRegistry is IStorageProviderRegistry {
 		collateral = _collateral;
 
 		emit CollateralAddressUpdated(_collateral);
+	}
+
+	function toBytes(uint256 target) public pure returns (bytes memory b) {
+		b = new bytes(32);
+		assembly {
+			mstore(add(b, 32), target)
+		}
 	}
 }

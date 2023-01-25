@@ -59,39 +59,38 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.assume(amount != 0);
 		hevm.deal(address(this), amount);
 
-		wfil.deposit{value: amount}();
-		wfil.approve(address(staking), amount);
-
-		staking.stake(amount);
+		staking.stake{value: amount}();
 
 		require(staking.balanceOf(address(this)) == amount, "INVALID_BALANCE");
 		require(wfil.balanceOf(address(this)) == 0, "INVALID_BALANCE");
+		require(wfil.balanceOf(address(staking)) == amount, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 	}
 
-	function testStakeWithPermitViaMulticall(uint256 amount) public {
+	function testDeposit(uint256 amount) public {
+		hevm.assume(amount != 0);
+		hevm.deal(address(this), amount);
+
+		wfil.deposit{value: amount}();
+		wfil.approve(address(staking), amount);
+
+		staking.deposit(amount, address(this));
+
+		require(staking.balanceOf(address(this)) == amount, "INVALID_BALANCE");
+		require(wfil.balanceOf(address(this)) == 0, "INVALID_BALANCE");
+		require(wfil.balanceOf(address(staking)) == amount, "INVALID_BALANCE");
+		require(staking.totalAssets() == amount, "INVALID_BALANCE");
+	}
+
+	function testStakeViaMulticall(uint256 amount) public {
 		hevm.assume(amount != 0 && amount > 100);
 		hevm.deal(alice, amount);
 		hevm.startPrank(alice);
 
-		wfil.deposit{value: amount}();
+		bytes[] memory data = new bytes[](1);
+		data[0] = abi.encodeWithSelector(LiquidStaking.stake.selector, amount);
 
-		(uint8 v, bytes32 r, bytes32 s) = hevm.sign(
-			aliceKey,
-			keccak256(
-				abi.encodePacked(
-					"\x19\x01",
-					wfil.DOMAIN_SEPARATOR(),
-					keccak256(abi.encode(PERMIT_TYPEHASH, alice, address(staking), amount, 0, block.timestamp))
-				)
-			)
-		);
-
-		bytes[] memory data = new bytes[](2);
-		data[0] = abi.encodeWithSelector(SelfPermit.selfPermit.selector, wfil, amount, block.timestamp, v, r, s);
-		data[1] = abi.encodeWithSelector(LiquidStaking.stake.selector, amount);
-
-		staking.multicall(data);
+		staking.multicall{value: amount}(data);
 		hevm.stopPrank();
 
 		require(staking.balanceOf(alice) == amount, "INVALID_BALANCE");
@@ -134,21 +133,26 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.assume(amount == 0);
 		hevm.deal(address(this), 1 ether);
 
-		wfil.deposit{value: 0.5 ether}();
-		wfil.approve(address(staking), 0.5 ether);
+		hevm.expectRevert("ZERO_SHARES");
+		staking.stake{value: amount}();
+	}
+
+	function testDepositZeroFIL(uint256 amount) public {
+		hevm.assume(amount == 0);
+		hevm.deal(address(this), 1 ether);
+
+		wfil.deposit{value: amount}();
+		wfil.approve(address(staking), amount);
 
 		hevm.expectRevert("ZERO_SHARES");
-		staking.stake(amount);
+		staking.deposit(amount, address(this));
 	}
 
 	function testUnstake(uint128 amount) public {
 		hevm.assume(amount != 0);
 		hevm.deal(address(this), amount);
 
-		wfil.deposit{value: amount}();
-		wfil.approve(address(staking), amount);
-
-		staking.stake(amount);
+		staking.stake{value: amount}();
 		staking.unstake(amount);
 
 		require(staking.balanceOf(address(this)) == 0, "INVALID_BALANCE");
@@ -160,10 +164,7 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.assume(amount != 0);
 		hevm.deal(address(this), amount);
 
-		wfil.deposit{value: amount}();
-		wfil.approve(address(staking), amount);
-
-		staking.stake(amount);
+		staking.stake{value: amount}();
 
 		uint256 expectedAssets = staking.previewWithdraw(amount);
 		emit log_named_uint("Expected Assets are: ", expectedAssets);
@@ -191,11 +192,7 @@ contract LiquidStakingTest is DSTestPlus {
 		collateral.deposit{value: amount}();
 		hevm.stopPrank();
 
-		// allocate capital to the liquid staking pool
-		wfil.deposit{value: amount}();
-		wfil.approve(address(staking), amount);
-
-		staking.stake(amount);
+		staking.stake{value: amount}();
 
 		// try to pledge FIL from the pool
 		hevm.prank(alice);
