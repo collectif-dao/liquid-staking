@@ -69,7 +69,37 @@ contract LiquidStakingTest is DSTestPlus {
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 	}
 
-	function testStakeViaMulticall(uint256 amount) public {
+	function testStakeWithPermitViaMulticall(uint256 amount) public {
+		hevm.assume(amount != 0 && amount > 100);
+		hevm.deal(alice, amount);
+		hevm.startPrank(alice);
+
+		wfil.deposit{value: amount}();
+
+		(uint8 v, bytes32 r, bytes32 s) = hevm.sign(
+			aliceKey,
+			keccak256(
+				abi.encodePacked(
+					"\x19\x01",
+					wfil.DOMAIN_SEPARATOR(),
+					keccak256(abi.encode(PERMIT_TYPEHASH, alice, address(staking), amount, 0, block.timestamp))
+				)
+			)
+		);
+
+		bytes[] memory data = new bytes[](2);
+		data[0] = abi.encodeWithSelector(SelfPermit.selfPermit.selector, wfil, amount, block.timestamp, v, r, s);
+		data[1] = abi.encodeWithSelector(LiquidStaking.stake.selector, amount);
+
+		staking.multicall(data);
+		hevm.stopPrank();
+
+		require(staking.balanceOf(alice) == amount, "INVALID_BALANCE");
+		require(wfil.balanceOf(alice) == 0, "INVALID_BALANCE");
+		require(staking.totalAssets() == amount, "INVALID_BALANCE");
+	}
+
+	function testStakeWithPermitViaRouterMulticall(uint256 amount) public {
 		hevm.assume(amount != 0);
 		hevm.deal(alice, amount);
 		hevm.startPrank(alice);
@@ -90,14 +120,25 @@ contract LiquidStakingTest is DSTestPlus {
 		bytes[] memory data = new bytes[](3);
 		data[0] = abi.encodeWithSelector(SelfPermit.selfPermit.selector, wfil, amount, block.timestamp, v, r, s);
 		data[1] = abi.encodeWithSelector(PeripheryPayments.approve.selector, wfil, address(staking), amount);
-		data[2] = abi.encodeWithSelector(LiquidStaking.stake.selector, amount);
+		data[2] = abi.encodeWithSelector(StakingRouter.depositToVault.selector, staking, alice, amount, amount);
 
-		// router.multicall(data);
-		// hevm.stopPrank();
+		router.multicall(data);
+		hevm.stopPrank();
 
-		// require(staking.balanceOf(address(this)) == amount, "INVALID_BALANCE");
-		// require(wfil.balanceOf(address(this)) == 0, "INVALID_BALANCE");
-		// require(staking.totalAssets() == amount, "INVALID_BALANCE");
+		require(staking.balanceOf(alice) == amount, "INVALID_BALANCE");
+		require(wfil.balanceOf(alice) == 0, "INVALID_BALANCE");
+		require(staking.totalAssets() == amount, "INVALID_BALANCE");
+	}
+
+	function testStakeZeroFIL(uint256 amount) public {
+		hevm.assume(amount == 0);
+		hevm.deal(address(this), 1 ether);
+
+		wfil.deposit{value: 0.5 ether}();
+		wfil.approve(address(staking), 0.5 ether);
+
+		hevm.expectRevert("ZERO_SHARES");
+		staking.stake(amount);
 	}
 
 	function testUnstake(uint128 amount) public {
