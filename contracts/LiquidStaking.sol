@@ -82,30 +82,53 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 	}
 
 	/**
-	 * @notice Unstake wFIL from the Liquid Staking pool and burn clFIL tokens
+	 * @notice Unstake FIL from the Liquid Staking pool and burn clFIL tokens
 	 * @param shares Total clFIL amount to burn (unstake)
+	 * @param _owner Original owner of clFIL tokens
 	 * @dev Please note that unstake amount has to be clFIL shares (not FIL assets)
 	 */
-	function unstake(uint256 shares) external nonReentrant returns (uint256 assets) {
-		require(shares <= maxRedeem(msg.sender), "INVALID_SHARES_AMOUNT");
-		assets = previewRedeem(shares);
+	function unstake(uint256 shares, address _owner) external nonReentrant returns (uint256 assets) {
+		if (msg.sender != _owner) {
+			uint256 allowed = allowance[_owner][msg.sender]; // Saves gas for limited approvals.
 
-		redeem(shares, msg.sender, msg.sender);
+			if (allowed != type(uint256).max) allowance[_owner][msg.sender] = allowed - shares;
+		}
 
-		emit Unstaked(msg.sender, assets, shares);
+		// Check for rounding error since we round down in previewRedeem.
+		require((assets = previewRedeem(shares)) != 0, "ZERO_ASSETS");
+
+		beforeWithdraw(assets, shares);
+
+		_burn(_owner, shares);
+
+		emit Unstaked(msg.sender, _owner, assets, shares);
+
+		WFIL.withdraw(assets);
+		msg.sender.safeTransferETH(assets);
 	}
 
 	/**
-	 * @notice Unstake wFIL from the Liquid Staking pool and burn clFIL tokens
+	 * @notice Unstake FIL from the Liquid Staking pool and burn clFIL tokens
 	 * @param assets Total FIL amount to unstake
+	 * @param _owner Original owner of clFIL tokens
 	 */
-	function unstakeAssets(uint256 assets) external nonReentrant returns (uint256 shares) {
-		require(assets <= maxWithdraw(msg.sender), "INVALID_ASSETS_AMOUNT");
-		shares = previewWithdraw(assets);
+	function unstakeAssets(uint256 assets, address _owner) external nonReentrant returns (uint256 shares) {
+		shares = previewWithdraw(assets); // No need to check for rounding error, previewWithdraw rounds up.
 
-		withdraw(assets, msg.sender, msg.sender);
+		if (msg.sender != _owner) {
+			uint256 allowed = allowance[_owner][msg.sender]; // Saves gas for limited approvals.
 
-		emit Unstaked(msg.sender, assets, shares);
+			if (allowed != type(uint256).max) allowance[_owner][msg.sender] = allowed - shares;
+		}
+
+		beforeWithdraw(assets, shares);
+
+		_burn(_owner, shares);
+
+		emit Unstaked(msg.sender, _owner, assets, shares);
+
+		WFIL.withdraw(assets);
+		msg.sender.safeTransferETH(assets);
 	}
 
 	/**

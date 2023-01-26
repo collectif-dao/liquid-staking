@@ -5,10 +5,11 @@ interface ILiquidStaking {
 	/**
 	 * @notice Emitted when user is staked wFIL to the Liquid Staking
 	 * @param user User's address
+	 * @param user Original owner of clFIL tokens
 	 * @param assets Total wFIL amount unstaked
 	 * @param shares Total clFIL amount unstaked
 	 */
-	event Unstaked(address indexed user, uint256 assets, uint256 shares);
+	event Unstaked(address indexed user, address indexed owner, uint256 assets, uint256 shares);
 
 	/**
 	 * @notice Emitted when storage provider is withdrawing FIL for pledge
@@ -40,15 +41,17 @@ interface ILiquidStaking {
 	/**
 	 * @notice Unstake wFIL from the Liquid Staking pool and burn clFIL tokens
 	 * @param shares Total clFIL amount to burn (unstake)
+	 * @param owner Original owner of clFIL tokens
 	 * @dev Please note that unstake amount has to be clFIL shares (not wFIL assets)
 	 */
-	function unstake(uint256 shares) external returns (uint256 assets);
+	function unstake(uint256 shares, address owner) external returns (uint256 assets);
 
 	/**
 	 * @notice Unstake wFIL from the Liquid Staking pool and burn clFIL tokens
 	 * @param assets Total FIL amount to unstake
+	 * @param owner Original owner of clFIL tokens
 	 */
-	function unstakeAssets(uint256 assets) external returns (uint256 shares);
+	function unstakeAssets(uint256 assets, address owner) external returns (uint256 shares);
 
 	/**
 	 * @notice Pledge FIL assets from liquid staking pool to miner pledge
