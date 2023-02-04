@@ -4,10 +4,14 @@ out = 'out'
 libs = ['lib']
 test = 'contracts/test'
 cache_path = 'foundry-cache'
-optimizer = false
+# optimizer = false
 # optimizer_runs = 1000
 auto_detect_solc = true
 gas_limit = 9223372036854775807
+
+[profile.default.optimizer_details]
+constantOptimizer = true
+yul = false
 
 [rpc_endpoints]
 hyperspace = "${HYPERSPACE_RPC_URL}"

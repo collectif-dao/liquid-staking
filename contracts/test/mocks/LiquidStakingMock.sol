@@ -69,11 +69,11 @@ contract LiquidStakingMock is LiquidStaking {
 
 	function withdrawRewards(bytes memory miner, uint256 amount) external virtual override nonReentrant {
 		MinerTypes.WithdrawBalanceParams memory params;
-		params.amount_requested = toBytes(amount);
+		params.amount_requested = Bytes.toBytes(amount);
 
 		MinerTypes.WithdrawBalanceReturn memory response = minerActorMock.withdrawBalance(miner, params);
 
-		uint256 withdrawn = toUint256(response.amount_withdrawn, 0);
+		uint256 withdrawn = Bytes.toUint256(response.amount_withdrawn, 0);
 		require(withdrawn == amount, "INCORRECT_WITHDRAWAL_AMOUNT");
 
 		WFIL.deposit{value: withdrawn}();

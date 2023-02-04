@@ -6,14 +6,14 @@ import {Multicall} from "fei-protocol/erc4626/external/Multicall.sol";
 import {SelfPermit} from "fei-protocol/erc4626/external/SelfPermit.sol";
 import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
-import {Owned} from "solmate/auth/Owned.sol";
 import {MinerAPI} from "filecoin-solidity/contracts/v0.8/MinerAPI.sol";
 import {MinerTypes} from "filecoin-solidity/contracts/v0.8/types/MinerTypes.sol";
 import {SendAPI} from "filecoin-solidity/contracts/v0.8/SendAPI.sol";
+import "./libraries/Bytes.sol";
 
 import "./interfaces/ILiquidStaking.sol";
-import "./interfaces/IStorageProviderCollateral.sol";
-import "./interfaces/IStorageProviderRegistry.sol";
+import "./interfaces/IStorageProviderCollateralClient.sol";
+import "./interfaces/IStorageProviderRegistryClient.sol";
 import "./interfaces/IPledgeOracleClient.sol";
 
 /**
@@ -42,26 +42,26 @@ import "./interfaces/IPledgeOracleClient.sol";
  *     data[1] = abi.encodeWithSelector(PeripheryPayments.unwrapWFIL.selector, amount, address(this));
  *     router.multicall{value: amount}(data);
  */
-contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, ReentrancyGuard, Owned {
+contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, ReentrancyGuard {
 	using SafeTransferLib for *;
+
+	event OwnershipTransferred(address indexed user, address indexed newOwner);
 
 	/// @notice The current total amount of FIL that is allocated to SPs.
 	uint256 public totalFilPledged;
+	uint256 private constant BASIS_POINTS = 10000;
 
-	/// @notice The current total amount of FIL that accrued as available rewards.
-	uint256 public totalAvailableRewards;
+	IStorageProviderCollateralClient internal collateral;
+	IStorageProviderRegistryClient internal registry;
+	IPledgeOracleClient internal oracle;
 
-	/// @notice The current total amount of FIL that accrued as locked rewards.
-	uint256 public totalLockedRewards;
+	address public owner;
 
-	uint256 public constant BASIS_POINTS = 10000;
-
-	IStorageProviderCollateral public collateral;
-	IStorageProviderRegistry public registry;
-	IPledgeOracleClient public oracle;
-
-	constructor(address _wFIL, address _oracle) ClFILToken(_wFIL) Owned(msg.sender) {
+	constructor(address _wFIL, address _oracle) ClFILToken(_wFIL) {
 		oracle = IPledgeOracleClient(_oracle);
+		owner = msg.sender;
+
+		emit OwnershipTransferred(address(0), msg.sender);
 	}
 
 	receive() external payable virtual {}
@@ -192,11 +192,11 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 
 	function withdrawRewards(bytes memory miner, uint256 amount) external virtual nonReentrant {
 		MinerTypes.WithdrawBalanceParams memory params;
-		params.amount_requested = toBytes(amount);
+		params.amount_requested = Bytes.toBytes(amount);
 
 		MinerTypes.WithdrawBalanceReturn memory response = MinerAPI.withdrawBalance(miner, params);
 
-		uint256 withdrawn = toUint256(response.amount_withdrawn, 0);
+		uint256 withdrawn = Bytes.toUint256(response.amount_withdrawn, 0);
 		require(withdrawn == amount, "INCORRECT_WITHDRAWAL_AMOUNT");
 
 		WFIL.deposit{value: withdrawn}();
@@ -224,8 +224,9 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 	 * @notice Updates StorageProviderCollateral contract address
 	 * @param newAddr StorageProviderCollateral contract address
 	 */
-	function setCollateralAddress(address newAddr) public onlyOwner {
-		collateral = IStorageProviderCollateral(newAddr);
+	function setCollateralAddress(address newAddr) public {
+		_onlyOwner();
+		collateral = IStorageProviderCollateralClient(newAddr);
 
 		emit SetCollateralAddress(newAddr);
 	}
@@ -241,8 +242,9 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 	 * @notice Updates StorageProviderRegistry contract address
 	 * @param newAddr StorageProviderRegistry contract address
 	 */
-	function setRegistryAddress(address newAddr) public onlyOwner {
-		registry = IStorageProviderRegistry(newAddr);
+	function setRegistryAddress(address newAddr) public {
+		_onlyOwner();
+		registry = IStorageProviderRegistryClient(newAddr);
 
 		emit SetRegistryAddress(newAddr);
 	}
@@ -271,21 +273,14 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 		}
 	}
 
-	function toBytes(uint256 target) internal pure returns (bytes memory b) {
-		b = new bytes(32);
-		assembly {
-			mstore(add(b, 32), target)
-		}
+	function _onlyOwner() private view {
+		require(msg.sender == owner, "UNAUTHORIZED");
 	}
 
-	function toUint256(bytes memory _bytes, uint256 _start) internal pure returns (uint256) {
-		require(_bytes.length >= _start + 32, "toUint256_outOfBounds");
-		uint256 tempUint;
+	function transferOwnership(address newOwner) public virtual {
+		_onlyOwner();
+		owner = newOwner;
 
-		assembly {
-			tempUint := mload(add(add(_bytes, 0x20), _start))
-		}
-
-		return tempUint;
+		emit OwnershipTransferred(msg.sender, newOwner);
 	}
 }
