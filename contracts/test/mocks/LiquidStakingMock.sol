@@ -14,11 +14,12 @@ contract LiquidStakingMock is LiquidStaking {
 
 	IMinerActorMock private minerActorMock;
 
-	constructor(address _wFIL, address minerActor) LiquidStaking(_wFIL) {
+	constructor(address _wFIL, address minerActor, address _oracle) LiquidStaking(_wFIL, _oracle) {
 		minerActorMock = IMinerActorMock(minerActor);
 	}
 
-	function pledge(uint256 assets, uint64 sectorNumber, bytes memory proof) external virtual override nonReentrant {
+	function pledge(uint64 sectorNumber, bytes memory proof) external virtual override nonReentrant {
+		uint256 assets = oracle.getPledgeFees();
 		require(assets <= totalAssets(), "PLEDGE_WITHDRAWAL_OVERFLOW");
 
 		bytes memory provider = abi.encodePacked(msg.sender);
@@ -33,6 +34,37 @@ contract LiquidStakingMock is LiquidStaking {
 		totalFilPledged += assets;
 
 		msg.sender.safeTransferETH(assets);
+	}
+
+	/**
+	 * @notice Pledge FIL assets from liquid staking pool to miner pledge for multiple sectors
+	 * @param sectorNumbers Sector number to be sealed
+	 * @param proofs Sector proof for sealing
+	 */
+	function pledgeAggregate(
+		uint64[] memory sectorNumbers,
+		bytes[] memory proofs
+	) external virtual override nonReentrant {
+		require(sectorNumbers.length == proofs.length, "INVALID_PARAMS");
+		uint256 pledgePerSector = oracle.getPledgeFees();
+		uint256 totalPledge = pledgePerSector * sectorNumbers.length;
+
+		require(totalPledge <= totalAssets(), "PLEDGE_WITHDRAWAL_OVERFLOW");
+
+		bytes memory provider = abi.encodePacked(msg.sender);
+		collateral.lock(provider, totalPledge);
+
+		(, , bytes memory miner, , , , , ) = registry.getStorageProvider(provider);
+
+		for (uint256 i = 0; i < sectorNumbers.length; i++) {
+			emit Pledge(miner, pledgePerSector, sectorNumbers[i]);
+		}
+
+		WFIL.withdraw(totalPledge);
+
+		totalFilPledged += totalPledge;
+
+		msg.sender.safeTransferETH(totalPledge);
 	}
 
 	function withdrawRewards(bytes memory miner, uint256 amount) external virtual override nonReentrant {

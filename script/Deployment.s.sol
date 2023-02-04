@@ -7,6 +7,7 @@ import "../contracts/LiquidStaking.sol";
 import "../contracts/StakingRouter.sol";
 import "../contracts/StorageProviderRegistry.sol";
 import "../contracts/StorageProviderCollateral.sol";
+import "../contracts/PledgeOracle.sol";
 
 contract DeploymentScript is Script {
 	StakingRouter public router;
@@ -14,20 +15,23 @@ contract DeploymentScript is Script {
 	StorageProviderCollateral private collateral;
 	StorageProviderRegistry private registry;
 	IWETH9 public wfil;
+	PledgeOracle public oracle;
 
 	uint256 private constant MAX_STORAGE_PROVIDERS = 200;
 	uint256 private constant MAX_ALLOCATION = 10000 ether;
 	uint256 private constant MIN_TIME_PERIOD = 90 days;
 	uint256 private constant MAX_TIME_PERIOD = 360 days;
+	uint256 private constant genesisEpoch = 35432;
 
 	function run() external {
 		uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 		vm.startBroadcast(deployerPrivateKey);
 
 		wfil = IWETH9(address(new WFIL()));
+		oracle = new PledgeOracle(genesisEpoch);
 
 		router = new StakingRouter("Collective DAO Router", wfil);
-		staking = new LiquidStaking(address(wfil));
+		staking = new LiquidStaking(address(wfil), address(oracle));
 		registry = new StorageProviderRegistry(MAX_STORAGE_PROVIDERS, MAX_ALLOCATION, MIN_TIME_PERIOD, MAX_TIME_PERIOD);
 		collateral = new StorageProviderCollateral(wfil, address(registry));
 

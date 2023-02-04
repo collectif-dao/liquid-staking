@@ -55,12 +55,18 @@ interface ILiquidStaking {
 	function unstakeAssets(uint256 assets, address owner) external returns (uint256 shares);
 
 	/**
-	 * @notice Pledge FIL assets from liquid staking pool to miner pledge
-	 * @param assets Total FIL amount to pledge
+	 * @notice Pledge FIL assets from liquid staking pool to miner pledge for one sector
 	 * @param sectorNumber Sector number to be sealed
 	 * @param proof Sector proof for sealing
 	 */
-	function pledge(uint256 assets, uint64 sectorNumber, bytes memory proof) external;
+	function pledge(uint64 sectorNumber, bytes memory proof) external;
+
+	/**
+	 * @notice Pledge FIL assets from liquid staking pool to miner pledge for multiple sectors
+	 * @param sectorNumbers Sector number to be sealed
+	 * @param proofs Sector proof for sealing
+	 */
+	function pledgeAggregate(uint64[] memory sectorNumbers, bytes[] memory proofs) external;
 
 	/**
 	 * @notice Returns pool usage ratio to determine what percentage of FIL

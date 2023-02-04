@@ -11,6 +11,7 @@ import {IStakingRouter, StakingRouter} from "../StakingRouter.sol";
 import {IERC4626RouterBase, ERC4626RouterBase, IWETH9, IERC4626, SelfPermit, PeripheryPayments} from "fei-protocol/erc4626/ERC4626RouterBase.sol";
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
 import {LiquidStaking} from "../LiquidStaking.sol";
+import {PledgeOracle} from "../PledgeOracle.sol";
 import {MinerActorMock} from "./mocks/MinerActorMock.sol";
 
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
@@ -22,6 +23,7 @@ contract LiquidStakingTest is DSTestPlus {
 	StorageProviderCollateral public collateral;
 	StorageProviderRegistryMock public registry;
 	MinerActorMock public minerActor;
+	PledgeOracle public oracle;
 
 	uint256 private aliceKey = 0xBEEF;
 	address private alice = address(0x122);
@@ -34,6 +36,9 @@ contract LiquidStakingTest is DSTestPlus {
 
 	uint256 public collateralRequirements = 1500;
 	uint256 public constant BASIS_POINTS = 10000;
+	uint256 private constant genesisEpoch = 56576;
+	uint256 private constant preCommitDeposit = 95700000000000000;
+	uint256 private constant initialPledge = 151700000000000000;
 
 	bytes32 public PERMIT_TYPEHASH =
 		keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
@@ -42,8 +47,9 @@ contract LiquidStakingTest is DSTestPlus {
 		alice = hevm.addr(aliceKey);
 
 		wfil = IWETH9(address(new WFIL()));
+		oracle = new PledgeOracle(genesisEpoch);
 		minerActor = new MinerActorMock();
-		staking = new LiquidStakingMock(address(wfil), address(minerActor));
+		staking = new LiquidStakingMock(address(wfil), address(minerActor), address(oracle));
 
 		registry = new StorageProviderRegistryMock(
 			abi.encodePacked(alice),
@@ -61,6 +67,7 @@ contract LiquidStakingTest is DSTestPlus {
 		registry.registerPool(address(staking));
 		staking.setCollateralAddress(address(collateral));
 		staking.setRegistryAddress(address(registry));
+		oracle.updateRecord(genesisEpoch + 1, preCommitDeposit, initialPledge);
 	}
 
 	function testStake(uint256 amount) public {
@@ -233,11 +240,63 @@ contract LiquidStakingTest is DSTestPlus {
 
 		// try to pledge FIL from the pool
 		hevm.prank(alice);
-		staking.pledge(amount, 1, bytes("0"));
+		staking.pledge(1, bytes("0"));
 
 		require(wfil.balanceOf(address(this)) == 0, "INVALID_BALANCE");
-		require(alice.balance == amount, "INVALID_BALANCE");
+		require(alice.balance == preCommitDeposit + initialPledge, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
+	}
+
+	function testPledgeAggregate(uint128 amount) public {
+		uint256 numberOfSectors = 3;
+		uint256 totalPledge = (initialPledge + preCommitDeposit) * numberOfSectors;
+		hevm.assume(amount >= totalPledge && amount <= MAX_ALLOCATION);
+		uint256 collateralAmount = (amount * collateralRequirements) / BASIS_POINTS;
+		hevm.deal(address(this), amount);
+		hevm.deal(alice, collateralAmount);
+
+		bytes memory aliceBytes = abi.encodePacked(alice);
+
+		hevm.startPrank(alice);
+		registry.register(aliceBytes, address(staking), amount, MIN_TIME_PERIOD);
+		registry.acceptBeneficiaryAddress(aliceBytes, address(staking));
+
+		collateral.deposit{value: collateralAmount}();
+		hevm.stopPrank();
+
+		staking.stake{value: amount}();
+
+		(uint64[] memory sectors, bytes[] memory proofs) = prepareSectors();
+		hevm.prank(alice);
+		staking.pledgeAggregate(sectors, proofs);
+
+		require(wfil.balanceOf(address(this)) == 0, "INVALID_BALANCE");
+		require(alice.balance == (preCommitDeposit + initialPledge) * numberOfSectors, "INVALID_BALANCE");
+		require(staking.totalAssets() == amount, "INVALID_BALANCE");
+	}
+
+	function testPledgeAggregateReverts() public {
+		uint256 numberOfSectors = 3;
+		uint256 totalPledge = (initialPledge + preCommitDeposit) * (numberOfSectors - 1);
+		uint256 collateralAmount = (totalPledge * collateralRequirements) / BASIS_POINTS;
+		hevm.deal(address(this), totalPledge);
+		hevm.deal(alice, collateralAmount);
+
+		bytes memory aliceBytes = abi.encodePacked(alice);
+
+		hevm.startPrank(alice);
+		registry.register(aliceBytes, address(staking), totalPledge, MIN_TIME_PERIOD);
+		registry.acceptBeneficiaryAddress(aliceBytes, address(staking));
+
+		collateral.deposit{value: collateralAmount}();
+		hevm.stopPrank();
+
+		staking.stake{value: totalPledge}();
+
+		(uint64[] memory sectors, bytes[] memory proofs) = prepareSectors();
+		hevm.prank(alice);
+		hevm.expectRevert("PLEDGE_WITHDRAWAL_OVERFLOW");
+		staking.pledgeAggregate(sectors, proofs);
 	}
 
 	function testWithdrawBalance(uint128 amount) public {
@@ -251,7 +310,6 @@ contract LiquidStakingTest is DSTestPlus {
 
 		bytes memory aliceBytes = abi.encodePacked(alice);
 
-		// prepare storage provider for getting FIL from liquid staking
 		hevm.startPrank(alice);
 		registry.register(aliceBytes, address(staking), amount, MIN_TIME_PERIOD);
 		registry.acceptBeneficiaryAddress(aliceBytes, address(staking));
@@ -261,13 +319,12 @@ contract LiquidStakingTest is DSTestPlus {
 
 		staking.stake{value: amount}();
 
-		// try to pledge FIL from the pool
 		hevm.prank(alice);
-		staking.pledge(amount, 1, bytes("0"));
+		staking.pledge(1, bytes("0"));
 
 		address(minerActor).call{value: withdrawAmount}("");
 
-		require(alice.balance == amount, "INVALID_BALANCE");
+		require(alice.balance == preCommitDeposit + initialPledge, "INVALID_BALANCE");
 		require(address(minerActor).balance == withdrawAmount, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 
@@ -276,11 +333,22 @@ contract LiquidStakingTest is DSTestPlus {
 
 		require(address(minerActor).balance == 0, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount + withdrawAmount, "INVALID_BALANCE");
-		require(wfil.balanceOf(address(staking)) == withdrawAmount, "INVALID_BALANCE");
 
-		uint256 shares = staking.convertToShares(1 ether);
-		uint256 assets = staking.convertToAssets(1 ether);
-		emit log_named_uint("shares price", shares);
-		emit log_named_uint("assets price", assets);
+		uint256 stakingBalance = amount - (preCommitDeposit + initialPledge) + withdrawAmount;
+		require(wfil.balanceOf(address(staking)) == stakingBalance, "INVALID_BALANCE");
+	}
+
+	function prepareSectors() internal view returns (uint64[] memory, bytes[] memory) {
+		uint64[] memory sectors = new uint64[](3);
+		sectors[0] = uint64(1);
+		sectors[1] = uint64(2);
+		sectors[2] = uint64(3);
+
+		bytes[] memory proofs = new bytes[](3);
+		proofs[0] = bytes("0");
+		proofs[1] = bytes("0");
+		proofs[2] = bytes("0");
+
+		return (sectors, proofs);
 	}
 }
