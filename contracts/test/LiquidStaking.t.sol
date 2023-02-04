@@ -338,7 +338,7 @@ contract LiquidStakingTest is DSTestPlus {
 		require(wfil.balanceOf(address(staking)) == stakingBalance, "INVALID_BALANCE");
 	}
 
-	function prepareSectors() internal view returns (uint64[] memory, bytes[] memory) {
+	function prepareSectors() internal pure returns (uint64[] memory, bytes[] memory) {
 		uint64[] memory sectors = new uint64[](3);
 		sectors[0] = uint64(1);
 		sectors[1] = uint64(2);

@@ -14,7 +14,6 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	IWETH9 public wfil;
 
 	bytes public owner = abi.encodePacked(address(this));
-	bytes private minerAddress = abi.encodePacked(address(0x11));
 	bytes private oldMiner = bytes("f2rhhfmqyc4jqirwwangsi752ea2pllz425w4yupq");
 
 	uint256 private constant MAX_STORAGE_PROVIDERS = 200;
@@ -68,8 +67,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		assertEq(registry.getTotalActiveStorageProviders(), 0);
 	}
 
-	function testChangeBeneficiaryAddress() public {
-		registry.register(minerAddress, address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
+	function testChangeBeneficiaryAddress(address miner) public {
+		registry.register(abi.encodePacked(miner), address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
 		registry.changeBeneficiaryAddress(address(staking));
 
 		(, address targetPool, , , , , , ) = registry.getStorageProvider(owner);
@@ -77,11 +76,11 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		assertEq(targetPool, address(staking));
 	}
 
-	function testChangeBeneficiaryAddressReverts(address beneficiary) public {
-		hevm.assume(beneficiary != address(0) && beneficiary != address(staking));
+	function testChangeBeneficiaryAddressReverts(address miner, address beneficiary) public {
+		hevm.assume(beneficiary != address(0) && beneficiary != address(staking) && miner != address(0));
 		hevm.etch(beneficiary, bytes("0x102"));
 
-		registry.register(minerAddress, address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
+		registry.register(abi.encodePacked(miner), address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
 
 		hevm.expectRevert("INVALID_ADDRESS");
 
