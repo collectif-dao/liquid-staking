@@ -2,9 +2,9 @@
 pragma solidity ^0.8.16;
 
 interface IStorageProviderCollateral {
-	event StorageProviderCollateralDeposit(address indexed provider, uint256 amount);
-	event StorageProviderCollateralWithdraw(address indexed provider, uint256 amount);
-	event StorageProviderCollateralLock(address indexed provider, uint256 allocation, uint256 lockAmount);
+	event StorageProviderCollateralDeposit(bytes provider, uint256 amount);
+	event StorageProviderCollateralWithdraw(bytes provider, uint256 amount);
+	event StorageProviderCollateralLock(bytes provider, uint256 allocation, uint256 lockAmount);
 
 	/**
 	 * @dev Deposit `msg.value` FIL funds by the msg.sender into collateral
@@ -25,20 +25,20 @@ interface IStorageProviderCollateral {
 	 * @param _provider WFIL recipient address
 	 * @param _allocated FIL amount that is going to be pledged for Storage Provider
 	 */
-	function lock(address _provider, uint256 _allocated) external;
+	function lock(bytes memory _provider, uint256 _allocated) external;
 
 	/**
 	 * @notice Return Storage Provider Collateral information with `_provider` address
 	 */
-	function getCollateral(address _provider) external view returns (uint256, uint256);
+	function getCollateral(bytes memory _provider) external view returns (uint256, uint256);
 
 	/**
 	 * @notice Return Storage Provider Available Collateral information with `_provider` address
 	 */
-	function getAvailableCollateral(address _provider) external view returns (uint256);
+	function getAvailableCollateral(bytes memory _provider) external view returns (uint256);
 
 	/**
 	 * @notice Return Storage Provider Locked Collateral information with `_provider` address
 	 */
-	function getLockedCollateral(address _provider) external view returns (uint256);
+	function getLockedCollateral(bytes memory _provider) external view returns (uint256);
 }

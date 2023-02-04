@@ -7,6 +7,10 @@ import {SelfPermit} from "fei-protocol/erc4626/external/SelfPermit.sol";
 import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {Owned} from "solmate/auth/Owned.sol";
+import {MinerAPI} from "filecoin-solidity/contracts/v0.8/MinerAPI.sol";
+import {MinerTypes} from "filecoin-solidity/contracts/v0.8/types/MinerTypes.sol";
+import {SendAPI} from "filecoin-solidity/contracts/v0.8/SendAPI.sol";
+
 import "./interfaces/ILiquidStaking.sol";
 import "./interfaces/IStorageProviderCollateral.sol";
 import "./interfaces/IStorageProviderRegistry.sol";
@@ -134,20 +138,38 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 	/**
 	 * @notice Pledge FIL assets from liquid staking pool to miner pledge
 	 * @param assets Total FIL amount to pledge
+	 * @param sectorNumber Sector number to be sealed
+	 * @param proof Sector proof for sealing
 	 */
-	function pledge(uint256 assets) external nonReentrant {
+	function pledge(uint256 assets, uint64 sectorNumber, bytes memory proof) external virtual nonReentrant {
 		require(assets <= totalAssets(), "PLEDGE_WITHDRAWAL_OVERFLOW");
-		collateral.lock(msg.sender, assets);
 
-		emit Pledge(msg.sender, assets);
+		bytes memory provider = abi.encodePacked(msg.sender);
+		collateral.lock(provider, assets);
+
+		(, , bytes memory miner, , , , , ) = registry.getStorageProvider(provider);
+
+		emit Pledge(miner, assets, sectorNumber);
 
 		WFIL.withdraw(assets);
 
 		totalFilPledged += assets;
 
-		msg.sender.safeTransferETH(assets);
+		SendAPI.send(miner, assets); // send FIL to the miner actor
+	}
 
-		// TODO: add prove commit sector logic for pledge operation
+	function withdrawRewards(bytes memory miner, uint256 amount) external virtual nonReentrant {
+		MinerTypes.WithdrawBalanceParams memory params;
+		params.amount_requested = toBytes(amount);
+
+		MinerTypes.WithdrawBalanceReturn memory response = MinerAPI.withdrawBalance(miner, params);
+
+		uint256 withdrawn = toUint256(response.amount_withdrawn, 0);
+		require(withdrawn == amount, "INCORRECT_WITHDRAWAL_AMOUNT");
+
+		WFIL.deposit{value: withdrawn}();
+		// TODO: Increase rewards, recalculate locked rewards
+		registry.increaseRewards(miner, withdrawn, 0);
 	}
 
 	/**
@@ -215,5 +237,23 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 			WFIL.withdraw(_amount);
 			_recipient.safeTransferETH(_amount);
 		}
+	}
+
+	function toBytes(uint256 target) internal pure returns (bytes memory b) {
+		b = new bytes(32);
+		assembly {
+			mstore(add(b, 32), target)
+		}
+	}
+
+	function toUint256(bytes memory _bytes, uint256 _start) internal pure returns (uint256) {
+		require(_bytes.length >= _start + 32, "toUint256_outOfBounds");
+		uint256 tempUint;
+
+		assembly {
+			tempUint := mload(add(add(_bytes, 0x20), _start))
+		}
+
+		return tempUint;
 	}
 }

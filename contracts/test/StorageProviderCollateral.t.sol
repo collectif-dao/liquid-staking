@@ -18,6 +18,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	IWETH9 public wfil;
 
 	address private alice = address(0x122);
+	bytes private aliceBytesAddress = abi.encodePacked(alice);
 	address private bob = address(0x123);
 
 	uint256 private constant MAX_STORAGE_PROVIDERS = 200;
@@ -44,11 +45,8 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		registry.setCollateralAddress(address(collateral));
 
 		hevm.prank(alice);
-		registry.register(alice, address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
-
-		bytes memory aliceBytes = abi.encodePacked(alice);
-		bytes memory stakingBytes = abi.encodePacked(address(staking));
-		registry.acceptBeneficiaryAddress(aliceBytes, stakingBytes);
+		registry.register(aliceBytesAddress, address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
+		registry.acceptBeneficiaryAddress(aliceBytesAddress, address(staking));
 	}
 
 	function testDeposit(uint256 amount) public {
@@ -58,10 +56,10 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		hevm.prank(alice);
 		collateral.deposit{value: amount}();
 
-		uint256 availableCollateral = collateral.getAvailableCollateral(alice);
+		uint256 availableCollateral = collateral.getAvailableCollateral(aliceBytesAddress);
 
 		assertEq(availableCollateral, amount);
-		assertEq(collateral.getLockedCollateral(alice), 0);
+		assertEq(collateral.getLockedCollateral(aliceBytesAddress), 0);
 
 		require(wfil.balanceOf(address(collateral)) == amount, "INVALID_BALANCE");
 		require(wfil.balanceOf(alice) == 0, "INVALID_BALANCE");
@@ -88,17 +86,11 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		hevm.startPrank(alice);
 		collateral.deposit{value: amount}();
 
-		emit log_uint(amount);
-		emit log_uint(wfil.balanceOf(address(collateral)));
-		emit log_uint(wfil.balanceOf(alice));
-
 		collateral.withdraw(amount);
 		hevm.stopPrank();
 
-		assertEq(collateral.getAvailableCollateral(alice), 0);
+		assertEq(collateral.getAvailableCollateral(aliceBytesAddress), 0);
 		assertEq(alice.balance, balanceBefore);
-
-		emit log_uint(alice.balance);
 
 		require(wfil.balanceOf(address(collateral)) == 0, "INVALID_BALANCE");
 		require(wfil.balanceOf(alice) == 0, "INVALID_BALANCE");
@@ -106,26 +98,24 @@ contract StorageProviderCollateralTest is DSTestPlus {
 
 	function testWithdrawMaxAmount(uint128 amount) public {
 		hevm.assume(amount != 0 && amount < 2000000000 ether);
-		hevm.deal(bob, amount);
+		hevm.deal(alice, amount);
 		uint256 balanceBefore = amount;
 
-		hevm.prank(bob);
-		registry.register(bob, address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
+		hevm.prank(alice);
+		registry.register(aliceBytesAddress, address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
 
-		bytes memory bobBytes = abi.encodePacked(bob);
-		bytes memory stakingBytes = abi.encodePacked(address(staking));
-		registry.acceptBeneficiaryAddress(bobBytes, stakingBytes);
+		registry.acceptBeneficiaryAddress(aliceBytesAddress, address(staking));
 
-		hevm.startPrank(bob);
+		hevm.startPrank(alice);
 		collateral.deposit{value: amount}();
 		collateral.withdraw(amount + 10 ether); // try to withdraw 10 FIL more
 		hevm.stopPrank();
 
-		assertEq(collateral.getAvailableCollateral(bob), 0);
-		assertEq(bob.balance, balanceBefore); // validate that amount withdrawn is the same as Bob's deposit
+		assertEq(collateral.getAvailableCollateral(aliceBytesAddress), 0);
+		assertEq(alice.balance, balanceBefore); // validate that amount withdrawn is the same as Bob's deposit
 
 		require(wfil.balanceOf(address(collateral)) == 0, "INVALID_BALANCE");
-		require(wfil.balanceOf(bob) == 0, "INVALID_BALANCE");
+		require(wfil.balanceOf(alice) == 0, "INVALID_BALANCE");
 	}
 
 	function testLock(uint256 amount) public {
@@ -133,20 +123,18 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		hevm.deal(alice, amount);
 
 		hevm.startPrank(alice);
-		registry.register(alice, address(staking), amount, MIN_TIME_PERIOD);
 
-		bytes memory aliceBytes = abi.encodePacked(alice);
-		bytes memory stakingBytes = abi.encodePacked(address(staking));
+		registry.register(aliceBytesAddress, address(staking), amount, MIN_TIME_PERIOD);
+		registry.acceptBeneficiaryAddress(aliceBytesAddress, address(staking));
 
-		registry.acceptBeneficiaryAddress(aliceBytes, stakingBytes);
 		collateral.deposit{value: amount}();
-		assertEq(collateral.getAvailableCollateral(alice), amount);
+		assertEq(collateral.getAvailableCollateral(aliceBytesAddress), amount);
 		hevm.stopPrank();
 
-		collateral.lock(alice, amount);
+		collateral.lock(aliceBytesAddress, amount);
 
 		uint256 lockedAmount = (amount * collateralRequirements) / BASIS_POINTS;
-		assertEq(collateral.getLockedCollateral(alice), lockedAmount);
+		assertEq(collateral.getLockedCollateral(aliceBytesAddress), lockedAmount);
 
 		require(wfil.balanceOf(address(collateral)) == amount, "INVALID_BALANCE");
 		require(wfil.balanceOf(alice) == 0, "INVALID_BALANCE");
@@ -157,19 +145,17 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		hevm.deal(alice, amount);
 
 		hevm.startPrank(alice);
-		registry.register(alice, address(staking), amount, MIN_TIME_PERIOD);
 
-		bytes memory aliceBytes = abi.encodePacked(alice);
-		bytes memory stakingBytes = abi.encodePacked(address(staking));
+		registry.register(aliceBytesAddress, address(staking), amount, MIN_TIME_PERIOD);
+		registry.acceptBeneficiaryAddress(aliceBytesAddress, address(staking));
 
-		registry.acceptBeneficiaryAddress(aliceBytes, stakingBytes);
 		collateral.deposit{value: amount}();
 		hevm.stopPrank();
 
 		hevm.expectRevert("ALLOCATION_OVERFLOW");
-		collateral.lock(alice, amount * 2);
+		collateral.lock(aliceBytesAddress, amount * 2);
 
-		assertEq(collateral.getAvailableCollateral(alice), amount);
-		assertEq(collateral.getLockedCollateral(alice), 0);
+		assertEq(collateral.getAvailableCollateral(aliceBytesAddress), amount);
+		assertEq(collateral.getLockedCollateral(aliceBytesAddress), 0);
 	}
 }

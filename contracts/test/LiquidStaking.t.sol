@@ -9,16 +9,19 @@ import {IStorageProviderCollateral, StorageProviderCollateral} from "../StorageP
 import {StorageProviderRegistryMock} from "./mocks/StorageProviderRegistryMock.sol";
 import {IStakingRouter, StakingRouter} from "../StakingRouter.sol";
 import {IERC4626RouterBase, ERC4626RouterBase, IWETH9, IERC4626, SelfPermit, PeripheryPayments} from "fei-protocol/erc4626/ERC4626RouterBase.sol";
+import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
 import {LiquidStaking} from "../LiquidStaking.sol";
+import {MinerActorMock} from "./mocks/MinerActorMock.sol";
 
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 
 contract LiquidStakingTest is DSTestPlus {
-	LiquidStaking public staking;
+	LiquidStakingMock public staking;
 	StakingRouter public router;
 	IWETH9 public wfil;
 	StorageProviderCollateral public collateral;
 	StorageProviderRegistryMock public registry;
+	MinerActorMock public minerActor;
 
 	uint256 private aliceKey = 0xBEEF;
 	address private alice = address(0x122);
@@ -39,7 +42,8 @@ contract LiquidStakingTest is DSTestPlus {
 		alice = hevm.addr(aliceKey);
 
 		wfil = IWETH9(address(new WFIL()));
-		staking = new LiquidStaking(address(wfil));
+		minerActor = new MinerActorMock();
+		staking = new LiquidStakingMock(address(wfil), address(minerActor));
 
 		registry = new StorageProviderRegistryMock(
 			abi.encodePacked(alice),
@@ -54,6 +58,7 @@ contract LiquidStakingTest is DSTestPlus {
 		router = new StakingRouter("Collective DAO Router", wfil);
 
 		registry.setCollateralAddress(address(collateral));
+		registry.registerPool(address(staking));
 		staking.setCollateralAddress(address(collateral));
 		staking.setRegistryAddress(address(registry));
 	}
@@ -213,14 +218,13 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.deal(address(this), amount);
 		hevm.deal(alice, collateralAmount);
 
+		bytes memory aliceBytes = abi.encodePacked(alice);
+
 		// prepare storage provider for getting FIL from liquid staking
 		hevm.startPrank(alice);
-		registry.register(alice, address(staking), amount, MIN_TIME_PERIOD);
+		registry.register(aliceBytes, address(staking), amount, MIN_TIME_PERIOD);
 
-		bytes memory aliceBytes = abi.encodePacked(alice);
-		bytes memory stakingBytes = abi.encodePacked(address(staking));
-
-		registry.acceptBeneficiaryAddress(aliceBytes, stakingBytes);
+		registry.acceptBeneficiaryAddress(aliceBytes, address(staking));
 
 		collateral.deposit{value: collateralAmount}();
 		hevm.stopPrank();
@@ -229,10 +233,54 @@ contract LiquidStakingTest is DSTestPlus {
 
 		// try to pledge FIL from the pool
 		hevm.prank(alice);
-		staking.pledge(amount);
+		staking.pledge(amount, 1, bytes("0"));
 
 		require(wfil.balanceOf(address(this)) == 0, "INVALID_BALANCE");
 		require(alice.balance == amount, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
+	}
+
+	function testWithdrawBalance(uint128 amount) public {
+		hevm.assume(amount != 0 && amount <= MAX_ALLOCATION && amount > 1 ether);
+		uint256 collateralAmount = (amount * collateralRequirements) / BASIS_POINTS;
+		hevm.deal(address(this), amount);
+		hevm.deal(alice, collateralAmount);
+
+		uint256 withdrawAmount = (amount * 500) / BASIS_POINTS;
+		hevm.deal(address(minerActor), withdrawAmount);
+
+		bytes memory aliceBytes = abi.encodePacked(alice);
+
+		// prepare storage provider for getting FIL from liquid staking
+		hevm.startPrank(alice);
+		registry.register(aliceBytes, address(staking), amount, MIN_TIME_PERIOD);
+		registry.acceptBeneficiaryAddress(aliceBytes, address(staking));
+
+		collateral.deposit{value: collateralAmount}();
+		hevm.stopPrank();
+
+		staking.stake{value: amount}();
+
+		// try to pledge FIL from the pool
+		hevm.prank(alice);
+		staking.pledge(amount, 1, bytes("0"));
+
+		address(minerActor).call{value: withdrawAmount}("");
+
+		require(alice.balance == amount, "INVALID_BALANCE");
+		require(address(minerActor).balance == withdrawAmount, "INVALID_BALANCE");
+		require(staking.totalAssets() == amount, "INVALID_BALANCE");
+
+		bytes memory minerActorBytesAddress = abi.encodePacked(address(minerActor));
+		staking.withdrawRewards(minerActorBytesAddress, withdrawAmount);
+
+		require(address(minerActor).balance == 0, "INVALID_BALANCE");
+		require(staking.totalAssets() == amount + withdrawAmount, "INVALID_BALANCE");
+		require(wfil.balanceOf(address(staking)) == withdrawAmount, "INVALID_BALANCE");
+
+		uint256 shares = staking.convertToShares(1 ether);
+		uint256 assets = staking.convertToAssets(1 ether);
+		emit log_named_uint("shares price", shares);
+		emit log_named_uint("assets price", assets);
 	}
 }
