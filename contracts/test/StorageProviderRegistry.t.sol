@@ -13,6 +13,9 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	IERC4626 public staking;
 	IWETH9 public wfil;
 
+	bytes public owner = abi.encodePacked(address(this));
+	bytes private oldMiner = bytes("f2rhhfmqyc4jqirwwangsi752ea2pllz425w4yupq");
+
 	uint256 private constant MAX_STORAGE_PROVIDERS = 200;
 	uint256 private constant MAX_ALLOCATION = 10000 ether;
 	uint256 private constant MIN_TIME_PERIOD = 90 days;
@@ -23,7 +26,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		staking = IERC4626(address(new MockERC4626(wfil, "Collective FIL Liquid Staking", "clFIL")));
 
 		registry = new StorageProviderRegistryMock(
-			abi.encodePacked(msg.sender),
+			owner,
 			MAX_STORAGE_PROVIDERS,
 			MAX_ALLOCATION,
 			MIN_TIME_PERIOD,
@@ -31,31 +34,31 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		);
 	}
 
-	function testRegister(address workerAddress, uint256 allocation, uint256 period) public {
+	function testRegister(bytes memory miner, uint256 allocation, uint256 period) public {
 		hevm.assume(
-			workerAddress != address(0) &&
+			miner.length > 1 &&
 				allocation != 0 &&
 				allocation <= MAX_ALLOCATION &&
 				period >= MIN_TIME_PERIOD &&
 				period <= MAX_TIME_PERIOD
 		);
 
-		registry.register(workerAddress, address(staking), allocation, period);
+		registry.register(miner, address(staking), allocation, period);
 
 		(
 			bool isActive,
 			address targetPool,
-			address worker,
+			bytes memory minerActor,
 			uint256 allocationLimit,
 			uint256 usedAllocation,
 			uint256 accruedRewards,
 			uint256 lockedRewards,
 			uint256 maxPeriod
-		) = registry.getStorageProvider(address(this));
+		) = registry.getStorageProvider(owner);
 
 		assertBoolEq(isActive, false);
 		assertEq(targetPool, address(staking));
-		assertEq(worker, workerAddress);
+		assertEq0(miner, minerActor);
 		assertEq(allocationLimit, allocation);
 		assertEq(usedAllocation, 0);
 		assertEq(accruedRewards, 0);
@@ -64,42 +67,36 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		assertEq(registry.getTotalActiveStorageProviders(), 0);
 	}
 
-	function testChangeBeneficiaryAddress() public {
-		registry.register(address(0x11), address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
+	function testChangeBeneficiaryAddress(address miner) public {
+		registry.register(abi.encodePacked(miner), address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
+		registry.changeBeneficiaryAddress(address(staking));
 
-		bytes memory target = abi.encodePacked(address(staking));
-		registry.changeBeneficiaryAddress(target);
-
-		(, address targetPool, , , , , , ) = registry.getStorageProvider(address(this));
+		(, address targetPool, , , , , , ) = registry.getStorageProvider(owner);
 
 		assertEq(targetPool, address(staking));
 	}
 
-	function testChangeBeneficiaryAddressReverts(address beneficiary) public {
-		hevm.assume(beneficiary != address(0) && beneficiary != address(staking));
+	function testChangeBeneficiaryAddressReverts(address miner, address beneficiary) public {
+		hevm.assume(beneficiary != address(0) && beneficiary != address(staking) && miner != address(0));
 		hevm.etch(beneficiary, bytes("0x102"));
 
-		registry.register(address(0x11), address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
+		registry.register(abi.encodePacked(miner), address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
 
 		hevm.expectRevert("INVALID_ADDRESS");
 
-		bytes memory target = abi.encodePacked(beneficiary);
-		registry.changeBeneficiaryAddress(target);
+		registry.changeBeneficiaryAddress(beneficiary);
 	}
 
-	function testAcceptBeneficiaryAddress(address provider) public {
-		hevm.assume(provider != address(0));
-		hevm.prank(provider);
+	function testAcceptBeneficiaryAddress(address miner) public {
+		hevm.assume(miner != address(0));
+		bytes memory minerAddress = abi.encodePacked(miner);
 
-		registry.register(provider, address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
-		assertBoolEq(registry.isActiveProvider(provider), false);
+		registry.register(minerAddress, address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
+		assertBoolEq(registry.isActiveProvider(owner), false);
 
-		bytes memory target = abi.encodePacked(provider);
-		bytes memory benefiticiaryTarget = abi.encodePacked(address(staking));
-		registry.acceptBeneficiaryAddress(target, benefiticiaryTarget);
+		registry.acceptBeneficiaryAddress(owner, address(staking));
 
-		assertBoolEq(registry.isActiveProvider(provider), true);
-
+		assertBoolEq(registry.isActiveProvider(owner), true);
 		assertEq(registry.getTotalActiveStorageProviders(), 1);
 	}
 
@@ -119,18 +116,16 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	// 	assertEq(registry.getTotalActiveStorageProviders(), 0);
 	// }
 
-	function testDeactivateStorageProvider(address provider) public {
-		hevm.assume(provider != address(0));
-		hevm.prank(provider);
+	function testDeactivateStorageProvider(address miner) public {
+		hevm.assume(miner != address(0));
+		bytes memory minerAddress = abi.encodePacked(miner);
 
-		registry.register(provider, address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
+		registry.register(minerAddress, address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
+		registry.acceptBeneficiaryAddress(owner, address(staking));
+		assertBoolEq(registry.isActiveProvider(owner), true);
 
-		bytes memory target = abi.encodePacked(provider);
-		bytes memory benefiticiaryTarget = abi.encodePacked(address(staking));
-		registry.acceptBeneficiaryAddress(target, benefiticiaryTarget);
-
-		registry.deactivateStorageProvider(provider);
-		assertBoolEq(registry.isActiveProvider(provider), false);
+		registry.deactivateStorageProvider(owner);
+		assertBoolEq(registry.isActiveProvider(owner), false);
 	}
 
 	// function testDeactivateStorageProviderReverts(address provider) public {
@@ -148,82 +143,63 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	// 	registry.deactivateStorageProvider(provider);
 	// }
 
-	function testSetWorketAddress(address provider, address worker) public {
-		hevm.assume(provider != address(0) && worker != address(0) && worker != provider);
-		hevm.prank(provider);
+	function testSetMinerAddress(bytes memory newMiner) public {
+		hevm.assume(newMiner.length > 1 && keccak256(newMiner) != keccak256(oldMiner));
 
-		registry.register(provider, address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
+		registry.register(oldMiner, address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
+		registry.acceptBeneficiaryAddress(owner, address(staking));
 
-		bytes memory target = abi.encodePacked(provider);
-		bytes memory benefiticiaryTarget = abi.encodePacked(address(staking));
-		registry.acceptBeneficiaryAddress(target, benefiticiaryTarget);
-
-		registry.setWorkerAddress(provider, worker);
-		(, , address workerAddress, , , , , ) = registry.getStorageProvider(provider);
-		assertEq(workerAddress, worker);
+		registry.setMinerAddress(owner, newMiner);
+		(, , bytes memory minerAddress, , , , , ) = registry.getStorageProvider(owner);
+		assertEq0(minerAddress, newMiner);
 	}
 
-	function testSetWorketAddressReverts(address provider, address worker) public {
-		hevm.assume(provider != address(0) && worker != address(0) && worker != provider);
-		hevm.prank(provider);
+	function testSetMinerAddressReverts(bytes memory newMiner) public {
+		hevm.assume(newMiner.length > 1 && keccak256(newMiner) != keccak256(oldMiner));
 
-		registry.register(provider, address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
+		registry.register(oldMiner, address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
 
 		hevm.expectRevert("INACTIVE_STORAGE_PROVIDER");
-		registry.setWorkerAddress(provider, worker);
+		registry.setMinerAddress(owner, newMiner);
 	}
 
-	function testSetAllocationLimit(address provider, uint256 allocation) public {
-		hevm.assume(provider != address(0) && allocation < MAX_ALLOCATION);
-		hevm.prank(provider);
+	function testSetAllocationLimit(uint256 allocation) public {
+		hevm.assume(allocation < MAX_ALLOCATION);
+		registry.register(oldMiner, address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
 
-		registry.register(provider, address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
+		registry.acceptBeneficiaryAddress(owner, address(staking));
 
-		bytes memory target = abi.encodePacked(provider);
-		bytes memory benefiticiaryTarget = abi.encodePacked(address(staking));
-		registry.acceptBeneficiaryAddress(target, benefiticiaryTarget);
-
-		registry.setAllocationLimit(provider, allocation);
-		(, , , uint256 allocationLimit, , , , ) = registry.getStorageProvider(provider);
+		registry.setAllocationLimit(owner, allocation);
+		(, , , uint256 allocationLimit, , , , ) = registry.getStorageProvider(owner);
 		assertEq(allocationLimit, allocation);
 	}
 
-	function testSetAllocationLimitReverts(address provider, uint256 allocation) public {
-		hevm.assume(provider != address(0) && allocation < MAX_ALLOCATION);
-		hevm.prank(provider);
-
-		registry.register(provider, address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
+	function testSetAllocationLimitReverts(uint256 allocation) public {
+		hevm.assume(allocation < MAX_ALLOCATION);
+		registry.register(oldMiner, address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
 
 		hevm.expectRevert("INACTIVE_STORAGE_PROVIDER");
-		registry.setAllocationLimit(provider, allocation);
+		registry.setAllocationLimit(owner, allocation);
 	}
 
-	function testSetMaxRedeemablePeriod(address provider, uint256 period) public {
-		hevm.assume(provider != address(0) && period > MIN_TIME_PERIOD && period < MAX_TIME_PERIOD);
-		hevm.prank(provider);
+	function testSetMaxRedeemablePeriod(uint256 period) public {
+		hevm.assume(period > MIN_TIME_PERIOD && period < MAX_TIME_PERIOD);
 
-		registry.register(provider, address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
+		registry.register(oldMiner, address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
+		registry.acceptBeneficiaryAddress(owner, address(staking));
 
-		bytes memory target = abi.encodePacked(provider);
-		bytes memory benefiticiaryTarget = abi.encodePacked(address(staking));
-		registry.acceptBeneficiaryAddress(target, benefiticiaryTarget);
-
-		registry.setMaxRedeemablePeriod(provider, period);
-		(, , , , , , , uint256 maxRedeemablePeriod) = registry.getStorageProvider(provider);
+		registry.setMaxRedeemablePeriod(owner, period);
+		(, , , , , , , uint256 maxRedeemablePeriod) = registry.getStorageProvider(owner);
 		assertEq(maxRedeemablePeriod, period + block.timestamp);
 	}
 
-	function testSetMaxRedeemablePeriodReverts(address provider, uint256 period) public {
-		hevm.assume(provider != address(0) && period < MIN_TIME_PERIOD);
-		hevm.prank(provider);
+	function testSetMaxRedeemablePeriodReverts(uint256 period) public {
+		hevm.assume(period < MIN_TIME_PERIOD);
 
-		registry.register(provider, address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
-
-		bytes memory target = abi.encodePacked(provider);
-		bytes memory benefiticiaryTarget = abi.encodePacked(address(staking));
-		registry.acceptBeneficiaryAddress(target, benefiticiaryTarget);
+		registry.register(oldMiner, address(staking), MAX_ALLOCATION, MIN_TIME_PERIOD);
+		registry.acceptBeneficiaryAddress(owner, address(staking));
 
 		hevm.expectRevert("INVALID_PERIOD");
-		registry.setMaxRedeemablePeriod(provider, period);
+		registry.setMaxRedeemablePeriod(owner, period);
 	}
 }

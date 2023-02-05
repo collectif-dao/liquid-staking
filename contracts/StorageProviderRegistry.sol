@@ -6,7 +6,6 @@ import {MinerTypes} from "filecoin-solidity/contracts/v0.8/types/MinerTypes.sol"
 import {BigIntCBOR} from "filecoin-solidity/contracts/v0.8/cbor/BigIntCbor.sol";
 import {StorageProviderTypes} from "./types/StorageProviderTypes.sol";
 import {SafeCastLib} from "solmate/utils/SafeCastLib.sol";
-import {Bytes} from "./libraries/Bytes.sol";
 
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -27,7 +26,9 @@ contract StorageProviderRegistry is IStorageProviderRegistry {
 	using Address for address;
 
 	// Mapping of storage provider addresses to their storage provider info
-	mapping(address => StorageProviderTypes.StorageProvider) public storageProviders;
+	mapping(bytes => StorageProviderTypes.StorageProvider) public storageProviders;
+
+	mapping(address => bool) public pools;
 
 	Counters.Counter public totalStorageProviders;
 	Counters.Counter public totalInactiveStorageProviders;
@@ -49,7 +50,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry {
 		_;
 	}
 
-	modifier activeStorageProvider(address _provider) {
+	modifier activeStorageProvider(bytes memory _provider) {
 		require(storageProviders[_provider].active, "INACTIVE_STORAGE_PROVIDER");
 		_;
 	}
@@ -70,27 +71,33 @@ contract StorageProviderRegistry is IStorageProviderRegistry {
 	}
 
 	/**
-	 * @notice Register storage provider with worker address `_worker` and desired `_allocationLimit`
-	 * @param _worker Storage Provider worker address in Filecoin network
+	 * @notice Register storage provider with miner address `_miner` and desired `_allocationLimit`
+	 * @param _miner Storage Provider miner address in Filecoin network
 	 * @param _targetPool Target liquid staking strategy
 	 * @param _allocationLimit FIL allocation for storage provider
 	 * @param _period Redeemable period for FIL allocation
 	 */
 	function register(
-		address _worker,
+		bytes memory _miner,
 		address _targetPool,
 		uint256 _allocationLimit,
 		uint256 _period
-	) public validAddress(_worker) {
+	) public virtual override validBytes(_miner) {
 		require(_allocationLimit <= maxAllocation, "INVALID_ALLOCATION");
 		require(_period <= maxTimePeriod, "INVALID_PERIOD");
 		require(_targetPool.isContract(), "INVALID_TARGET_POOL");
 
-		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[msg.sender];
-		storageProvider.worker = _worker;
+		MinerTypes.GetOwnerReturn memory actualOwner = MinerAPI.getOwner(_miner);
+		bytes memory owner = abi.encodePacked(msg.sender);
+		require(keccak256(owner) == keccak256(actualOwner.owner), "INVALID_MINER_OWNERSHIP");
+		require(keccak256(bytes("")) == keccak256(actualOwner.proposed), "PROPOSED_NEW_OWNER");
+
+		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[owner];
+		storageProvider.miner = _miner;
 		storageProvider.targetPool = _targetPool;
 		storageProvider.allocationLimit = _allocationLimit;
 
+		// TODO: convert timestamp to Filecoin epochs
 		if (_period == 0) {
 			storageProvider.maxRedeemablePeriod = block.timestamp + minTimePeriod;
 		} else {
@@ -101,31 +108,31 @@ contract StorageProviderRegistry is IStorageProviderRegistry {
 		totalStorageProviders.increment();
 		totalInactiveStorageProviders.increment();
 
-		emit StorageProviderRegistered(msg.sender, _worker, _targetPool, _allocationLimit, _period + block.timestamp);
+		emit StorageProviderRegistered(owner, _miner, _targetPool, _allocationLimit, _period + block.timestamp);
 	}
 
 	/**
 	 * @notice Transfer beneficiary address of a miner to the target pool
 	 * @param _beneficiaryAddress Beneficiary address like a pool strategy (i.e liquid staking pool)
 	 */
-	function changeBeneficiaryAddress(bytes memory _beneficiaryAddress) public virtual override {
-		address beneficiaryAddress = address(uint160(bytes20(_beneficiaryAddress)));
-		require(beneficiaryAddress.isContract(), "INVALID_CONTRACT");
+	function changeBeneficiaryAddress(address _beneficiaryAddress) public virtual override {
+		require(_beneficiaryAddress.isContract(), "INVALID_CONTRACT");
+		bytes memory provider = abi.encodePacked(msg.sender);
 
-		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[msg.sender];
+		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[provider];
 		address targetPool = storageProvider.targetPool;
 
-		require(targetPool == beneficiaryAddress, "INVALID_ADDRESS");
+		require(targetPool == _beneficiaryAddress, "INVALID_ADDRESS");
 
 		MinerTypes.ChangeBeneficiaryParams memory params;
 
-		params.new_beneficiary = _beneficiaryAddress;
-		params.new_quota = BigIntCBOR.deserializeBigInt(Bytes.toBytes(storageProvider.allocationLimit));
+		params.new_beneficiary = abi.encodePacked(_beneficiaryAddress);
+		params.new_quota = BigIntCBOR.deserializeBigInt(toBytes(storageProvider.allocationLimit));
 		params.new_expiration = SafeCastLib.safeCastTo64(storageProvider.maxRedeemablePeriod);
 
-		MinerAPI.changeBeneficiary(abi.encodePacked(msg.sender), params);
+		MinerAPI.changeBeneficiary(provider, params);
 
-		emit StorageProviderBeneficiaryAddressUpdated(beneficiaryAddress);
+		emit StorageProviderBeneficiaryAddressUpdated(_beneficiaryAddress);
 	}
 
 	/**
@@ -133,25 +140,22 @@ contract StorageProviderRegistry is IStorageProviderRegistry {
 	 * @param _provider Storage Provider owner address
 	 * @param _beneficiaryAddress Beneficiary address like a pool strategy (i.e liquid staking pool)
 	 */
-	function acceptBeneficiaryAddress(
-		bytes memory _provider,
-		bytes memory _beneficiaryAddress
-	) public virtual override validBytes(_beneficiaryAddress) {
-		address provider = address(uint160(bytes20(_provider)));
-		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[provider];
+	function acceptBeneficiaryAddress(bytes memory _provider, address _beneficiaryAddress) public virtual override {
+		require(_beneficiaryAddress.isContract(), "INVALID_CONTRACT");
 
+		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_provider];
 		MinerTypes.ChangeBeneficiaryParams memory params;
 
-		params.new_beneficiary = _beneficiaryAddress;
-		params.new_quota = BigIntCBOR.deserializeBigInt(Bytes.toBytes(storageProvider.allocationLimit));
+		params.new_beneficiary = abi.encodePacked(_beneficiaryAddress);
+		params.new_quota = BigIntCBOR.deserializeBigInt(toBytes(storageProvider.allocationLimit));
 		params.new_expiration = SafeCastLib.safeCastTo64(storageProvider.maxRedeemablePeriod);
 
-		storageProviders[provider].active = true;
+		storageProviders[_provider].active = true;
 		totalInactiveStorageProviders.decrement();
 
 		MinerAPI.changeBeneficiary(_provider, params);
 
-		emit StorageProviderBeneficiaryAddressAccepted(provider);
+		emit StorageProviderBeneficiaryAddressAccepted(_provider);
 	}
 
 	/**
@@ -159,7 +163,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry {
 	 * @param _provider Storage Provider owner address
 	 * @dev Only triggered by owner contract
 	 */
-	function deactivateStorageProvider(address _provider) public validAddress(_provider) {
+	function deactivateStorageProvider(bytes memory _provider) public activeStorageProvider(_provider) {
 		storageProviders[_provider].active = false;
 		totalInactiveStorageProviders.increment();
 
@@ -167,20 +171,23 @@ contract StorageProviderRegistry is IStorageProviderRegistry {
 	}
 
 	/**
-	 * @notice Update storage provider worker address with `_worker`
+	 * @notice Update storage provider miner address with `_miner`
 	 * @param _provider Storage Provider owner address
-	 * @param _worker Storage Provider new worker address
+	 * @param _miner Storage Provider new miner address
 	 * @dev Only triggered by owner contract
 	 */
-	function setWorkerAddress(
-		address _provider,
-		address _worker
-	) public activeStorageProvider(_provider) validAddress(_worker) {
-		address prevWorker = storageProviders[_provider].worker;
-		require(prevWorker != _worker, "SAME_WORKER");
-		storageProviders[_provider].worker = _worker;
+	function setMinerAddress(
+		bytes memory _provider,
+		bytes memory _miner
+	) public activeStorageProvider(_provider) validBytes(_miner) {
+		bytes memory prevMiner = storageProviders[_provider].miner;
+		require(keccak256(prevMiner) != keccak256(_miner), "SAME_MINER");
 
-		emit StorageProviderWorkerAddressUpdate(_provider, _worker);
+		// TODO: Add native call to set new miner address
+
+		storageProviders[_provider].miner = _miner;
+
+		emit StorageProviderMinerAddressUpdate(_provider, _miner);
 	}
 
 	/**
@@ -189,7 +196,10 @@ contract StorageProviderRegistry is IStorageProviderRegistry {
 	 * @param _allocationLimit New FIL allocation for storage provider
 	 * @dev Only triggered by owner contract
 	 */
-	function setAllocationLimit(address _provider, uint256 _allocationLimit) public activeStorageProvider(_provider) {
+	function setAllocationLimit(
+		bytes memory _provider,
+		uint256 _allocationLimit
+	) public activeStorageProvider(_provider) {
 		uint256 prevLimit = storageProviders[_provider].allocationLimit;
 		require(prevLimit != _allocationLimit, "SAME_ALLOCATION_LIMIT");
 		storageProviders[_provider].allocationLimit = _allocationLimit;
@@ -204,7 +214,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry {
 	 * @param _period New max redeemable period
 	 * @dev Only triggered by owner contract
 	 */
-	function setMaxRedeemablePeriod(address _provider, uint256 _period) public activeStorageProvider(_provider) {
+	function setMaxRedeemablePeriod(bytes memory _provider, uint256 _period) public activeStorageProvider(_provider) {
 		require(_period <= maxTimePeriod && _period >= minTimePeriod, "INVALID_PERIOD");
 
 		uint256 prevPeriod = storageProviders[_provider].maxRedeemablePeriod;
@@ -234,13 +244,13 @@ contract StorageProviderRegistry is IStorageProviderRegistry {
 	 * @notice Return Storage Provider information with `_provider` address
 	 */
 	function getStorageProvider(
-		address _provider
-	) public view returns (bool, address, address, uint256, uint256, uint256, uint256, uint256) {
+		bytes memory _provider
+	) public view returns (bool, address, bytes memory, uint256, uint256, uint256, uint256, uint256) {
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_provider];
 		return (
 			storageProvider.active,
 			storageProvider.targetPool,
-			storageProvider.worker,
+			storageProvider.miner,
 			storageProvider.allocationLimit,
 			storageProvider.usedAllocation,
 			storageProvider.accruedRewards,
@@ -252,7 +262,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry {
 	/**
 	 * @notice Return a boolean flag of Storage Provider activity
 	 */
-	function isActiveProvider(address _provider) external view returns (bool status) {
+	function isActiveProvider(bytes memory _provider) external view returns (bool status) {
 		status = storageProviders[_provider].active;
 	}
 
@@ -262,8 +272,9 @@ contract StorageProviderRegistry is IStorageProviderRegistry {
 	 * @param _accuredRewards Unlocked portion of rewards, that available for withdrawal
 	 * @param _lockedRewards Locked portion of rewards, that not available for withdrawal
 	 */
-	function increaseRewards(address _provider, uint256 _accuredRewards, uint256 _lockedRewards) external {
-		require(msg.sender == collateral, "INVALID_ACCESS");
+	function increaseRewards(bytes memory _provider, uint256 _accuredRewards, uint256 _lockedRewards) external {
+		require(pools[msg.sender], "INVALID_ACCESS");
+
 		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[_provider];
 		storageProvider.accruedRewards = storageProvider.accruedRewards + _accuredRewards;
 		storageProvider.lockedRewards = storageProvider.lockedRewards + _lockedRewards;
@@ -277,7 +288,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry {
 	 * @param _provider Storage Provider owner address
 	 * @param _allocated FIL amount that is going to be pledged for Storage Provider
 	 */
-	function increaseUsedAllocation(address _provider, uint256 _allocated) external {
+	function increaseUsedAllocation(bytes memory _provider, uint256 _allocated) external {
 		require(msg.sender == collateral, "INVALID_ACCESS");
 		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[_provider];
 		storageProvider.usedAllocation = storageProvider.usedAllocation + _allocated;
@@ -297,5 +308,24 @@ contract StorageProviderRegistry is IStorageProviderRegistry {
 		collateral = _collateral;
 
 		emit CollateralAddressUpdated(_collateral);
+	}
+
+	/**
+	 * @notice Register new liquid staking pool
+	 * @param _pool Address of pool smart contract
+	 * @dev Only triggered by owner contract
+	 */
+	function registerPool(address _pool) public {
+		_pool.isContract();
+		pools[_pool] = true;
+
+		emit LiquidStakingPoolRegistered(_pool);
+	}
+
+	function toBytes(uint256 target) public pure returns (bytes memory b) {
+		b = new bytes(32);
+		assembly {
+			mstore(add(b, 32), target)
+		}
 	}
 }

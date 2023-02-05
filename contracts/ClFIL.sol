@@ -28,11 +28,4 @@ contract ClFILToken is ERC4626 {
 	 * buffered capital in the pool and pledged capital to the SPs.
 	 */
 	function totalAssets() public view virtual override returns (uint256) {}
-
-	/**
-	 * @notice Returns the price of 1 clFIL in FILs.
-	 */
-	function clFILPrice() public view virtual returns (uint256) {
-		return convertToAssets(1 ** 18);
-	}
 }

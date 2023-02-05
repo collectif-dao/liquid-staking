@@ -2,6 +2,8 @@ import { HardhatUserConfig } from "hardhat/config";
 import * as fs from "fs";
 import "@nomicfoundation/hardhat-toolbox";
 import "hardhat-preprocessor";
+import "hardhat-deploy";
+import "@nomiclabs/hardhat-ethers";
 
 function getRemappings() {
   return fs
@@ -21,6 +23,22 @@ const config: HardhatUserConfig = {
         version: "0.8.16",
       },
     ],
+  },
+  networks: {
+    hardhat: {},
+    development: {
+      url: 'http://0.0.0.0:8545',
+      chainId: 1337,
+    },
+    hyperspace: {
+      url: `${process.env.HYPERSPACE_RPC_URL}`,
+      chainId: 3141,
+      accounts: [process.env.PRIVATE_KEY],
+      live: true,
+      saveDeployments: true,
+      gasPrice: 100000000,
+      gasMultiplier: 8000,
+    },
   },
   preprocess: {
     eachLine: (hre) => ({

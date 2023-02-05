@@ -23,7 +23,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral {
 	using SafeTransferLib for address;
 
 	// Mapping of storage provider collateral information to their addresses
-	mapping(address => SPCollateral) public collaterals;
+	mapping(bytes => SPCollateral) public collaterals;
 
 	// Storage Provider parameters
 	struct SPCollateral {
@@ -37,7 +37,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral {
 
 	IWETH9 public immutable WFIL; // WFIL implementation
 
-	modifier activeStorageProvider(address _provider) {
+	modifier activeStorageProvider(bytes memory _provider) {
 		require(registry.isActiveProvider(_provider), "INACTIVE_STORAGE_PROVIDER");
 		_;
 	}
@@ -61,16 +61,19 @@ contract StorageProviderCollateral is IStorageProviderCollateral {
 	 * @dev Deposit `msg.value` FIL funds by the msg.sender into collateral
 	 * @notice Wrapps of FIL into WFIL token internally
 	 */
-	function deposit() public payable activeStorageProvider(msg.sender) {
+	function deposit() public payable {
 		uint256 amount = msg.value;
 		require(amount > 0, "INVALID_AMOUNT");
 
-		SPCollateral storage collateral = collaterals[msg.sender];
+		bytes memory provider = abi.encodePacked(msg.sender);
+		require(registry.isActiveProvider(provider), "INACTIVE_STORAGE_PROVIDER");
+
+		SPCollateral storage collateral = collaterals[provider];
 		collateral.availableCollateral = collateral.availableCollateral + amount;
 
 		_wrapFIL(address(this));
 
-		emit StorageProviderCollateralDeposit(msg.sender, amount);
+		emit StorageProviderCollateralDeposit(provider, amount);
 	}
 
 	/**
@@ -78,17 +81,20 @@ contract StorageProviderCollateral is IStorageProviderCollateral {
 	 * @notice Unwraps of FIL into WFIL token internally and
 	 * delivers maximum amount of FIL available for withdrawal if `_amount` is bigger.
 	 */
-	function withdraw(uint256 _amount) public activeStorageProvider(msg.sender) {
+	function withdraw(uint256 _amount) public {
 		require(_amount > 0, "ZERO_AMOUNT");
-		address provider = msg.sender;
+
+		bytes memory provider = abi.encodePacked(msg.sender);
+		require(registry.isActiveProvider(provider), "INACTIVE_STORAGE_PROVIDER");
+
 		uint256 maxWithdraw = calcMaximumWithdraw(provider);
 		uint256 finalAmount = _amount > maxWithdraw ? maxWithdraw : _amount;
 
 		collaterals[provider].availableCollateral = collaterals[provider].availableCollateral - finalAmount;
 
-		_unwrapWFIL(provider, finalAmount);
+		_unwrapWFIL(msg.sender, finalAmount);
 
-		emit StorageProviderCollateralWithdraw(msg.sender, finalAmount);
+		emit StorageProviderCollateralWithdraw(provider, finalAmount);
 	}
 
 	/**
@@ -97,7 +103,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral {
 	 * @param _provider WFIL recipient address
 	 * @param _allocated FIL amount that is going to be pledged for Storage Provider
 	 */
-	function lock(address _provider, uint256 _allocated) public activeStorageProvider(_provider) {
+	function lock(bytes memory _provider, uint256 _allocated) public activeStorageProvider(_provider) {
 		require(_allocated > 0, "ZERO_ALLOCATION");
 		(, , , uint256 allocationLimit, uint256 usedAllocation, , uint256 lockedRewards, ) = registry
 			.getStorageProvider(_provider);
@@ -127,7 +133,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral {
 	/**
 	 * @notice Return Storage Provider Collateral information with `_provider` address
 	 */
-	function getCollateral(address _provider) public view returns (uint256, uint256) {
+	function getCollateral(bytes memory _provider) public view returns (uint256, uint256) {
 		SPCollateral memory collateral = collaterals[_provider];
 		return (collateral.availableCollateral, collateral.lockedCollateral);
 	}
@@ -135,14 +141,14 @@ contract StorageProviderCollateral is IStorageProviderCollateral {
 	/**
 	 * @notice Return Storage Provider Available Collateral information with `_provider` address
 	 */
-	function getAvailableCollateral(address _provider) public view returns (uint256) {
+	function getAvailableCollateral(bytes memory _provider) public view returns (uint256) {
 		return collaterals[_provider].availableCollateral;
 	}
 
 	/**
 	 * @notice Return Storage Provider Locked Collateral information with `_provider` address
 	 */
-	function getLockedCollateral(address _provider) public view returns (uint256) {
+	function getLockedCollateral(bytes memory _provider) public view returns (uint256) {
 		return collaterals[_provider].lockedCollateral;
 	}
 
@@ -151,7 +157,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral {
 	 * total used FIL allocation and locked rewards.
 	 * @param _provider Storage Provider owner address
 	 */
-	function calcMaximumWithdraw(address _provider) internal view returns (uint256 totalCollateral) {
+	function calcMaximumWithdraw(bytes memory _provider) internal view returns (uint256 totalCollateral) {
 		(, , , , uint256 usedAllocation, , uint256 lockedRewards, ) = registry.getStorageProvider(_provider);
 		uint256 requirements = calcCollateralRequirements(usedAllocation, lockedRewards, 0);
 		SPCollateral memory collateral = collaterals[_provider];
