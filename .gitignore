@@ -56,6 +56,7 @@ bin/
 broadcast/
 /broadcast/*/31337/
 /broadcast/**/dry-run/
+abi/
 
 # Dotenv file
 .env

@@ -92,7 +92,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 		MinerTypes.ChangeBeneficiaryParams memory params;
 
 		params.new_beneficiary = abi.encodePacked(_beneficiaryAddress);
-		params.new_quota = BigIntCBOR.deserializeBigInt(toBytes(storageProvider.allocationLimit));
+		params.new_quota = BigIntCBOR.deserializeBigInt(Bytes.toBytes(storageProvider.allocationLimit));
 		params.new_expiration = SafeCastLib.safeCastTo64(storageProvider.maxRedeemablePeriod);
 
 		MockAPI.changeBeneficiary(params);
@@ -112,7 +112,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 		MinerTypes.ChangeBeneficiaryParams memory params;
 
 		params.new_beneficiary = abi.encodePacked(_beneficiaryAddress);
-		params.new_quota = BigIntCBOR.deserializeBigInt(toBytes(storageProvider.allocationLimit));
+		params.new_quota = BigIntCBOR.deserializeBigInt(Bytes.toBytes(storageProvider.allocationLimit));
 		params.new_expiration = SafeCastLib.safeCastTo64(storageProvider.maxRedeemablePeriod);
 
 		storageProviders[_provider].active = true;

@@ -120,4 +120,11 @@ interface IStorageProviderRegistry {
 	 * @dev Only triggered by owner contract
 	 */
 	function setCollateralAddress(address _collateral) external;
+
+	/**
+	 * @notice Register new liquid staking pool
+	 * @param _pool Address of pool smart contract
+	 * @dev Only triggered by owner contract
+	 */
+	function registerPool(address _pool) external;
 }
