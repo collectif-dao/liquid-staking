@@ -22,3 +22,6 @@
 [submodule "lib/ERC4626"]
 	path = lib/ERC4626
 	url = https://github.com/collective-dao/ERC4626
+[submodule "lib/filecoin-solidity"]
+	path = lib/filecoin-solidity
+	url = https://github.com/Zondax/filecoin-solidity
