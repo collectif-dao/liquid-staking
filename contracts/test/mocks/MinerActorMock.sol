@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.17;
 
 import {MinerTypes} from "filecoin-solidity/contracts/v0.8/types/MinerTypes.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";

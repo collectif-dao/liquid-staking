@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.17;
 
 library Bytes {
 	function toBytes(uint256 target) internal pure returns (bytes memory b) {

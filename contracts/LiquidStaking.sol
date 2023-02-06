@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.17;
 
 import {ClFILToken} from "./ClFIL.sol";
 import {Multicall} from "fei-protocol/erc4626/external/Multicall.sol";
