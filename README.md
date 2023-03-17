@@ -53,11 +53,11 @@ To run specific tests by giving a path to the file you want to run:
 
 ## Liquid Staking Components
 
-Liquid Staking Pool, which is the main contract that allows stakers to easily deposit their FIL and get yield out of the network storage mining, and Storage Providers to access this FIL for their sector pledges.
+**Liquid Staking Pool**, which is the main contract that allows stakers to easily deposit their FIL and get yield out of the network storage mining, and Storage Providers to access this FIL for their sector pledges.
 
-A Storage Providers Registry is a database that maintains a record of all the Storage Providers on the network. This registry allows Liquid Staking Pool to interact with Storage Providers, and determine their risk profile and FIL allocation.
+A **Storage Providers Registry** is a database that maintains a record of all the Storage Providers on the network. This registry allows Liquid Staking Pool to interact with Storage Providers, and determine their risk profile and FIL allocation.
 
-A Miner Collateral Module is a system that allows Storage Providers to pledge collateral in order to participate in the staking process. The Miner collateral module can help to reduce the risks associated with staking, such as the risk of being penalized (or "slashed") for misbehaving on the network.
+A **Miner Collateral Module** is a system that allows Storage Providers to pledge collateral in order to participate in the staking process. The Miner collateral module can help to reduce the risks associated with staking, such as the risk of being penalized (or "slashed") for misbehaving on the network.
 
 ## Documentation
 
