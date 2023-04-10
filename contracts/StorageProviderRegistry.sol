@@ -97,14 +97,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry {
 		storageProvider.miner = _miner;
 		storageProvider.targetPool = _targetPool;
 		storageProvider.allocationLimit = _allocationLimit;
-
-		// TODO: convert timestamp to Filecoin epochs
-		if (_period == 0) {
-			storageProvider.maxRedeemablePeriod = block.timestamp + minTimePeriod;
-		} else {
-			require(_period >= minTimePeriod && _period <= maxTimePeriod, "INVALID_PERIOD");
-			storageProvider.maxRedeemablePeriod = _period + block.timestamp;
-		}
+		storageProvider.maxRedeemablePeriod = _period;
 
 		totalStorageProviders.increment();
 		totalInactiveStorageProviders.increment();
@@ -217,14 +210,12 @@ contract StorageProviderRegistry is IStorageProviderRegistry {
 	 */
 	function setMaxRedeemablePeriod(bytes memory _provider, uint256 _period) public activeStorageProvider(_provider) {
 		require(_period <= maxTimePeriod && _period >= minTimePeriod, "INVALID_PERIOD");
-
 		uint256 prevPeriod = storageProviders[_provider].maxRedeemablePeriod;
-		uint256 period = _period + block.timestamp;
 
-		require(prevPeriod != period, "SAME_TIME_PERIOD");
-		storageProviders[_provider].maxRedeemablePeriod = period;
+		require(prevPeriod != _period, "SAME_TIME_PERIOD");
+		storageProviders[_provider].maxRedeemablePeriod = _period;
 
-		emit StorageProviderMaxRedeemablePeriodUpdate(_provider, period);
+		emit StorageProviderMaxRedeemablePeriodUpdate(_provider, _period);
 	}
 
 	/**
