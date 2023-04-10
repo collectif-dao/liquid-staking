@@ -2,10 +2,11 @@
 pragma solidity ^0.8.17;
 
 import "./interfaces/IStorageProviderCollateral.sol";
-import "./interfaces/IStorageProviderRegistry.sol";
+import "./interfaces/IStorageProviderRegistryClient.sol";
 import "solmate/utils/SafeTransferLib.sol";
 import {StorageProviderTypes} from "./types/StorageProviderTypes.sol";
 import {IWETH9} from "fei-protocol/erc4626/external/PeripheryPayments.sol";
+import {PrecompilesAPI} from "filecoin-solidity/contracts/v0.8/PrecompilesAPI.sol";
 
 /**
  * @title Storage Provider Collateral stores collateral for covering potential
@@ -22,8 +23,8 @@ import {IWETH9} from "fei-protocol/erc4626/external/PeripheryPayments.sol";
 contract StorageProviderCollateral is IStorageProviderCollateral {
 	using SafeTransferLib for address;
 
-	// Mapping of storage provider collateral information to their addresses
-	mapping(bytes => SPCollateral) public collaterals;
+	// Mapping of storage provider collateral information to their owner ID
+	mapping(uint64 => SPCollateral) public collaterals;
 
 	// Storage Provider parameters
 	struct SPCollateral {
@@ -33,12 +34,12 @@ contract StorageProviderCollateral is IStorageProviderCollateral {
 
 	uint256 public collateralRequirements; // Number in basis points (10000 = 100%)
 	uint256 public constant BASIS_POINTS = 10000;
-	IStorageProviderRegistry public registry;
+	IStorageProviderRegistryClient public registry;
 
 	IWETH9 public immutable WFIL; // WFIL implementation
 
-	modifier activeStorageProvider(bytes memory _provider) {
-		require(registry.isActiveProvider(_provider), "INACTIVE_STORAGE_PROVIDER");
+	modifier activeStorageProvider(uint64 _ownerId) {
+		require(registry.isActiveProvider(_ownerId), "INACTIVE_STORAGE_PROVIDER");
 		_;
 	}
 
@@ -49,7 +50,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral {
 	 */
 	constructor(IWETH9 _wFIL, address _registry) {
 		WFIL = _wFIL;
-		registry = IStorageProviderRegistry(_registry);
+		registry = IStorageProviderRegistryClient(_registry);
 		collateralRequirements = 1500;
 	}
 
@@ -65,15 +66,15 @@ contract StorageProviderCollateral is IStorageProviderCollateral {
 		uint256 amount = msg.value;
 		require(amount > 0, "INVALID_AMOUNT");
 
-		bytes memory provider = abi.encodePacked(msg.sender);
-		require(registry.isActiveProvider(provider), "INACTIVE_STORAGE_PROVIDER");
+		uint64 ownerId = PrecompilesAPI.resolveEthAddress(msg.sender);
+		require(registry.isActiveProvider(ownerId), "INACTIVE_STORAGE_PROVIDER");
 
-		SPCollateral storage collateral = collaterals[provider];
+		SPCollateral storage collateral = collaterals[ownerId];
 		collateral.availableCollateral = collateral.availableCollateral + amount;
 
 		_wrapFIL(address(this));
 
-		emit StorageProviderCollateralDeposit(provider, amount);
+		emit StorageProviderCollateralDeposit(ownerId, amount);
 	}
 
 	/**
@@ -84,83 +85,85 @@ contract StorageProviderCollateral is IStorageProviderCollateral {
 	function withdraw(uint256 _amount) public {
 		require(_amount > 0, "ZERO_AMOUNT");
 
-		bytes memory provider = abi.encodePacked(msg.sender);
-		require(registry.isActiveProvider(provider), "INACTIVE_STORAGE_PROVIDER");
+		uint64 ownerId = PrecompilesAPI.resolveEthAddress(msg.sender);
+		require(registry.isActiveProvider(ownerId), "INACTIVE_STORAGE_PROVIDER");
 
-		uint256 maxWithdraw = calcMaximumWithdraw(provider);
+		uint256 maxWithdraw = calcMaximumWithdraw(ownerId);
 		uint256 finalAmount = _amount > maxWithdraw ? maxWithdraw : _amount;
 
-		collaterals[provider].availableCollateral = collaterals[provider].availableCollateral - finalAmount;
+		collaterals[ownerId].availableCollateral = collaterals[ownerId].availableCollateral - finalAmount;
 
 		_unwrapWFIL(msg.sender, finalAmount);
 
-		emit StorageProviderCollateralWithdraw(provider, finalAmount);
+		emit StorageProviderCollateralWithdraw(ownerId, finalAmount);
 	}
 
 	/**
 	 * @dev Locks required collateral amount based on `_allocated` FIL to pledge
 	 * @notice Increases the total amount of locked collateral for storage provider
-	 * @param _provider WFIL recipient address
+	 * @param _ownerId Storage provider owner ID
 	 * @param _allocated FIL amount that is going to be pledged for Storage Provider
 	 */
-	function lock(bytes memory _provider, uint256 _allocated) public activeStorageProvider(_provider) {
+	function lock(uint64 _ownerId, uint256 _allocated) public activeStorageProvider(_ownerId) {
+		require(registry.isActivePool(msg.sender), "INVALID_ACCESS");
 		require(_allocated > 0, "ZERO_ALLOCATION");
-		(, , , uint256 allocationLimit, uint256 usedAllocation, , uint256 lockedRewards, ) = registry
-			.getStorageProvider(_provider);
+		(, , , uint256 allocationLimit, , uint256 usedAllocation, uint256 accruedRewards, , , ) = registry
+			.getStorageProvider(_ownerId);
 
 		require(usedAllocation + _allocated <= allocationLimit, "ALLOCATION_OVERFLOW");
 
-		uint256 totalRequirements = calcCollateralRequirements(usedAllocation, lockedRewards, _allocated);
+		uint256 totalRequirements = calcCollateralRequirements(usedAllocation, accruedRewards, _allocated);
 
-		SPCollateral memory collateral = collaterals[_provider];
+		SPCollateral memory collateral = collaterals[_ownerId];
 		require(
 			totalRequirements <= collateral.lockedCollateral + collateral.availableCollateral,
 			"INSUFFICIENT_COLLATERAL"
 		);
 
-		registry.increaseUsedAllocation(_provider, _allocated);
+		registry.increaseUsedAllocation(_ownerId, _allocated);
 
 		uint256 lockAmount = calcLockAmount(_allocated);
 
 		collateral.lockedCollateral = collateral.lockedCollateral + lockAmount;
 		collateral.availableCollateral = collateral.availableCollateral - lockAmount;
 
-		collaterals[_provider] = collateral;
+		collaterals[_ownerId] = collateral;
 
-		emit StorageProviderCollateralLock(_provider, _allocated, lockAmount);
+		emit StorageProviderCollateralLock(_ownerId, _allocated, lockAmount);
 	}
 
 	/**
 	 * @notice Return Storage Provider Collateral information with `_provider` address
 	 */
-	function getCollateral(bytes memory _provider) public view returns (uint256, uint256) {
-		SPCollateral memory collateral = collaterals[_provider];
+	function getCollateral(uint64 _ownerId) public view returns (uint256, uint256) {
+		SPCollateral memory collateral = collaterals[_ownerId];
 		return (collateral.availableCollateral, collateral.lockedCollateral);
 	}
 
 	/**
 	 * @notice Return Storage Provider Available Collateral information with `_provider` address
 	 */
-	function getAvailableCollateral(bytes memory _provider) public view returns (uint256) {
-		return collaterals[_provider].availableCollateral;
+	function getAvailableCollateral(uint64 _ownerId) public view returns (uint256) {
+		return collaterals[_ownerId].availableCollateral;
 	}
 
 	/**
 	 * @notice Return Storage Provider Locked Collateral information with `_provider` address
 	 */
-	function getLockedCollateral(bytes memory _provider) public view returns (uint256) {
-		return collaterals[_provider].lockedCollateral;
+	function getLockedCollateral(uint64 _ownerId) public view returns (uint256) {
+		return collaterals[_ownerId].lockedCollateral;
 	}
 
 	/**
 	 * @notice Calculates max collateral withdrawal amount for SP depending on the
 	 * total used FIL allocation and locked rewards.
-	 * @param _provider Storage Provider owner address
+	 * @param _ownerId Storage Provider owner address
 	 */
-	function calcMaximumWithdraw(bytes memory _provider) internal view returns (uint256 totalCollateral) {
-		(, , , , uint256 usedAllocation, , uint256 lockedRewards, ) = registry.getStorageProvider(_provider);
-		uint256 requirements = calcCollateralRequirements(usedAllocation, lockedRewards, 0);
-		SPCollateral memory collateral = collaterals[_provider];
+	function calcMaximumWithdraw(uint64 _ownerId) internal view returns (uint256 totalCollateral) {
+		(, , , , , uint256 usedAllocation, uint256 accruedRewards, , , ) = registry.getStorageProvider(_ownerId);
+
+		uint256 requirements = calcCollateralRequirements(usedAllocation, accruedRewards, 0);
+		SPCollateral memory collateral = collaterals[_ownerId];
 
 		totalCollateral = collateral.availableCollateral + collateral.lockedCollateral - requirements;
 	}
@@ -169,17 +172,17 @@ contract StorageProviderCollateral is IStorageProviderCollateral {
 	 * @notice Calculates total collateral requirements for SP depending on the
 	 * total used FIL allocation and locked rewards.
 	 * @param _usedAllocation Already used FIL allocation by Storage Provider
-	 * @param _lockedRewards Locked rewards (vesting) for SP
+	 * @param _accruedRewards Accured rewards by SP
 	 * @param _allocationToUse Allocation to be used by SP
 	 */
 	function calcCollateralRequirements(
 		uint256 _usedAllocation,
-		uint256 _lockedRewards,
+		uint256 _accruedRewards,
 		uint256 _allocationToUse
 	) internal view returns (uint256 totalRequirements) {
 		uint256 usedAllocation = _allocationToUse > 0 ? _usedAllocation + _allocationToUse : _usedAllocation;
 
-		totalRequirements = ((usedAllocation - _lockedRewards) * collateralRequirements) / BASIS_POINTS;
+		totalRequirements = ((usedAllocation - _accruedRewards) * collateralRequirements) / BASIS_POINTS;
 	}
 
 	/**

@@ -4,6 +4,7 @@ pragma solidity ^0.8.17;
 import "../../LiquidStaking.sol";
 import {IMinerActorMock} from "./MinerActorMock.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
+import {BigInts} from "filecoin-solidity/contracts/v0.8/utils/BigInts.sol";
 
 /**
  * @title Liquid Staking Mock contract
@@ -14,20 +15,28 @@ contract LiquidStakingMock is LiquidStaking {
 
 	IMinerActorMock private minerActorMock;
 
-	constructor(address _wFIL, address minerActor, address _oracle) LiquidStaking(_wFIL, _oracle) {
+	uint64 public ownerId;
+
+	constructor(address _wFIL, address minerActor, address _oracle, uint64 _ownerId) LiquidStaking(_wFIL, _oracle) {
 		minerActorMock = IMinerActorMock(minerActor);
+		ownerId = _ownerId;
 	}
 
+	/**
+	 * @notice Pledge FIL assets from liquid staking pool to miner pledge for one sector
+	 * @param sectorNumber Sector number to be sealed
+	 * @param proof Sector proof for sealing
+	 */
 	function pledge(uint64 sectorNumber, bytes memory proof) external virtual override nonReentrant {
 		uint256 assets = oracle.getPledgeFees();
 		require(assets <= totalAssets(), "PLEDGE_WITHDRAWAL_OVERFLOW");
 
-		bytes memory provider = abi.encodePacked(msg.sender);
-		collateral.lock(provider, assets);
+		collateral.lock(ownerId, assets);
 
-		(, , bytes memory miner, , , , , ) = registry.getStorageProvider(provider);
+		(, , uint64 minerId, , , , , , , ) = registry.getStorageProvider(ownerId);
+		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
 
-		emit Pledge(miner, assets, sectorNumber);
+		emit Pledge(minerId, assets, sectorNumber);
 
 		WFIL.withdraw(assets);
 
@@ -51,13 +60,13 @@ contract LiquidStakingMock is LiquidStaking {
 
 		require(totalPledge <= totalAssets(), "PLEDGE_WITHDRAWAL_OVERFLOW");
 
-		bytes memory provider = abi.encodePacked(msg.sender);
-		collateral.lock(provider, totalPledge);
+		collateral.lock(ownerId, totalPledge);
 
-		(, , bytes memory miner, , , , , ) = registry.getStorageProvider(provider);
+		(, , uint64 minerId, , , , , , , ) = registry.getStorageProvider(ownerId);
+		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
 
 		for (uint256 i = 0; i < sectorNumbers.length; i++) {
-			emit Pledge(miner, pledgePerSector, sectorNumbers[i]);
+			emit Pledge(minerId, pledgePerSector, sectorNumbers[i]);
 		}
 
 		WFIL.withdraw(totalPledge);
@@ -67,18 +76,18 @@ contract LiquidStakingMock is LiquidStaking {
 		msg.sender.safeTransferETH(totalPledge);
 	}
 
-	function withdrawRewards(bytes memory miner, uint256 amount) external virtual override nonReentrant {
-		MinerTypes.WithdrawBalanceParams memory params;
-		params.amount_requested = Bytes.toBytes(amount);
+	function withdrawRewards(uint64 minerId, uint256 amount) external virtual override nonReentrant {
+		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
+		CommonTypes.BigInt memory amountBInt = BigInts.fromUint256(amount);
 
-		MinerTypes.WithdrawBalanceReturn memory response = minerActorMock.withdrawBalance(miner, params);
+		CommonTypes.BigInt memory withdrawnBInt = minerActorMock.withdrawBalance(minerActorId, amountBInt);
 
-		uint256 withdrawn = Bytes.toUint256(response.amount_withdrawn, 0);
+		(uint256 withdrawn, bool abort) = BigInts.toUint256(withdrawnBInt);
+		require(!abort, "INCORRECT_BIG_NUM");
 		require(withdrawn == amount, "INCORRECT_WITHDRAWAL_AMOUNT");
 
 		WFIL.deposit{value: withdrawn}();
 
-		// TODO: Increase rewards, recalculate locked rewards
-		registry.increaseRewards(miner, withdrawn, 0);
+		registry.increaseRewards(minerId, withdrawn, 0);
 	}
 }

@@ -7,9 +7,10 @@ import {SelfPermit} from "fei-protocol/erc4626/external/SelfPermit.sol";
 import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {MinerAPI} from "filecoin-solidity/contracts/v0.8/MinerAPI.sol";
-import {MinerTypes} from "filecoin-solidity/contracts/v0.8/types/MinerTypes.sol";
+import {CommonTypes} from "filecoin-solidity/contracts/v0.8/types/CommonTypes.sol";
+import {BigInts} from "filecoin-solidity/contracts/v0.8/utils/BigInts.sol";
+import {PrecompilesAPI} from "filecoin-solidity/contracts/v0.8/PrecompilesAPI.sol";
 import {SendAPI} from "filecoin-solidity/contracts/v0.8/SendAPI.sol";
-import "./libraries/Bytes.sol";
 
 import "./interfaces/ILiquidStaking.sol";
 import "./interfaces/IStorageProviderCollateralClient.sol";
@@ -148,18 +149,19 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 		uint256 assets = oracle.getPledgeFees();
 		require(assets <= totalAssets(), "PLEDGE_WITHDRAWAL_OVERFLOW");
 
-		bytes memory provider = abi.encodePacked(msg.sender);
-		collateral.lock(provider, assets);
+		uint64 ownerId = PrecompilesAPI.resolveEthAddress(msg.sender);
+		collateral.lock(ownerId, assets);
 
-		(, , bytes memory miner, , , , , ) = registry.getStorageProvider(provider);
+		(, , uint64 minerId, , , , , , , ) = registry.getStorageProvider(ownerId);
+		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
 
-		emit Pledge(miner, assets, sectorNumber);
+		emit Pledge(minerId, assets, sectorNumber);
 
 		WFIL.withdraw(assets);
 
 		totalFilPledged += assets;
 
-		SendAPI.send(miner, assets); // send FIL to the miner actor
+		SendAPI.send(minerActorId, assets); // send FIL to the miner actor
 	}
 
 	/**
@@ -174,34 +176,36 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 
 		require(totalPledge <= totalAssets(), "PLEDGE_WITHDRAWAL_OVERFLOW");
 
-		bytes memory provider = abi.encodePacked(msg.sender);
-		collateral.lock(provider, totalPledge);
+		uint64 ownerId = PrecompilesAPI.resolveEthAddress(msg.sender);
+		collateral.lock(ownerId, totalPledge);
 
-		(, , bytes memory miner, , , , , ) = registry.getStorageProvider(provider);
+		(, , uint64 minerId, , , , , , , ) = registry.getStorageProvider(ownerId);
+		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
 
 		for (uint256 i = 0; i < sectorNumbers.length; i++) {
-			emit Pledge(miner, pledgePerSector, sectorNumbers[i]);
+			emit Pledge(minerId, pledgePerSector, sectorNumbers[i]);
 		}
 
 		WFIL.withdraw(totalPledge);
 
 		totalFilPledged += totalPledge;
 
-		SendAPI.send(miner, totalPledge); // send FIL to the miner actor
+		SendAPI.send(minerActorId, totalPledge); // send FIL to the miner actor
 	}
 
-	function withdrawRewards(bytes memory miner, uint256 amount) external virtual nonReentrant {
-		MinerTypes.WithdrawBalanceParams memory params;
-		params.amount_requested = Bytes.toBytes(amount);
+	function withdrawRewards(uint64 minerId, uint256 amount) external virtual nonReentrant {
+		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
+		CommonTypes.BigInt memory amountBInt = BigInts.fromUint256(amount);
 
-		MinerTypes.WithdrawBalanceReturn memory response = MinerAPI.withdrawBalance(miner, params);
+		CommonTypes.BigInt memory withdrawnBInt = MinerAPI.withdrawBalance(minerActorId, amountBInt);
 
-		uint256 withdrawn = Bytes.toUint256(response.amount_withdrawn, 0);
+		(uint256 withdrawn, bool abort) = BigInts.toUint256(withdrawnBInt);
+		require(!abort, "INCORRECT_BIG_NUM");
 		require(withdrawn == amount, "INCORRECT_WITHDRAWAL_AMOUNT");
 
 		WFIL.deposit{value: withdrawn}();
-		// TODO: Increase rewards, recalculate locked rewards
-		registry.increaseRewards(miner, withdrawn, 0);
+
+		registry.increaseRewards(minerId, withdrawn, 0);
 	}
 
 	/**

@@ -4,8 +4,10 @@ pragma solidity ^0.8.17;
 import {ERC20, MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
 import {MockERC4626} from "solmate/test/utils/mocks/MockERC4626.sol";
 import {WFIL} from "./mocks/WFIL.sol";
+import {Buffer} from "@ensdomains/buffer/contracts/Buffer.sol";
+import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
 
-import {IStorageProviderCollateral, StorageProviderCollateral} from "../StorageProviderCollateral.sol";
+import {IStorageProviderCollateral, StorageProviderCollateralMock} from "./mocks/StorageProviderCollateralMock.sol";
 import {StorageProviderRegistryMock} from "./mocks/StorageProviderRegistryMock.sol";
 import {IStakingRouter, StakingRouter} from "../StakingRouter.sol";
 import {IERC4626RouterBase, ERC4626RouterBase, IWETH9, IERC4626, SelfPermit, PeripheryPayments} from "fei-protocol/erc4626/ERC4626RouterBase.sol";
@@ -20,10 +22,14 @@ contract LiquidStakingTest is DSTestPlus {
 	LiquidStakingMock public staking;
 	StakingRouter public router;
 	IWETH9 public wfil;
-	StorageProviderCollateral public collateral;
+	StorageProviderCollateralMock public collateral;
 	StorageProviderRegistryMock public registry;
 	MinerActorMock public minerActor;
 	PledgeOracle public oracle;
+
+	bytes public owner;
+	uint64 public aliceOwnerId = 1508;
+	uint64 public aliceMinerId = 16121;
 
 	uint256 private aliceKey = 0xBEEF;
 	address private alice = address(0x122);
@@ -45,21 +51,24 @@ contract LiquidStakingTest is DSTestPlus {
 
 	function setUp() public {
 		alice = hevm.addr(aliceKey);
+		Buffer.buffer memory ownerBytes = Leb128.encodeUnsignedLeb128FromUInt64(aliceOwnerId);
+		owner = ownerBytes.buf;
 
 		wfil = IWETH9(address(new WFIL()));
 		oracle = new PledgeOracle(genesisEpoch);
 		minerActor = new MinerActorMock();
-		staking = new LiquidStakingMock(address(wfil), address(minerActor), address(oracle));
+		staking = new LiquidStakingMock(address(wfil), address(minerActor), address(oracle), aliceOwnerId);
 
 		registry = new StorageProviderRegistryMock(
-			abi.encodePacked(alice),
+			owner,
+			aliceOwnerId,
 			MAX_STORAGE_PROVIDERS,
 			MAX_ALLOCATION,
 			MIN_TIME_PERIOD,
 			MAX_TIME_PERIOD
 		);
 
-		collateral = new StorageProviderCollateral(wfil, address(registry));
+		collateral = new StorageProviderCollateralMock(wfil, address(registry));
 
 		router = new StakingRouter("Collective DAO Router", wfil);
 
@@ -225,16 +234,16 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.deal(address(this), amount);
 		hevm.deal(alice, collateralAmount);
 
-		bytes memory aliceBytes = abi.encodePacked(alice);
-
 		// prepare storage provider for getting FIL from liquid staking
 		hevm.startPrank(alice);
-		registry.register(aliceBytes, address(staking), amount, MIN_TIME_PERIOD);
-
-		registry.acceptBeneficiaryAddress(aliceBytes, address(staking));
-
-		collateral.deposit{value: collateralAmount}();
+		registry.register(aliceMinerId, address(staking), amount);
+		registry.changeBeneficiaryAddress(address(staking));
 		hevm.stopPrank();
+
+		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
+
+		hevm.prank(alice);
+		collateral.deposit{value: collateralAmount}(aliceOwnerId);
 
 		staking.stake{value: amount}();
 
@@ -255,14 +264,15 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.deal(address(this), amount);
 		hevm.deal(alice, collateralAmount);
 
-		bytes memory aliceBytes = abi.encodePacked(alice);
-
 		hevm.startPrank(alice);
-		registry.register(aliceBytes, address(staking), amount, MIN_TIME_PERIOD);
-		registry.acceptBeneficiaryAddress(aliceBytes, address(staking));
-
-		collateral.deposit{value: collateralAmount}();
+		registry.register(aliceMinerId, address(staking), amount);
+		registry.changeBeneficiaryAddress(address(staking));
 		hevm.stopPrank();
+
+		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
+
+		hevm.prank(alice);
+		collateral.deposit{value: collateralAmount}(aliceOwnerId);
 
 		staking.stake{value: amount}();
 
@@ -282,14 +292,15 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.deal(address(this), totalPledge);
 		hevm.deal(alice, collateralAmount);
 
-		bytes memory aliceBytes = abi.encodePacked(alice);
-
 		hevm.startPrank(alice);
-		registry.register(aliceBytes, address(staking), totalPledge, MIN_TIME_PERIOD);
-		registry.acceptBeneficiaryAddress(aliceBytes, address(staking));
-
-		collateral.deposit{value: collateralAmount}();
+		registry.register(aliceMinerId, address(staking), totalPledge);
+		registry.changeBeneficiaryAddress(address(staking));
 		hevm.stopPrank();
+
+		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
+
+		hevm.prank(alice);
+		collateral.deposit{value: collateralAmount}(aliceOwnerId);
 
 		staking.stake{value: totalPledge}();
 
@@ -299,7 +310,7 @@ contract LiquidStakingTest is DSTestPlus {
 		staking.pledgeAggregate(sectors, proofs);
 	}
 
-	function testWithdrawBalance(uint128 amount) public {
+	function testWithdrawBalance(uint256 amount) public {
 		hevm.assume(amount != 0 && amount <= MAX_ALLOCATION && amount > 1 ether);
 		uint256 collateralAmount = (amount * collateralRequirements) / BASIS_POINTS;
 		hevm.deal(address(this), amount);
@@ -308,28 +319,26 @@ contract LiquidStakingTest is DSTestPlus {
 		uint256 withdrawAmount = (amount * 500) / BASIS_POINTS;
 		hevm.deal(address(minerActor), withdrawAmount);
 
-		bytes memory aliceBytes = abi.encodePacked(alice);
-
 		hevm.startPrank(alice);
-		registry.register(aliceBytes, address(staking), amount, MIN_TIME_PERIOD);
-		registry.acceptBeneficiaryAddress(aliceBytes, address(staking));
-
-		collateral.deposit{value: collateralAmount}();
+		registry.register(aliceMinerId, address(staking), amount);
+		registry.changeBeneficiaryAddress(address(staking));
 		hevm.stopPrank();
+
+		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
+
+		hevm.prank(alice);
+		collateral.deposit{value: collateralAmount}(aliceOwnerId);
 
 		staking.stake{value: amount}();
 
 		hevm.prank(alice);
 		staking.pledge(1, bytes("0"));
 
-		address(minerActor).call{value: withdrawAmount}("");
-
 		require(alice.balance == preCommitDeposit + initialPledge, "INVALID_BALANCE");
 		require(address(minerActor).balance == withdrawAmount, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 
-		bytes memory minerActorBytesAddress = abi.encodePacked(address(minerActor));
-		staking.withdrawRewards(minerActorBytesAddress, withdrawAmount);
+		staking.withdrawRewards(aliceMinerId, withdrawAmount);
 
 		require(address(minerActor).balance == 0, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount + withdrawAmount, "INVALID_BALANCE");

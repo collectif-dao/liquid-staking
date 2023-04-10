@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {MinerTypes} from "filecoin-solidity/contracts/v0.8/types/MinerTypes.sol";
+import {CommonTypes} from "filecoin-solidity/contracts/v0.8/types/CommonTypes.sol";
+import {BigIntCBOR} from "filecoin-solidity/contracts/v0.8/cbor/BigIntCbor.sol";
+import {BigInts} from "filecoin-solidity/contracts/v0.8/utils/BigInts.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
-import {Bytes} from "../../libraries/Bytes.sol";
 
 /**
  * @title Miner actor mock contract
@@ -11,27 +12,25 @@ import {Bytes} from "../../libraries/Bytes.sol";
  */
 contract MinerActorMock {
 	using SafeTransferLib for *;
-	using Bytes for *;
 
 	receive() external payable virtual {}
 
 	function withdrawBalance(
-		bytes memory miner,
-		MinerTypes.WithdrawBalanceParams memory params
-	) public returns (MinerTypes.WithdrawBalanceReturn memory response) {
-		require(keccak256(miner) == keccak256(abi.encodePacked(address(this))), "INVALID_ADDRESS");
+		CommonTypes.FilActorId target,
+		CommonTypes.BigInt memory amount
+	) public returns (CommonTypes.BigInt memory withdrawn) {
+		(uint256 withdraw, bool abort) = BigInts.toUint256(amount);
+		require(!abort, "INCORRECT_BIG_NUM");
 
-		uint256 amount = Bytes.toUint256(params.amount_requested, 0);
+		msg.sender.safeTransferETH(withdraw);
 
-		msg.sender.safeTransferETH(amount);
-
-		response.amount_withdrawn = Bytes.toBytes(amount);
+		withdrawn = BigInts.fromUint256(withdraw);
 	}
 }
 
 interface IMinerActorMock {
 	function withdrawBalance(
-		bytes memory miner,
-		MinerTypes.WithdrawBalanceParams memory params
-	) external returns (MinerTypes.WithdrawBalanceReturn memory response);
+		CommonTypes.FilActorId target,
+		CommonTypes.BigInt memory amount
+	) external returns (CommonTypes.BigInt memory);
 }

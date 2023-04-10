@@ -3,35 +3,61 @@ pragma solidity ^0.8.17;
 
 interface IStorageProviderRegistry {
 	event StorageProviderRegistered(
-		bytes provider,
-		bytes miner,
+		bytes owner,
+		uint64 ownerId,
+		uint64 minerId,
 		address targetPool,
-		uint256 allocationLimit,
-		uint256 maxPeriod
+		uint256 allocationLimit
 	);
-	event StorageProviderDeactivated(bytes provider);
-	event StorageProviderBeneficiaryAddressUpdated(address _beneficiaryAddress);
-	event StorageProviderBeneficiaryAddressAccepted(bytes _provider);
-	event StorageProviderMinerAddressUpdate(bytes provider, bytes miner);
-	event StorageProviderMaxRedeemablePeriodUpdate(bytes provider, uint256 period);
+	event StorageProviderOnboarded(
+		uint64 ownerId,
+		uint64 minerId,
+		uint256 allocationLimit,
+		uint256 repayment,
+		int64 lastEpoch
+	);
+	event StorageProviderDeactivated(uint64 ownerId);
+	event StorageProviderBeneficiaryAddressUpdated(address beneficiaryAddress);
+	event StorageProviderBeneficiaryAddressAccepted(uint64 ownerId);
+	event StorageProviderMinerAddressUpdate(uint64 ownerId, uint64 miner);
 
-	event StorageProviderAllocationLimitUpdate(bytes provider, uint256 allocationLimit);
-	event StorageProviderAllocationUsed(bytes provider, uint256 usedAllocation);
+	event StorageProviderLastEpochUpdate(uint64 ownerId, int64 lastEpoch);
 
-	event StorageProviderLockedRewards(bytes provider, uint256 rewards);
-	event StorageProviderAccruedRewards(bytes provider, uint256 rewards);
+	event StorageProviderAllocationLimitRequest(uint64 ownerId, uint256 allocationLimit);
+	event StorageProviderAllocationLimitUpdate(uint64 ownerId, uint256 allocationLimit);
+	event StorageProviderAllocationUsed(uint64 ownerId, uint256 usedAllocation);
+
+	event StorageProviderMinerRestakingRatioUpdate(uint64 ownerId, uint256 restakingRatio);
+
+	event StorageProviderLockedRewards(uint64 ownerId, uint256 rewards);
+	event StorageProviderAccruedRewards(uint64 ownerId, uint256 rewards);
 
 	event CollateralAddressUpdated(address collateral);
 	event LiquidStakingPoolRegistered(address pool);
 
 	/**
-	 * @notice Register storage provider with miner address `_miner` and desired `_allocationLimit`
-	 * @param _miner Storage Provider miner address in Filecoin network
-	 * @param _targetPool Target pool to work with
+	 * @notice Register storage provider with `_minerId`, desired `_allocationLimit` and `_targetPool`
+	 * @param _minerId Storage Provider miner ID in Filecoin network
+	 * @param _targetPool Target liquid staking strategy
 	 * @param _allocationLimit FIL allocation for storage provider
-	 * @param _period Max redeemable period for FIL allocation
+	 * @dev Only triggered by Storage Provider owner
 	 */
-	function register(bytes memory _miner, address _targetPool, uint256 _allocationLimit, uint256 _period) external;
+	function register(uint64 _minerId, address _targetPool, uint256 _allocationLimit) external;
+
+	/**
+	 * @notice Onboard storage provider with `_minerId`, desired `_allocationLimit`, `_repayment` amount
+	 * @param _minerId Storage Provider miner ID in Filecoin network
+	 * @param _allocationLimit FIL allocation for storage provider
+	 * @param _repayment FIL repayment for storage provider
+	 * @param _lastEpoch Last epoch for FIL allocation utilization
+	 * @dev Only triggered by owner contract
+	 */
+	function onboardStorageProvider(
+		uint64 _minerId,
+		uint256 _allocationLimit,
+		uint256 _repayment,
+		int64 _lastEpoch
+	) external;
 
 	/**
 	 * @notice Transfer beneficiary address of a miner to the target pool
@@ -41,41 +67,48 @@ interface IStorageProviderRegistry {
 
 	/**
 	 * @notice Accept beneficiary address transfer and activate FIL allocation
-	 * @param _provider Storage Provider owner address
+	 * @param _ownerId Storage Provider owner ID
 	 * @param _beneficiaryAddress Beneficiary address like a pool strategy (i.e liquid staking pool)
-	 */
-	function acceptBeneficiaryAddress(bytes memory _provider, address _beneficiaryAddress) external;
-
-	/**
-	 * @notice Deactive storage provider with address `_provider`
-	 * @param _provider Storage Provider owner address
 	 * @dev Only triggered by owner contract
 	 */
-	function deactivateStorageProvider(bytes memory _provider) external;
+	function acceptBeneficiaryAddress(uint64 _ownerId, address _beneficiaryAddress) external;
 
 	/**
-	 * @notice Update storage provider miner address with `_miner`
-	 * @param _provider Storage Provider owner address
-	 * @param _miner Storage Provider new miner address
+	 * @notice Deactive storage provider with ID `_ownerId`
+	 * @param _ownerId Storage Provider owner ID
 	 * @dev Only triggered by owner contract
 	 */
-	function setMinerAddress(bytes memory _provider, bytes memory _miner) external;
+	function deactivateStorageProvider(uint64 _ownerId) external;
+
+	/**
+	 * @notice Update storage provider miner ID with `_minerId`
+	 * @param _ownerId Storage Provider owner ID
+	 * @param _minerId Storage Provider new miner ID
+	 * @dev Only triggered by owner contract
+	 */
+	function setMinerAddress(uint64 _ownerId, uint64 _minerId) external;
+
+	/**
+	 * @notice Request storage provider's FIL allocation update with `_allocationLimit`
+	 * @param _allocationLimit New FIL allocation for storage provider
+	 * @dev Only triggered by Storage Provider owner
+	 */
+	function requestAllocationLimitUpdate(uint256 _allocationLimit) external;
 
 	/**
 	 * @notice Update storage provider FIL allocation with `_allocationLimit`
-	 * @param _provider Storage provider owner address
+	 * @param _ownerId Storage provider owner ID
 	 * @param _allocationLimit New FIL allocation for storage provider
 	 * @dev Only triggered by owner contract
 	 */
-	function setAllocationLimit(bytes memory _provider, uint256 _allocationLimit) external;
+	function updateAllocationLimit(uint64 _ownerId, uint256 _allocationLimit) external;
 
 	/**
-	 * @notice Update max redeemable period of FIL allocation for `_provider`
-	 * @param _provider Storage provider owner address
-	 * @param _period New max redeemable period
-	 * @dev Only triggered by owner contract
+	 * @notice Update storage provider's restaking ratio
+	 * @param _restakingRatio Restaking ratio for Storage Provider
+	 * @dev Only triggered by Storage Provider
 	 */
-	function setMaxRedeemablePeriod(bytes memory _provider, uint256 _period) external;
+	function setRestakingRatio(uint256 _restakingRatio) external;
 
 	/**
 	 * @notice Return total number of storage providers in liquid staking
@@ -88,31 +121,31 @@ interface IStorageProviderRegistry {
 	function getTotalActiveStorageProviders() external view returns (uint256);
 
 	/**
-	 * @notice Get information about storage provider with `_provider` address
+	 * @notice Return Storage Provider information with `_ownerId`
 	 */
 	function getStorageProvider(
-		bytes memory _provider
-	) external view returns (bool, address, bytes memory, uint256, uint256, uint256, uint256, uint256);
+		uint64 _ownerId
+	) external view returns (bool, address, uint64, uint256, uint256, uint256, uint256, uint256, int64, uint256);
 
 	/**
 	 * @notice Return a boolean flag of Storage Provider activity
 	 */
-	function isActiveProvider(bytes memory _provider) external view returns (bool);
+	function isActiveProvider(uint64 _ownerId) external view returns (bool);
 
 	/**
 	 * @notice Increase collected rewards by Storage Provider
-	 * @param _provider Storage Provider owner address
+	 * @param _ownerId Storage Provider owner ID
 	 * @param _accuredRewards Unlocked portion of rewards, that available for withdrawal
 	 * @param _lockedRewards Locked portion of rewards, that not available for withdrawal
 	 */
-	function increaseRewards(bytes memory _provider, uint256 _accuredRewards, uint256 _lockedRewards) external;
+	function increaseRewards(uint64 _ownerId, uint256 _accuredRewards, uint256 _lockedRewards) external;
 
 	/**
 	 * @notice Increase used allocation for Storage Provider
-	 * @param _provider Storage Provider owner address
+	 * @param _ownerId Storage Provider owner ID
 	 * @param _allocated FIL amount that is going to be pledged for Storage Provider
 	 */
-	function increaseUsedAllocation(bytes memory _provider, uint256 _allocated) external;
+	function increaseUsedAllocation(uint64 _ownerId, uint256 _allocated) external;
 
 	/**
 	 * @notice Update StorageProviderCollateral smart contract
@@ -127,4 +160,9 @@ interface IStorageProviderRegistry {
 	 * @dev Only triggered by owner contract
 	 */
 	function registerPool(address _pool) external;
+
+	/**
+	 * @notice Return a boolean flag whether `_pool` is active or not
+	 */
+	function isActivePool(address _pool) external view returns (bool);
 }

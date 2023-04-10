@@ -27,13 +27,13 @@ contract DeploymentScript is Script {
 		uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
 		vm.startBroadcast(deployerPrivateKey);
 
-		wfil = IWETH9(address(new WFIL()));
-		oracle = new PledgeOracle(genesisEpoch);
+		// wfil = IWETH9(address(new WFIL()));
+		// oracle = new PledgeOracle(genesisEpoch);
 
-		router = new StakingRouter("Collective DAO Router", wfil);
-		staking = new LiquidStaking(address(wfil), address(oracle));
-		registry = new StorageProviderRegistry(MAX_STORAGE_PROVIDERS, MAX_ALLOCATION, MIN_TIME_PERIOD, MAX_TIME_PERIOD);
-		collateral = new StorageProviderCollateral(wfil, address(registry));
+		// router = new StakingRouter("Collective DAO Router", wfil);
+		// staking = new LiquidStaking(address(wfil), address(oracle));
+		// registry = new StorageProviderRegistry(MAX_STORAGE_PROVIDERS, MAX_ALLOCATION, MIN_TIME_PERIOD, MAX_TIME_PERIOD);
+		// collateral = new StorageProviderCollateral(wfil, address(registry));
 
 		vm.stopBroadcast();
 	}
