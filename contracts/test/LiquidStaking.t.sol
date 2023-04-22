@@ -13,7 +13,6 @@ import {IStakingRouter, StakingRouter} from "../StakingRouter.sol";
 import {IERC4626RouterBase, ERC4626RouterBase, IWETH9, IERC4626, SelfPermit, PeripheryPayments} from "fei-protocol/erc4626/ERC4626RouterBase.sol";
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
 import {LiquidStaking} from "../LiquidStaking.sol";
-import {PledgeOracle} from "../PledgeOracle.sol";
 import {MinerActorMock} from "./mocks/MinerActorMock.sol";
 
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
@@ -25,7 +24,6 @@ contract LiquidStakingTest is DSTestPlus {
 	StorageProviderCollateralMock public collateral;
 	StorageProviderRegistryMock public registry;
 	MinerActorMock public minerActor;
-	PledgeOracle public oracle;
 
 	bytes public owner;
 	uint64 public aliceOwnerId = 1508;
@@ -60,12 +58,10 @@ contract LiquidStakingTest is DSTestPlus {
 		owner = ownerBytes.buf;
 
 		wfil = IWETH9(address(new WFIL()));
-		oracle = new PledgeOracle(genesisEpoch);
 		minerActor = new MinerActorMock();
 		staking = new LiquidStakingMock(
 			address(wfil),
 			address(minerActor),
-			address(oracle),
 			aliceOwnerId,
 			adminFee,
 			profitShare,
@@ -89,7 +85,6 @@ contract LiquidStakingTest is DSTestPlus {
 		registry.registerPool(address(staking));
 		staking.setCollateralAddress(address(collateral));
 		staking.setRegistryAddress(address(registry));
-		oracle.updateRecord(genesisEpoch + 1, preCommitDeposit, initialPledge);
 	}
 
 	function testStake(uint256 amount) public {

@@ -11,7 +11,6 @@ contract AfterDeploymentScript is Script {
 	address private collateralAddr = 0xD43D81D79455526222B006a34300990b228b5457;
 	address private registryAddr = 0xD2e3c87b83D77Ba725adC7ac8c40289558d06585;
 	address private wfil = 0x652DC2a67dE2C24c2B29f5016DBcF500f75eCfCe;
-	address private oracle = 0x363290A6993d85e55e61e92B7A0c25a1ab9f6c53;
 
 	function run() external {
 		uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");

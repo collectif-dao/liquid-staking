@@ -23,12 +23,11 @@ contract LiquidStakingMock is LiquidStaking {
 	constructor(
 		address _wFIL,
 		address minerActor,
-		address _oracle,
 		uint64 _ownerId,
 		uint256 _adminFee,
 		uint256 _profitShare,
 		address _rewardCollector
-	) LiquidStaking(_wFIL, _oracle, _adminFee, _profitShare, _rewardCollector) {
+	) LiquidStaking(_wFIL, _adminFee, _profitShare, _rewardCollector) {
 		minerActorMock = IMinerActorMock(minerActor);
 		ownerId = _ownerId;
 		ownerAddr = msg.sender;

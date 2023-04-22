@@ -16,7 +16,6 @@ import {SendAPI} from "filecoin-solidity/contracts/v0.8/SendAPI.sol";
 import "./interfaces/ILiquidStaking.sol";
 import "./interfaces/IStorageProviderCollateralClient.sol";
 import "./interfaces/IStorageProviderRegistryClient.sol";
-import "./interfaces/IPledgeOracleClient.sol";
 
 /**
  * @title LiquidStaking contract allows users to stake/unstake FIL to earn
@@ -56,21 +55,13 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 
 	IStorageProviderCollateralClient internal collateral;
 	IStorageProviderRegistryClient internal registry;
-	IPledgeOracleClient internal oracle;
 
 	bytes32 private constant LIQUID_STAKING_ADMIN = keccak256("LIQUID_STAKING_ADMIN");
 	bytes32 private constant FEE_DISTRIBUTOR = keccak256("FEE_DISTRIBUTOR");
 
-	constructor(
-		address _wFIL,
-		address _oracle,
-		uint256 _adminFee,
-		uint256 _profitShare,
-		address _rewardCollector
-	) ClFILToken(_wFIL) {
+	constructor(address _wFIL, uint256 _adminFee, uint256 _profitShare, address _rewardCollector) ClFILToken(_wFIL) {
 		require(_adminFee <= 10000, "INVALID_ADMIN_FEE");
 		require(_rewardCollector != address(0), "INVALID_REWARD_COLLECTOR");
-		oracle = IPledgeOracleClient(_oracle);
 		adminFee = _adminFee;
 		profitShare = _profitShare;
 		rewardCollector = _rewardCollector;
