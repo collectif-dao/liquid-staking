@@ -27,7 +27,7 @@ interface IStorageProviderRegistry {
 	event StorageProviderAllocationLimitUpdate(uint64 ownerId, uint256 allocationLimit);
 	event StorageProviderAllocationUsed(uint64 ownerId, uint256 usedAllocation);
 
-	event StorageProviderMinerRestakingRatioUpdate(uint64 ownerId, uint256 restakingRatio);
+	event StorageProviderMinerRestakingRatioUpdate(uint64 ownerId, uint256 restakingRatio, address restakingAddress);
 
 	event StorageProviderLockedRewards(uint64 ownerId, uint256 rewards);
 	event StorageProviderAccruedRewards(uint64 ownerId, uint256 rewards);
@@ -99,16 +99,18 @@ interface IStorageProviderRegistry {
 	 * @notice Update storage provider FIL allocation with `_allocationLimit`
 	 * @param _ownerId Storage provider owner ID
 	 * @param _allocationLimit New FIL allocation for storage provider
-	 * @dev Only triggered by owner contract
+	 * @param _repaymentAmount New FIL repayment amount for storage provider
+	 * @dev Only triggered by registry admin
 	 */
-	function updateAllocationLimit(uint64 _ownerId, uint256 _allocationLimit) external;
+	function updateAllocationLimit(uint64 _ownerId, uint256 _allocationLimit, uint256 _repaymentAmount) external;
 
 	/**
 	 * @notice Update storage provider's restaking ratio
 	 * @param _restakingRatio Restaking ratio for Storage Provider
+	 * @param _restakingAddress Restaking address (f4 address) for Storage Provider
 	 * @dev Only triggered by Storage Provider
 	 */
-	function setRestakingRatio(uint256 _restakingRatio) external;
+	function setRestaking(uint256 _restakingRatio, address _restakingAddress) external;
 
 	/**
 	 * @notice Return total number of storage providers in liquid staking
@@ -125,7 +127,7 @@ interface IStorageProviderRegistry {
 	 */
 	function getStorageProvider(
 		uint64 _ownerId
-	) external view returns (bool, address, uint64, uint256, uint256, uint256, uint256, uint256, int64, uint256);
+	) external view returns (bool, address, uint64, uint256, uint256, uint256, uint256, uint256, int64);
 
 	/**
 	 * @notice Return a boolean flag of Storage Provider activity

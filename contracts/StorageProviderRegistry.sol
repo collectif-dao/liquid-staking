@@ -29,6 +29,9 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 	// Mapping of storage provider IDs to their storage provider info
 	mapping(uint64 => StorageProviderTypes.StorageProvider) public storageProviders;
 
+	// Mapping of storage provider IDs to their restaking info
+	mapping(uint64 => StorageProviderTypes.SPRestaking) public restakings;
+
 	// Mapping of storage provider IDs to their allocation update requests
 	mapping(uint64 => uint256) public allocationRequests;
 
@@ -263,11 +266,13 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 	 * @notice Update storage provider FIL allocation with `_allocationLimit`
 	 * @param _ownerId Storage provider owner ID
 	 * @param _allocationLimit New FIL allocation for storage provider
+	 * @param _repaymentAmount New FIL repayment amount for storage provider
 	 * @dev Only triggered by registry admin
 	 */
 	function updateAllocationLimit(
 		uint64 _ownerId,
-		uint256 _allocationLimit
+		uint256 _allocationLimit,
+		uint256 _repaymentAmount
 	) public virtual override activeStorageProvider(_ownerId) {
 		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
 		require(allocationRequests[_ownerId] == _allocationLimit, "INVALID_ALLOCATION");
@@ -283,6 +288,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 		MinerAPI.changeBeneficiary(minerId, params);
 
 		storageProviders[_ownerId].allocationLimit = _allocationLimit;
+		storageProviders[_ownerId].repayment = _repaymentAmount;
 		delete allocationRequests[_ownerId];
 
 		emit StorageProviderAllocationLimitUpdate(_ownerId, _allocationLimit);
@@ -291,16 +297,19 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 	/**
 	 * @notice Update storage provider's restaking ratio
 	 * @param _restakingRatio Restaking ratio for Storage Provider
+	 * @param _restakingAddress Restaking address (f4 address) for Storage Provider
 	 * @dev Only triggered by Storage Provider
 	 */
-	function setRestakingRatio(uint256 _restakingRatio) public virtual override {
+	function setRestaking(uint256 _restakingRatio, address _restakingAddress) public virtual override {
 		uint64 ownerId = PrecompilesAPI.resolveEthAddress(msg.sender);
 		require(_restakingRatio <= 10000, "INVALID_RESTAKING_RATIO");
-		require(storageProviders[ownerId].restakingRatio != _restakingRatio, "SAME_RATIO");
+		require(_restakingAddress != address(0), "INVALID_ADDRESS");
 
-		storageProviders[ownerId].restakingRatio = _restakingRatio;
+		StorageProviderTypes.SPRestaking storage restaking = restakings[ownerId];
+		restaking.restakingRatio = _restakingRatio;
+		restaking.restakingAddress = _restakingAddress;
 
-		emit StorageProviderMinerRestakingRatioUpdate(ownerId, _restakingRatio);
+		emit StorageProviderMinerRestakingRatioUpdate(ownerId, _restakingRatio, _restakingAddress);
 	}
 
 	/**
@@ -322,7 +331,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 	 */
 	function getStorageProvider(
 		uint64 _ownerId
-	) public view returns (bool, address, uint64, uint256, uint256, uint256, uint256, uint256, int64, uint256) {
+	) public view returns (bool, address, uint64, uint256, uint256, uint256, uint256, uint256, int64) {
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_ownerId];
 		return (
 			storageProvider.active,
@@ -333,8 +342,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 			storageProvider.usedAllocation,
 			storageProvider.accruedRewards,
 			storageProvider.lockedRewards,
-			storageProvider.lastEpoch,
-			storageProvider.restakingRatio
+			storageProvider.lastEpoch
 		);
 	}
 

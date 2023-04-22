@@ -16,6 +16,10 @@ library StorageProviderTypes {
 		uint256 accruedRewards; // Storage Provider delivered rewards
 		uint256 lockedRewards; // Storage Provider locked rewards
 		int64 lastEpoch; // Max time period for accessing FIL from liquid staking
+	}
+
+	struct SPRestaking {
 		uint256 restakingRatio; // Percentage of FIL rewards that is going to be restaked into liquid staking pool
+		address restakingAddress;
 	}
 }

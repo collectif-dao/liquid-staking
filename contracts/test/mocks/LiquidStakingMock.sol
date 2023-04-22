@@ -16,67 +16,51 @@ contract LiquidStakingMock is LiquidStaking {
 	IMinerActorMock private minerActorMock;
 
 	uint64 public ownerId;
+	address private ownerAddr;
 
-	constructor(address _wFIL, address minerActor, address _oracle, uint64 _ownerId) LiquidStaking(_wFIL, _oracle) {
+	uint256 private constant BASIS_POINTS = 10000;
+
+	constructor(
+		address _wFIL,
+		address minerActor,
+		address _oracle,
+		uint64 _ownerId,
+		uint256 _adminFee,
+		uint256 _profitShare,
+		address _rewardCollector
+	) LiquidStaking(_wFIL, _oracle, _adminFee, _profitShare, _rewardCollector) {
 		minerActorMock = IMinerActorMock(minerActor);
 		ownerId = _ownerId;
+		ownerAddr = msg.sender;
 	}
 
 	/**
-	 * @notice Pledge FIL assets from liquid staking pool to miner pledge for one sector
-	 * @param sectorNumber Sector number to be sealed
-	 * @param proof Sector proof for sealing
+	 * @notice Pledge FIL assets from liquid staking pool to miner pledge for one or multiple sectors
+	 * @param amount Amount of FIL to be pledged from Liquid Staking Pool
 	 */
-	function pledge(uint64 sectorNumber, bytes memory proof) external virtual override nonReentrant {
-		uint256 assets = oracle.getPledgeFees();
-		require(assets <= totalAssets(), "PLEDGE_WITHDRAWAL_OVERFLOW");
+	function pledge(uint256 amount) external virtual override nonReentrant {
+		require(amount <= totalAssets(), "PLEDGE_WITHDRAWAL_OVERFLOW");
 
-		collateral.lock(ownerId, assets);
+		collateral.lock(ownerId, amount);
 
-		(, , uint64 minerId, , , , , , , ) = registry.getStorageProvider(ownerId);
-		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
+		(, , uint64 minerId, , , , , , ) = registry.getStorageProvider(ownerId);
 
-		emit Pledge(minerId, assets, sectorNumber);
+		emit Pledge(ownerId, minerId, amount);
 
-		WFIL.withdraw(assets);
+		WFIL.withdraw(amount);
 
-		totalFilPledged += assets;
+		totalFilPledged += amount;
 
-		msg.sender.safeTransferETH(assets);
+		msg.sender.safeTransferETH(amount);
 	}
 
 	/**
-	 * @notice Pledge FIL assets from liquid staking pool to miner pledge for multiple sectors
-	 * @param sectorNumbers Sector number to be sealed
-	 * @param proofs Sector proof for sealing
+	 * @notice Withdraw FIL assets from Storage Provider by `ownerId` and it's Miner actor
+	 * @param ownerId Storage provider owner ID
+	 * @param amount Withdrawal amount
 	 */
-	function pledgeAggregate(
-		uint64[] memory sectorNumbers,
-		bytes[] memory proofs
-	) external virtual override nonReentrant {
-		require(sectorNumbers.length == proofs.length, "INVALID_PARAMS");
-		uint256 pledgePerSector = oracle.getPledgeFees();
-		uint256 totalPledge = pledgePerSector * sectorNumbers.length;
-
-		require(totalPledge <= totalAssets(), "PLEDGE_WITHDRAWAL_OVERFLOW");
-
-		collateral.lock(ownerId, totalPledge);
-
-		(, , uint64 minerId, , , , , , , ) = registry.getStorageProvider(ownerId);
-		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
-
-		for (uint256 i = 0; i < sectorNumbers.length; i++) {
-			emit Pledge(minerId, pledgePerSector, sectorNumbers[i]);
-		}
-
-		WFIL.withdraw(totalPledge);
-
-		totalFilPledged += totalPledge;
-
-		msg.sender.safeTransferETH(totalPledge);
-	}
-
-	function withdrawRewards(uint64 minerId, uint256 amount) external virtual override nonReentrant {
+	function withdrawRewards(uint64 ownerId, uint256 amount) external virtual override nonReentrant {
+		(, , uint64 minerId, , , , , , ) = registry.getStorageProvider(ownerId);
 		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
 		CommonTypes.BigInt memory amountBInt = BigInts.fromUint256(amount);
 
@@ -86,8 +70,56 @@ contract LiquidStakingMock is LiquidStaking {
 		require(!abort, "INCORRECT_BIG_NUM");
 		require(withdrawn == amount, "INCORRECT_WITHDRAWAL_AMOUNT");
 
-		WFIL.deposit{value: withdrawn}();
+		uint256 stakingProfit = (withdrawn * profitShare) / BASIS_POINTS;
+		uint256 protocolFees = (withdrawn * adminFee) / BASIS_POINTS;
+		uint256 spShare = withdrawn - (stakingProfit + protocolFees);
 
-		registry.increaseRewards(minerId, withdrawn, 0);
+		WFIL.deposit{value: withdrawn}();
+		WFIL.safeTransfer(ownerAddr, spShare);
+		WFIL.safeTransfer(rewardCollector, protocolFees);
+
+		registry.increaseRewards(minerId, stakingProfit, 0);
+	}
+
+	/**
+	 * @notice Withdraw FIL assets from Storage Provider by `ownerId` and it's Miner actor
+	 * and restake `restakeAmount` into the Storage Provider specified f4 address
+	 * @param ownerId Storage provider owner ID
+	 * @param amount Withdrawal amount
+	 * @param totalRewards Total amount of rewards accured by SP - profit sharing
+	 */
+	function withdrawAndRestakeRewards(
+		uint64 ownerId,
+		uint256 amount,
+		uint256 totalRewards
+	) external virtual override nonReentrant returns (uint256) {
+		WithdrawAndRestakeLocalVars memory vars;
+
+		(, , uint64 minerId, , , , , , ) = registry.getStorageProvider(ownerId);
+		vars.minerActorId = CommonTypes.FilActorId.wrap(minerId);
+
+		(vars.restakingRatio, vars.restakingAddress) = registry.restakings(ownerId);
+		require(vars.restakingAddress != address(0), "RESTAKING_NOT_SET");
+		vars.restakingAmt = (totalRewards * vars.restakingRatio) / BASIS_POINTS;
+
+		uint256 shares;
+		require((shares = previewDeposit(vars.restakingAmt)) != 0, "ZERO_SHARES");
+
+		vars.targetWithdraw = amount + vars.restakingAmt;
+		vars.amountBInt = BigInts.fromUint256(vars.targetWithdraw);
+		vars.withdrawnBInt = minerActorMock.withdrawBalance(vars.minerActorId, vars.amountBInt);
+
+		(vars.withdrawn, vars.abort) = BigInts.toUint256(vars.withdrawnBInt);
+		require(!vars.abort, "INCORRECT_BIG_NUM");
+		require(vars.withdrawn == vars.targetWithdraw, "INCORRECT_WITHDRAWAL_AMOUNT");
+
+		WFIL.deposit{value: vars.withdrawn}();
+
+		vars.protocolFees = (amount * adminFee) / BASIS_POINTS;
+		WFIL.safeTransfer(rewardCollector, vars.protocolFees);
+
+		registry.increaseRewards(minerId, amount, 0);
+
+		_restake(vars.restakingAmt, vars.restakingAddress);
 	}
 }

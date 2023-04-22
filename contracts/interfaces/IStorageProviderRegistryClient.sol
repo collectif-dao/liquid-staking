@@ -7,7 +7,7 @@ interface IStorageProviderRegistryClient {
 	 */
 	function getStorageProvider(
 		uint64 _ownerId
-	) external view returns (bool, address, uint64, uint256, uint256, uint256, uint256, uint256, int64, uint256);
+	) external view returns (bool, address, uint64, uint256, uint256, uint256, uint256, uint256, int64);
 
 	/**
 	 * @notice Increase collected rewards by Storage Provider
@@ -33,4 +33,9 @@ interface IStorageProviderRegistryClient {
 	 * @notice Return a boolean flag whether `_pool` is active or not
 	 */
 	function isActivePool(address _pool) external view returns (bool);
+
+	/**
+	 * @notice Return a restaking information for a storage provider
+	 */
+	function restakings(uint64 ownerId) external view returns (uint256, address);
 }

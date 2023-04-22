@@ -5,6 +5,7 @@ import {ClFILToken} from "./ClFIL.sol";
 import {Multicall} from "fei-protocol/erc4626/external/Multicall.sol";
 import {SelfPermit} from "fei-protocol/erc4626/external/SelfPermit.sol";
 import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {MinerAPI} from "filecoin-solidity/contracts/v0.8/MinerAPI.sol";
 import {CommonTypes} from "filecoin-solidity/contracts/v0.8/types/CommonTypes.sol";
@@ -43,26 +44,40 @@ import "./interfaces/IPledgeOracleClient.sol";
  *     data[1] = abi.encodeWithSelector(PeripheryPayments.unwrapWFIL.selector, amount, address(this));
  *     router.multicall{value: amount}(data);
  */
-contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, ReentrancyGuard {
+contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, ReentrancyGuard, AccessControl {
 	using SafeTransferLib for *;
-
-	event OwnershipTransferred(address indexed user, address indexed newOwner);
 
 	/// @notice The current total amount of FIL that is allocated to SPs.
 	uint256 public totalFilPledged;
 	uint256 private constant BASIS_POINTS = 10000;
+	uint256 public adminFee;
+	uint256 public profitShare;
+	address public rewardCollector;
 
 	IStorageProviderCollateralClient internal collateral;
 	IStorageProviderRegistryClient internal registry;
 	IPledgeOracleClient internal oracle;
 
-	address public owner;
+	bytes32 private constant LIQUID_STAKING_ADMIN = keccak256("LIQUID_STAKING_ADMIN");
+	bytes32 private constant FEE_DISTRIBUTOR = keccak256("FEE_DISTRIBUTOR");
 
-	constructor(address _wFIL, address _oracle) ClFILToken(_wFIL) {
+	constructor(
+		address _wFIL,
+		address _oracle,
+		uint256 _adminFee,
+		uint256 _profitShare,
+		address _rewardCollector
+	) ClFILToken(_wFIL) {
+		require(_adminFee <= 10000, "INVALID_ADMIN_FEE");
+		require(_rewardCollector != address(0), "INVALID_REWARD_COLLECTOR");
 		oracle = IPledgeOracleClient(_oracle);
-		owner = msg.sender;
+		adminFee = _adminFee;
+		profitShare = _profitShare;
+		rewardCollector = _rewardCollector;
 
-		emit OwnershipTransferred(address(0), msg.sender);
+		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+		grantRole(LIQUID_STAKING_ADMIN, msg.sender);
+		grantRole(FEE_DISTRIBUTOR, msg.sender);
 	}
 
 	receive() external payable virtual {}
@@ -142,58 +157,34 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 
 	/**
 	 * @notice Pledge FIL assets from liquid staking pool to miner pledge for one sector
-	 * @param sectorNumber Sector number to be sealed
-	 * @param proof Sector proof for sealing
+	 * @param amount Amount of FIL to pledge from Liquid Staking Pool
 	 */
-	function pledge(uint64 sectorNumber, bytes memory proof) external virtual nonReentrant {
-		uint256 assets = oracle.getPledgeFees();
-		require(assets <= totalAssets(), "PLEDGE_WITHDRAWAL_OVERFLOW");
+	function pledge(uint256 amount) external virtual nonReentrant {
+		require(amount <= totalAssets(), "PLEDGE_WITHDRAWAL_OVERFLOW");
 
 		uint64 ownerId = PrecompilesAPI.resolveEthAddress(msg.sender);
-		collateral.lock(ownerId, assets);
+		collateral.lock(ownerId, amount);
 
-		(, , uint64 minerId, , , , , , , ) = registry.getStorageProvider(ownerId);
+		(, , uint64 minerId, , , , , , ) = registry.getStorageProvider(ownerId);
 		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
 
-		emit Pledge(minerId, assets, sectorNumber);
+		emit Pledge(ownerId, minerId, amount);
 
-		WFIL.withdraw(assets);
+		WFIL.withdraw(amount);
 
-		totalFilPledged += assets;
+		totalFilPledged += amount;
 
-		SendAPI.send(minerActorId, assets); // send FIL to the miner actor
+		SendAPI.send(minerActorId, amount); // send FIL to the miner actor
 	}
 
 	/**
-	 * @notice Pledge FIL assets from liquid staking pool to miner pledge for multiple sectors
-	 * @param sectorNumbers Sector number to be sealed
-	 * @param proofs Sector proof for sealing
+	 * @notice Withdraw FIL assets from Storage Provider by `ownerId` and it's Miner actor
+	 * @param ownerId Storage provider owner ID
+	 * @param amount Withdrawal amount
 	 */
-	function pledgeAggregate(uint64[] memory sectorNumbers, bytes[] memory proofs) external virtual nonReentrant {
-		require(sectorNumbers.length == proofs.length, "INVALID_PARAMS");
-		uint256 pledgePerSector = oracle.getPledgeFees();
-		uint256 totalPledge = pledgePerSector * sectorNumbers.length;
-
-		require(totalPledge <= totalAssets(), "PLEDGE_WITHDRAWAL_OVERFLOW");
-
-		uint64 ownerId = PrecompilesAPI.resolveEthAddress(msg.sender);
-		collateral.lock(ownerId, totalPledge);
-
-		(, , uint64 minerId, , , , , , , ) = registry.getStorageProvider(ownerId);
-		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
-
-		for (uint256 i = 0; i < sectorNumbers.length; i++) {
-			emit Pledge(minerId, pledgePerSector, sectorNumbers[i]);
-		}
-
-		WFIL.withdraw(totalPledge);
-
-		totalFilPledged += totalPledge;
-
-		SendAPI.send(minerActorId, totalPledge); // send FIL to the miner actor
-	}
-
-	function withdrawRewards(uint64 minerId, uint256 amount) external virtual nonReentrant {
+	function withdrawRewards(uint64 ownerId, uint256 amount) external virtual nonReentrant {
+		require(hasRole(FEE_DISTRIBUTOR, msg.sender), "INVALID_ACCESS");
+		(, , uint64 minerId, , , , , , ) = registry.getStorageProvider(ownerId);
 		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
 		CommonTypes.BigInt memory amountBInt = BigInts.fromUint256(amount);
 
@@ -203,9 +194,84 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 		require(!abort, "INCORRECT_BIG_NUM");
 		require(withdrawn == amount, "INCORRECT_WITHDRAWAL_AMOUNT");
 
-		WFIL.deposit{value: withdrawn}();
+		uint256 stakingProfit = (withdrawn * profitShare) / BASIS_POINTS;
+		uint256 protocolFees = (withdrawn * adminFee) / BASIS_POINTS;
+		uint256 spShare = withdrawn - (stakingProfit + protocolFees);
 
-		registry.increaseRewards(minerId, withdrawn, 0);
+		WFIL.deposit{value: withdrawn}();
+		// TODO: Add UNWRAP from WFIL to FIL operation
+		SendAPI.send(CommonTypes.FilActorId.wrap(ownerId), spShare);
+		WFIL.safeTransfer(rewardCollector, protocolFees);
+
+		registry.increaseRewards(ownerId, stakingProfit, 0);
+	}
+
+	struct WithdrawAndRestakeLocalVars {
+		uint256 restakingRatio;
+		address restakingAddress;
+		uint256 restakingAmt;
+		uint256 targetWithdraw;
+		uint256 withdrawn;
+		bool abort;
+		uint256 protocolFees;
+		CommonTypes.FilActorId minerActorId;
+		CommonTypes.BigInt amountBInt;
+		CommonTypes.BigInt withdrawnBInt;
+	}
+
+	/**
+	 * @notice Withdraw FIL assets from Storage Provider by `ownerId` and it's Miner actor
+	 * and restake `restakeAmount` into the Storage Provider specified f4 address
+	 * @param ownerId Storage provider owner ID
+	 * @param amount Withdrawal amount
+	 * @param totalRewards Total amount of rewards accured by SP - profit sharing
+	 */
+	function withdrawAndRestakeRewards(
+		uint64 ownerId,
+		uint256 amount,
+		uint256 totalRewards
+	) external virtual nonReentrant returns (uint256 shares) {
+		require(hasRole(FEE_DISTRIBUTOR, msg.sender), "INVALID_ACCESS");
+		WithdrawAndRestakeLocalVars memory vars;
+
+		(, , uint64 minerId, , , , , , ) = registry.getStorageProvider(ownerId);
+		vars.minerActorId = CommonTypes.FilActorId.wrap(minerId);
+
+		(vars.restakingRatio, vars.restakingAddress) = registry.restakings(ownerId);
+		require(vars.restakingAddress != address(0), "RESTAKING_NOT_SET");
+		vars.restakingAmt = (totalRewards * vars.restakingRatio) / BASIS_POINTS;
+
+		vars.targetWithdraw = amount + vars.restakingAmt;
+		vars.amountBInt = BigInts.fromUint256(vars.targetWithdraw);
+		vars.withdrawnBInt = MinerAPI.withdrawBalance(vars.minerActorId, vars.amountBInt);
+
+		(vars.withdrawn, vars.abort) = BigInts.toUint256(vars.withdrawnBInt);
+		require(!vars.abort, "INCORRECT_BIG_NUM");
+		require(vars.withdrawn == vars.targetWithdraw, "INCORRECT_WITHDRAWAL_AMOUNT");
+
+		WFIL.deposit{value: vars.withdrawn}();
+
+		vars.protocolFees = (amount * adminFee) / BASIS_POINTS;
+		WFIL.safeTransfer(rewardCollector, vars.protocolFees);
+
+		registry.increaseRewards(minerId, amount, 0);
+
+		_restake(vars.restakingAmt, vars.restakingAddress);
+	}
+
+	/**
+	 * @notice Restakes `assets` for a specified `target` address
+	 * @param assets Amount of assets to restake
+	 * @param target f4 address to receive clFIL tokens
+	 */
+	function _restake(uint256 assets, address target) internal returns (uint256 shares) {
+		require((shares = previewDeposit(assets)) != 0, "ZERO_SHARES");
+
+		_mint(target, shares);
+
+		emit Deposit(target, target, assets, shares);
+
+		afterDeposit(assets, shares);
 	}
 
 	/**
@@ -229,7 +295,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 	 * @param newAddr StorageProviderCollateral contract address
 	 */
 	function setCollateralAddress(address newAddr) public {
-		_onlyOwner();
+		require(hasRole(LIQUID_STAKING_ADMIN, msg.sender), "INVALID_ACCESS");
 		collateral = IStorageProviderCollateralClient(newAddr);
 
 		emit SetCollateralAddress(newAddr);
@@ -247,7 +313,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 	 * @param newAddr StorageProviderRegistry contract address
 	 */
 	function setRegistryAddress(address newAddr) public {
-		_onlyOwner();
+		require(hasRole(LIQUID_STAKING_ADMIN, msg.sender), "INVALID_ACCESS");
 		registry = IStorageProviderRegistryClient(newAddr);
 
 		emit SetRegistryAddress(newAddr);
@@ -275,16 +341,5 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 			WFIL.withdraw(_amount);
 			_recipient.safeTransferETH(_amount);
 		}
-	}
-
-	function _onlyOwner() private view {
-		require(msg.sender == owner, "UNAUTHORIZED");
-	}
-
-	function transferOwnership(address newOwner) public virtual {
-		_onlyOwner();
-		owner = newOwner;
-
-		emit OwnershipTransferred(msg.sender, newOwner);
 	}
 }

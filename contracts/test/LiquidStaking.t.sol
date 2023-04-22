@@ -33,7 +33,12 @@ contract LiquidStakingTest is DSTestPlus {
 
 	uint256 private aliceKey = 0xBEEF;
 	address private alice = address(0x122);
+	address private aliceRestaking = address(0x123412);
 	address private bob = address(0x123);
+
+	uint256 private adminFee = 1000;
+	uint256 private profitShare = 2000;
+	address private rewardCollector = address(0x12523);
 
 	uint256 private constant MAX_STORAGE_PROVIDERS = 200;
 	uint256 private constant MAX_ALLOCATION = 10000 ether;
@@ -57,7 +62,15 @@ contract LiquidStakingTest is DSTestPlus {
 		wfil = IWETH9(address(new WFIL()));
 		oracle = new PledgeOracle(genesisEpoch);
 		minerActor = new MinerActorMock();
-		staking = new LiquidStakingMock(address(wfil), address(minerActor), address(oracle), aliceOwnerId);
+		staking = new LiquidStakingMock(
+			address(wfil),
+			address(minerActor),
+			address(oracle),
+			aliceOwnerId,
+			adminFee,
+			profitShare,
+			rewardCollector
+		);
 
 		registry = new StorageProviderRegistryMock(
 			owner,
@@ -228,7 +241,7 @@ contract LiquidStakingTest is DSTestPlus {
 		require(staking.totalAssets() == 0, "INVALID_BALANCE");
 	}
 
-	function testPledge(uint128 amount) public {
+	function testPledgeAmount(uint128 amount) public {
 		hevm.assume(amount != 0 && amount <= MAX_ALLOCATION && amount > 1 ether);
 		uint256 collateralAmount = (amount * collateralRequirements) / BASIS_POINTS;
 		hevm.deal(address(this), amount);
@@ -240,6 +253,7 @@ contract LiquidStakingTest is DSTestPlus {
 		registry.changeBeneficiaryAddress(address(staking));
 		hevm.stopPrank();
 
+		registry.onboardStorageProvider(aliceMinerId, amount, amount + 10 ether, 412678);
 		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
 
 		hevm.prank(alice);
@@ -249,68 +263,14 @@ contract LiquidStakingTest is DSTestPlus {
 
 		// try to pledge FIL from the pool
 		hevm.prank(alice);
-		staking.pledge(1, bytes("0"));
+		staking.pledge(amount);
 
 		require(wfil.balanceOf(address(this)) == 0, "INVALID_BALANCE");
-		require(alice.balance == preCommitDeposit + initialPledge, "INVALID_BALANCE");
+		require(alice.balance == amount, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 	}
 
-	function testPledgeAggregate(uint128 amount) public {
-		uint256 numberOfSectors = 3;
-		uint256 totalPledge = (initialPledge + preCommitDeposit) * numberOfSectors;
-		hevm.assume(amount >= totalPledge && amount <= MAX_ALLOCATION);
-		uint256 collateralAmount = (amount * collateralRequirements) / BASIS_POINTS;
-		hevm.deal(address(this), amount);
-		hevm.deal(alice, collateralAmount);
-
-		hevm.startPrank(alice);
-		registry.register(aliceMinerId, address(staking), amount);
-		registry.changeBeneficiaryAddress(address(staking));
-		hevm.stopPrank();
-
-		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
-
-		hevm.prank(alice);
-		collateral.deposit{value: collateralAmount}(aliceOwnerId);
-
-		staking.stake{value: amount}();
-
-		(uint64[] memory sectors, bytes[] memory proofs) = prepareSectors();
-		hevm.prank(alice);
-		staking.pledgeAggregate(sectors, proofs);
-
-		require(wfil.balanceOf(address(this)) == 0, "INVALID_BALANCE");
-		require(alice.balance == (preCommitDeposit + initialPledge) * numberOfSectors, "INVALID_BALANCE");
-		require(staking.totalAssets() == amount, "INVALID_BALANCE");
-	}
-
-	function testPledgeAggregateReverts() public {
-		uint256 numberOfSectors = 3;
-		uint256 totalPledge = (initialPledge + preCommitDeposit) * (numberOfSectors - 1);
-		uint256 collateralAmount = (totalPledge * collateralRequirements) / BASIS_POINTS;
-		hevm.deal(address(this), totalPledge);
-		hevm.deal(alice, collateralAmount);
-
-		hevm.startPrank(alice);
-		registry.register(aliceMinerId, address(staking), totalPledge);
-		registry.changeBeneficiaryAddress(address(staking));
-		hevm.stopPrank();
-
-		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
-
-		hevm.prank(alice);
-		collateral.deposit{value: collateralAmount}(aliceOwnerId);
-
-		staking.stake{value: totalPledge}();
-
-		(uint64[] memory sectors, bytes[] memory proofs) = prepareSectors();
-		hevm.prank(alice);
-		hevm.expectRevert("PLEDGE_WITHDRAWAL_OVERFLOW");
-		staking.pledgeAggregate(sectors, proofs);
-	}
-
-	function testWithdrawBalance(uint256 amount) public {
+	function testWithdrawRewards(uint256 amount) public {
 		hevm.assume(amount != 0 && amount <= MAX_ALLOCATION && amount > 1 ether);
 		uint256 collateralAmount = (amount * collateralRequirements) / BASIS_POINTS;
 		hevm.deal(address(this), amount);
@@ -319,11 +279,14 @@ contract LiquidStakingTest is DSTestPlus {
 		uint256 withdrawAmount = (amount * 500) / BASIS_POINTS;
 		hevm.deal(address(minerActor), withdrawAmount);
 
+		uint256 pledgeAmt = preCommitDeposit + initialPledge;
+
 		hevm.startPrank(alice);
 		registry.register(aliceMinerId, address(staking), amount);
 		registry.changeBeneficiaryAddress(address(staking));
 		hevm.stopPrank();
 
+		registry.onboardStorageProvider(aliceMinerId, amount, amount + 10 ether, 412678);
 		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
 
 		hevm.prank(alice);
@@ -332,7 +295,7 @@ contract LiquidStakingTest is DSTestPlus {
 		staking.stake{value: amount}();
 
 		hevm.prank(alice);
-		staking.pledge(1, bytes("0"));
+		staking.pledge(pledgeAmt);
 
 		require(alice.balance == preCommitDeposit + initialPledge, "INVALID_BALANCE");
 		require(address(minerActor).balance == withdrawAmount, "INVALID_BALANCE");
@@ -340,24 +303,79 @@ contract LiquidStakingTest is DSTestPlus {
 
 		staking.withdrawRewards(aliceMinerId, withdrawAmount);
 
-		require(address(minerActor).balance == 0, "INVALID_BALANCE");
-		require(staking.totalAssets() == amount + withdrawAmount, "INVALID_BALANCE");
+		uint256 protocolFees = (withdrawAmount * adminFee) / BASIS_POINTS;
+		uint256 stakingShare = (withdrawAmount * profitShare) / BASIS_POINTS;
+		uint256 spShare = withdrawAmount - (protocolFees + stakingShare);
 
-		uint256 stakingBalance = amount - (preCommitDeposit + initialPledge) + withdrawAmount;
-		require(wfil.balanceOf(address(staking)) == stakingBalance, "INVALID_BALANCE");
+		require(address(minerActor).balance == 0, "INVALID_BALANCE");
+		require(wfil.balanceOf(address(this)) == spShare, "INVALID_BALANCE");
+		require(wfil.balanceOf(rewardCollector) == protocolFees, "INVALID_BALANCE");
+		require(staking.totalAssets() == amount + stakingShare, "INVALID_BALANCE");
 	}
 
-	function prepareSectors() internal pure returns (uint64[] memory, bytes[] memory) {
-		uint64[] memory sectors = new uint64[](3);
-		sectors[0] = uint64(1);
-		sectors[1] = uint64(2);
-		sectors[2] = uint64(3);
+	function testWithdrawAndRestakeRewards(uint256 amount) public {
+		hevm.assume(amount != 0 && amount <= MAX_ALLOCATION && amount > 1 ether);
+		uint256 collateralAmount = (amount * collateralRequirements) / BASIS_POINTS;
+		hevm.deal(address(this), amount);
+		hevm.deal(alice, collateralAmount);
 
-		bytes[] memory proofs = new bytes[](3);
-		proofs[0] = bytes("0");
-		proofs[1] = bytes("0");
-		proofs[2] = bytes("0");
+		uint256 pledgeAmt = preCommitDeposit + initialPledge;
 
-		return (sectors, proofs);
+		uint256 withdrawAmount = (amount * 500) / BASIS_POINTS;
+		uint256 restakingAmt = (withdrawAmount * 2000) / BASIS_POINTS;
+		uint256 totalAmount = withdrawAmount + restakingAmt;
+		hevm.deal(address(minerActor), totalAmount);
+
+		hevm.startPrank(alice);
+		registry.register(aliceMinerId, address(staking), amount);
+		registry.changeBeneficiaryAddress(address(staking));
+		registry.setRestaking(1000, aliceRestaking);
+		hevm.stopPrank();
+
+		registry.onboardStorageProvider(aliceMinerId, amount, amount + 10 ether, 412678);
+		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
+
+		hevm.prank(alice);
+		collateral.deposit{value: collateralAmount}(aliceOwnerId);
+
+		staking.stake{value: amount}();
+
+		hevm.prank(alice);
+		staking.pledge(pledgeAmt);
+
+		staking.withdrawAndRestakeRewards(aliceOwnerId, withdrawAmount, withdrawAmount * 2);
+	}
+
+	function testWithdrawAndRestakeRewardsReverts(uint256 amount) public {
+		hevm.assume(amount != 0 && amount <= MAX_ALLOCATION && amount > 1 ether);
+		uint256 collateralAmount = (amount * collateralRequirements) / BASIS_POINTS;
+		hevm.deal(address(this), amount);
+		hevm.deal(alice, collateralAmount);
+
+		uint256 pledgeAmt = preCommitDeposit + initialPledge;
+
+		uint256 withdrawAmount = (amount * 500) / BASIS_POINTS;
+		uint256 restakingAmt = (withdrawAmount * 2000) / BASIS_POINTS;
+		uint256 totalAmount = withdrawAmount + restakingAmt;
+		hevm.deal(address(minerActor), totalAmount);
+
+		hevm.startPrank(alice);
+		registry.register(aliceMinerId, address(staking), amount);
+		registry.changeBeneficiaryAddress(address(staking));
+		hevm.stopPrank();
+
+		registry.onboardStorageProvider(aliceMinerId, amount, amount + 10 ether, 412678);
+		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
+
+		hevm.prank(alice);
+		collateral.deposit{value: collateralAmount}(aliceOwnerId);
+
+		staking.stake{value: amount}();
+
+		hevm.prank(alice);
+		staking.pledge(pledgeAmt);
+
+		hevm.expectRevert("RESTAKING_NOT_SET");
+		staking.withdrawAndRestakeRewards(aliceOwnerId, withdrawAmount, withdrawAmount * 2);
 	}
 }

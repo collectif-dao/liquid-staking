@@ -60,8 +60,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			uint256 usedAllocation,
 			uint256 accruedRewards,
 			uint256 lockedRewards,
-			int64 lastEpoch,
-			uint256 restakingRatio
+			int64 lastEpoch
 		) = registry.getStorageProvider(ownerId);
 
 		assertBoolEq(isActive, false);
@@ -73,7 +72,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		assertEq(accruedRewards, 0);
 		assertEq(lockedRewards, 0);
 		assertEq(lastEpoch, 0);
-		assertEq(restakingRatio, 0);
+		// assertEq(restakingRatio, 0);
 		assertEq(registry.getTotalActiveStorageProviders(), 0);
 		assertEq(registry.sectorSizes(ownerId), 34359738368);
 	}
@@ -104,8 +103,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			uint256 usedAllocation,
 			uint256 accruedRewards,
 			uint256 lockedRewards,
-			int64 lastEpoch,
-			uint256 restakingRatio
+			int64 lastEpoch
 		) = registry.getStorageProvider(ownerId);
 
 		assertBoolEq(isActive, false);
@@ -117,7 +115,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		assertEq(accruedRewards, 0);
 		assertEq(lockedRewards, 0);
 		assertEq(lastEpoch, _lastEpoch);
-		assertEq(restakingRatio, 0);
+		// assertEq(restakingRatio, 0);
 		assertEq(registry.getTotalActiveStorageProviders(), 0);
 	}
 
@@ -150,7 +148,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		registry.onboardStorageProvider(minerId, MAX_ALLOCATION, MAX_ALLOCATION + 10, lastEpoch);
 		registry.changeBeneficiaryAddress(address(staking));
 
-		(, address targetPool, , , , , , , , ) = registry.getStorageProvider(ownerId);
+		(, address targetPool, , , , , , , ) = registry.getStorageProvider(ownerId);
 
 		assertEq(targetPool, address(staking));
 	}
@@ -256,7 +254,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		registry.acceptBeneficiaryAddress(ownerId, address(staking));
 
 		registry.setMinerAddress(ownerId, newMinerId);
-		(, , uint64 minerId, , , , , , , ) = registry.getStorageProvider(ownerId);
+		(, , uint64 minerId, , , , , , ) = registry.getStorageProvider(ownerId);
 		assertEq(minerId, newMinerId);
 	}
 
@@ -360,7 +358,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		registry.acceptBeneficiaryAddress(ownerId, address(staking));
 
 		registry.requestAllocationLimitUpdate(allocation);
-		registry.updateAllocationLimit(ownerId, allocation);
+		registry.updateAllocationLimit(ownerId, allocation, allocation + 10);
 	}
 
 	function testUpdateAllocationLimitReverts(uint64 minerId, int64 lastEpoch) public {
@@ -375,15 +373,21 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		registry.requestAllocationLimitUpdate(newAllocation);
 
 		hevm.expectRevert("INVALID_ALLOCATION");
-		registry.updateAllocationLimit(ownerId, MAX_ALLOCATION);
+		registry.updateAllocationLimit(ownerId, MAX_ALLOCATION, MAX_ALLOCATION + 10);
 	}
 
-	function testSetRestakingRatio(uint64 minerId, uint256 restakingRatio, int64 lastEpoch) public {
+	function testSetRestaking(
+		uint64 minerId,
+		uint256 restakingRatio,
+		address restakingAddress,
+		int64 lastEpoch
+	) public {
 		hevm.assume(
 			minerId > 1 &&
 				minerId < 2115248121211227543 &&
 				restakingRatio > 0 &&
 				restakingRatio < 10000 &&
+				restakingAddress != address(0) &&
 				lastEpoch > 0
 		);
 		registry.register(minerId, address(staking), MAX_ALLOCATION);
@@ -392,13 +396,14 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		registry.changeBeneficiaryAddress(address(staking));
 		registry.acceptBeneficiaryAddress(ownerId, address(staking));
 
-		registry.setRestakingRatio(restakingRatio);
+		registry.setRestaking(restakingRatio, restakingAddress);
 
-		(, , , , , , , , , uint256 ratio) = registry.getStorageProvider(ownerId);
+		(uint256 ratio, address rAddr) = registry.restakings(ownerId);
 		assertEq(ratio, restakingRatio);
+		assertEq(rAddr, restakingAddress);
 	}
 
-	function testSetRestakingRatioReverts(uint64 minerId, int64 lastEpoch) public {
+	function testSetRestakingReverts(uint64 minerId, int64 lastEpoch) public {
 		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
 		registry.register(minerId, address(staking), MAX_ALLOCATION);
 		registry.onboardStorageProvider(minerId, MAX_ALLOCATION, MAX_ALLOCATION + 10, lastEpoch);
@@ -407,29 +412,14 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		registry.acceptBeneficiaryAddress(ownerId, address(staking));
 
 		hevm.expectRevert("INVALID_RESTAKING_RATIO");
-		registry.setRestakingRatio(15000);
+		registry.setRestaking(15000, address(0x412412));
 
-		(, , , , , , , , , uint256 ratio) = registry.getStorageProvider(ownerId);
+		hevm.expectRevert("INVALID_ADDRESS");
+		registry.setRestaking(1500, address(0));
+
+		(uint256 ratio, address rAddr) = registry.restakings(ownerId);
 		assertEq(ratio, 0);
-	}
-
-	function testSetRestakingRatioRevertsWithSameRatio(uint64 minerId, int64 lastEpoch) public {
-		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
-		uint256 restakingRatio = 1000;
-
-		registry.register(minerId, address(staking), MAX_ALLOCATION);
-		registry.onboardStorageProvider(minerId, MAX_ALLOCATION, MAX_ALLOCATION + 10, lastEpoch);
-
-		registry.changeBeneficiaryAddress(address(staking));
-		registry.acceptBeneficiaryAddress(ownerId, address(staking));
-
-		registry.setRestakingRatio(restakingRatio);
-
-		hevm.expectRevert("SAME_RATIO");
-		registry.setRestakingRatio(restakingRatio);
-
-		(, , , , , , , , , uint256 ratio) = registry.getStorageProvider(ownerId);
-		assertEq(ratio, restakingRatio);
+		assertEq(rAddr, address(0));
 	}
 
 	function testCollateralAddress(address collateral) public {
@@ -478,7 +468,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 
 		callerMock.increaseRewards(ownerId, _accruedRewards, 0);
 
-		(, , , , , , uint256 accruedRewards, , , ) = registry.getStorageProvider(ownerId);
+		(, , , , , , uint256 accruedRewards, , ) = registry.getStorageProvider(ownerId);
 		assertEq(accruedRewards, _accruedRewards);
 	}
 
@@ -488,7 +478,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		hevm.expectRevert("INVALID_ACCESS");
 		callerMock.increaseRewards(ownerId, _accruedRewards, 0);
 
-		(, , , , , , uint256 accruedRewards, , , ) = registry.getStorageProvider(ownerId);
+		(, , , , , , uint256 accruedRewards, , ) = registry.getStorageProvider(ownerId);
 		assertEq(accruedRewards, 0);
 	}
 
@@ -504,7 +494,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 
 		callerMock.increaseUsedAllocation(ownerId, allocated);
 
-		(, , , , , uint256 usedAllocation, , , , ) = registry.getStorageProvider(ownerId);
+		(, , , , , uint256 usedAllocation, , , ) = registry.getStorageProvider(ownerId);
 		assertEq(usedAllocation, allocated);
 	}
 
@@ -514,7 +504,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		hevm.expectRevert("INVALID_ACCESS");
 		callerMock.increaseUsedAllocation(ownerId, allocated);
 
-		(, , , , , uint256 usedAllocation, , , , ) = registry.getStorageProvider(ownerId);
+		(, , , , , uint256 usedAllocation, , , ) = registry.getStorageProvider(ownerId);
 		assertEq(usedAllocation, 0);
 	}
 }

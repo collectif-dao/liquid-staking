@@ -107,7 +107,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral {
 	function lock(uint64 _ownerId, uint256 _allocated) public activeStorageProvider(_ownerId) {
 		require(registry.isActivePool(msg.sender), "INVALID_ACCESS");
 		require(_allocated > 0, "ZERO_ALLOCATION");
-		(, , , uint256 allocationLimit, , uint256 usedAllocation, uint256 accruedRewards, , , ) = registry
+		(, , , uint256 allocationLimit, , uint256 usedAllocation, uint256 accruedRewards, , ) = registry
 			.getStorageProvider(_ownerId);
 
 		require(usedAllocation + _allocated <= allocationLimit, "ALLOCATION_OVERFLOW");
@@ -160,7 +160,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral {
 	 * @param _ownerId Storage Provider owner address
 	 */
 	function calcMaximumWithdraw(uint64 _ownerId) internal view returns (uint256 totalCollateral) {
-		(, , , , , uint256 usedAllocation, uint256 accruedRewards, , , ) = registry.getStorageProvider(_ownerId);
+		(, , , , , uint256 usedAllocation, uint256 accruedRewards, , ) = registry.getStorageProvider(_ownerId);
 
 		uint256 requirements = calcCollateralRequirements(usedAllocation, accruedRewards, 0);
 		SPCollateral memory collateral = collaterals[_ownerId];

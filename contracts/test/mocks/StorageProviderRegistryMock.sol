@@ -185,11 +185,13 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 	 * @notice Update storage provider FIL allocation with `_allocationLimit`
 	 * @param _ownerId Storage provider owner ID
 	 * @param _allocationLimit New FIL allocation for storage provider
+	 * @param _repaymentAmount New FIL repayment amount for storage provider
 	 * @dev Only triggered by owner contract
 	 */
 	function updateAllocationLimit(
 		uint64 _ownerId,
-		uint256 _allocationLimit
+		uint256 _allocationLimit,
+		uint256 _repaymentAmount
 	) public virtual override activeStorageProvider(_ownerId) {
 		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
 		require(allocationRequests[_ownerId] == _allocationLimit, "INVALID_ALLOCATION");
@@ -203,6 +205,8 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 		MockAPI.changeBeneficiary(params);
 
 		storageProviders[_ownerId].allocationLimit = _allocationLimit;
+		storageProviders[_ownerId].repayment = _repaymentAmount;
+
 		delete allocationRequests[_ownerId];
 
 		emit StorageProviderAllocationLimitUpdate(_ownerId, _allocationLimit);
@@ -211,15 +215,18 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 	/**
 	 * @notice Update storage provider's restaking ratio
 	 * @param _restakingRatio Restaking ratio for Storage Provider
+	 * @param _restakingAddress Restaking address (f4 address) for Storage Provider
 	 * @dev Only triggered by Storage Provider
 	 */
-	function setRestakingRatio(uint256 _restakingRatio) public virtual override {
+	function setRestaking(uint256 _restakingRatio, address _restakingAddress) public virtual override {
 		require(_restakingRatio <= 10000, "INVALID_RESTAKING_RATIO");
-		require(storageProviders[ownerId].restakingRatio != _restakingRatio, "SAME_RATIO");
+		require(_restakingAddress != address(0), "INVALID_ADDRESS");
 
-		storageProviders[ownerId].restakingRatio = _restakingRatio;
+		StorageProviderTypes.SPRestaking storage restaking = restakings[ownerId];
+		restaking.restakingRatio = _restakingRatio;
+		restaking.restakingAddress = _restakingAddress;
 
-		emit StorageProviderMinerRestakingRatioUpdate(ownerId, _restakingRatio);
+		emit StorageProviderMinerRestakingRatioUpdate(ownerId, _restakingRatio, _restakingAddress);
 	}
 }
 

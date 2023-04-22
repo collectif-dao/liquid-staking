@@ -13,11 +13,11 @@ interface ILiquidStaking {
 
 	/**
 	 * @notice Emitted when storage provider is withdrawing FIL for pledge
+	 * @param ownerId Storage Provider's owner ID
 	 * @param minerId Storage Provider's miner actor ID
-	 * @param assets Total FIL amount to pledge
-	 * @param sectorNumber Sector number to be sealed
+	 * @param amount Total FIL amount to pledge
 	 */
-	event Pledge(uint64 minerId, uint256 assets, uint64 sectorNumber);
+	event Pledge(uint64 ownerId, uint64 minerId, uint256 amount);
 
 	/**
 	 * @notice Emitted when collateral address is updated
@@ -55,18 +55,10 @@ interface ILiquidStaking {
 	function unstakeAssets(uint256 assets, address owner) external returns (uint256 shares);
 
 	/**
-	 * @notice Pledge FIL assets from liquid staking pool to miner pledge for one sector
-	 * @param sectorNumber Sector number to be sealed
-	 * @param proof Sector proof for sealing
+	 * @notice Pledge FIL assets from liquid staking pool to miner pledge for one or multiple sectors
+	 * @param amount Amount of FIL to pledge from Liquid Staking Pool
 	 */
-	function pledge(uint64 sectorNumber, bytes memory proof) external;
-
-	// /**
-	//  * @notice Pledge FIL assets from liquid staking pool to miner pledge for multiple sectors
-	//  * @param sectorNumbers Sector number to be sealed
-	//  * @param proofs Sector proof for sealing
-	//  */
-	// function pledgeAggregate(uint64[] memory sectorNumbers, bytes[] memory proofs) external;
+	function pledge(uint256 amount) external;
 
 	/**
 	 * @notice Returns pool usage ratio to determine what percentage of FIL
