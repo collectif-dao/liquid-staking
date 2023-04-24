@@ -217,8 +217,8 @@ contract StorageProviderCollateral is IStorageProviderCollateral, ReentrancyGuar
 		} else {
 			uint256 totalCollateral = collateral.lockedCollateral + collateral.availableCollateral;
 			require(_slashingAmt <= totalCollateral, "NOT_ENOUGH_COLLATERAL"); // TODO: introduce debt for SP to cover worst case scenario
-
 			uint256 delta = _slashingAmt - collateral.lockedCollateral;
+
 			collateral.lockedCollateral = 0;
 			collateral.availableCollateral = collateral.availableCollateral - delta;
 		}

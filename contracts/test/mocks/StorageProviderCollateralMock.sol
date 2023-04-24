@@ -104,4 +104,14 @@ contract StorageProviderCollateralCallerMock {
 	function fit(uint64 _ownerId) public {
 		collateral.fit(_ownerId);
 	}
+
+	/**
+	 * @dev Slashes SP for a `_slashingAmt` and delivers WFIL amount to the `msg.sender` LSP
+	 * @notice Doesn't perform a rebalancing checks
+	 * @param _ownerId Storage provider owner ID
+	 * @param _slashingAmt Slashing amount for SP
+	 */
+	function slash(uint64 _ownerId, uint256 _slashingAmt) public {
+		collateral.slash(_ownerId, _slashingAmt);
+	}
 }

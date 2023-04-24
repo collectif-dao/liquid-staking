@@ -448,4 +448,116 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.expectRevert("RESTAKING_NOT_SET");
 		staking.withdrawAndRestakeRewards(aliceOwnerId, withdrawAmount, withdrawAmount * 2);
 	}
+
+	function testReportSlashing(uint128 amount) public {
+		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
+		uint256 collateralAmount = (amount * collateralRequirements) / BASIS_POINTS;
+
+		hevm.deal(address(this), amount);
+		hevm.deal(alice, collateralAmount);
+
+		hevm.startPrank(alice);
+		registry.register(aliceMinerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.changeBeneficiaryAddress(address(staking));
+		hevm.stopPrank();
+
+		registry.onboardStorageProvider(
+			aliceMinerId,
+			MAX_ALLOCATION,
+			SAMPLE_DAILY_ALLOCATION,
+			MAX_ALLOCATION + 10 ether,
+			412678
+		);
+		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
+
+		hevm.prank(alice);
+		collateral.deposit{value: collateralAmount}(aliceOwnerId);
+
+		staking.stake{value: amount}();
+
+		hevm.prank(alice);
+		staking.pledge(amount);
+
+		require(wfil.balanceOf(address(this)) == 0, "INVALID_BALANCE");
+		require(wfil.balanceOf(address(staking)) == 0, "INVALID_BALANCE");
+		require(alice.balance == amount, "INVALID_BALANCE");
+		require(staking.totalAssets() == amount, "INVALID_BALANCE");
+
+		uint256 slashingAmt = (collateralAmount * 5000) / BASIS_POINTS;
+		staking.reportSlashing(aliceOwnerId, slashingAmt);
+
+		require(staking.totalAssets() == amount + slashingAmt, "INVALID_BALANCE");
+		require(wfil.balanceOf(address(staking)) == slashingAmt, "INVALID_BALANCE");
+		require(alice.balance == amount, "INVALID_BALANCE");
+
+		assertEq(collateral.getLockedCollateral(aliceOwnerId), collateralAmount - slashingAmt);
+		assertEq(collateral.slashings(aliceOwnerId), slashingAmt);
+	}
+
+	function testReportSlashingReverts(uint128 amount) public {
+		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
+		uint256 collateralAmount = (amount * collateralRequirements) / BASIS_POINTS;
+
+		hevm.deal(address(this), amount);
+		hevm.deal(alice, collateralAmount);
+
+		hevm.startPrank(alice);
+		registry.register(aliceMinerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.changeBeneficiaryAddress(address(staking));
+		hevm.stopPrank();
+
+		registry.onboardStorageProvider(
+			aliceMinerId,
+			MAX_ALLOCATION,
+			SAMPLE_DAILY_ALLOCATION,
+			MAX_ALLOCATION + 10 ether,
+			412678
+		);
+		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
+
+		hevm.prank(alice);
+		collateral.deposit{value: collateralAmount}(aliceOwnerId);
+
+		staking.stake{value: amount}();
+
+		hevm.prank(alice);
+		staking.pledge(amount);
+
+		hevm.expectRevert("NOT_ENOUGH_COLLATERAL");
+		staking.reportSlashing(aliceOwnerId, collateralAmount + 1);
+	}
+
+	function testReportSlashingRevertsInvalidAccess(uint128 amount) public {
+		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
+		uint256 collateralAmount = (amount * collateralRequirements) / BASIS_POINTS;
+
+		hevm.deal(address(this), amount);
+		hevm.deal(alice, collateralAmount);
+
+		hevm.startPrank(alice);
+		registry.register(aliceMinerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.changeBeneficiaryAddress(address(staking));
+		hevm.stopPrank();
+
+		registry.onboardStorageProvider(
+			aliceMinerId,
+			MAX_ALLOCATION,
+			SAMPLE_DAILY_ALLOCATION,
+			MAX_ALLOCATION + 10 ether,
+			412678
+		);
+		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
+
+		hevm.prank(alice);
+		collateral.deposit{value: collateralAmount}(aliceOwnerId);
+
+		staking.stake{value: amount}();
+
+		hevm.prank(alice);
+		staking.pledge(amount);
+
+		hevm.prank(alice);
+		hevm.expectRevert("INVALID_ACCESS");
+		staking.reportSlashing(aliceOwnerId, collateralAmount + 1);
+	}
 }
