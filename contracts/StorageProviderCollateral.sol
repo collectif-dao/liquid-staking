@@ -100,13 +100,10 @@ contract StorageProviderCollateral is IStorageProviderCollateral, ReentrancyGuar
 		uint256 finalAmount = _amount > maxWithdraw ? maxWithdraw : _amount;
 		uint256 delta;
 
-		if (finalAmount >= lockedWithdraw) {
-			delta = finalAmount - lockedWithdraw; // 3 - 2 == 1
-		}
-
 		if (isUnlock) {
+			delta = finalAmount - lockedWithdraw;
 			collaterals[ownerId].lockedCollateral = collaterals[ownerId].lockedCollateral - lockedWithdraw; // 10 - 2 == 8
-			collaterals[ownerId].availableCollateral = collaterals[ownerId].availableCollateral + delta; // 5 + 1 == 6
+			collaterals[ownerId].availableCollateral = collaterals[ownerId].availableCollateral - delta; // 5 + 1 == 6
 
 			_unwrapWFIL(msg.sender, finalAmount);
 		} else {
@@ -125,42 +122,9 @@ contract StorageProviderCollateral is IStorageProviderCollateral, ReentrancyGuar
 	function lock(uint64 _ownerId, uint256 _allocated) external nonReentrant activeStorageProvider(_ownerId) {
 		require(registry.isActivePool(msg.sender), "INVALID_ACCESS");
 		require(_allocated > 0, "ZERO_ALLOCATION");
-		(uint256 allocationLimit, , uint256 usedAllocation, , uint256 accruedRewards, uint256 repaidPledge) = registry
-			.allocations(_ownerId);
 
-		require(usedAllocation + _allocated <= allocationLimit, "ALLOCATION_OVERFLOW");
-
-		uint256 totalRequirements = calcCollateralRequirements(
-			usedAllocation,
-			accruedRewards,
-			repaidPledge,
-			_allocated
-		);
-
-		SPCollateral memory collateral = collaterals[_ownerId];
-		require(
-			totalRequirements <= collateral.lockedCollateral + collateral.availableCollateral,
-			"INSUFFICIENT_COLLATERAL"
-		);
-
+		_rebalance(_ownerId, _allocated);
 		registry.increaseUsedAllocation(_ownerId, _allocated, block.timestamp);
-
-		(uint256 adjAmt, bool isUnlock) = calcCollateralAdjustment(collateral.lockedCollateral, totalRequirements);
-
-		emit log_named_uint("adjAmt:", adjAmt);
-		emit log_named_uint("isUnlock:", isUnlock ? 1 : 0);
-
-		if (!isUnlock) {
-			collateral.lockedCollateral = collateral.lockedCollateral + adjAmt;
-			collateral.availableCollateral = collateral.availableCollateral - adjAmt;
-		} else {
-			collateral.lockedCollateral = collateral.lockedCollateral - adjAmt;
-			collateral.availableCollateral = collateral.availableCollateral + adjAmt;
-		}
-
-		collaterals[_ownerId] = collateral;
-
-		emit StorageProviderCollateralLock(_ownerId, _allocated, adjAmt);
 	}
 
 	/**
@@ -170,36 +134,8 @@ contract StorageProviderCollateral is IStorageProviderCollateral, ReentrancyGuar
 	 */
 	function fit(uint64 _ownerId) external activeStorageProvider(_ownerId) {
 		require(registry.isActivePool(msg.sender), "INVALID_ACCESS");
-		(, , uint256 usedAllocation, , uint256 accruedRewards, uint256 repaidPledge) = registry.allocations(_ownerId);
 
-		uint256 totalRequirements = calcCollateralRequirements(usedAllocation, accruedRewards, repaidPledge, 0);
-
-		emit log_named_uint("totalRequirements:", totalRequirements);
-
-		SPCollateral memory collateral = collaterals[_ownerId];
-		require(
-			totalRequirements <= collateral.lockedCollateral + collateral.availableCollateral,
-			"INSUFFICIENT_COLLATERAL"
-		);
-		emit log_named_uint("collateral.lockedCollateral:", collateral.lockedCollateral);
-		emit log_named_uint("collateral.availableCollateral:", collateral.availableCollateral);
-
-		(uint256 adjAmt, bool isUnlock) = calcCollateralAdjustment(collateral.lockedCollateral, totalRequirements);
-
-		emit log_named_uint("adjAmt:", adjAmt);
-		emit log_named_uint("isUnlock:", isUnlock ? 1 : 0);
-
-		if (!isUnlock) {
-			collateral.lockedCollateral = collateral.lockedCollateral + adjAmt;
-			collateral.availableCollateral = collateral.availableCollateral - adjAmt;
-		} else {
-			collateral.lockedCollateral = collateral.lockedCollateral - adjAmt;
-			collateral.availableCollateral = collateral.availableCollateral + adjAmt;
-		}
-
-		collaterals[_ownerId] = collateral;
-
-		emit StorageProviderCollateralFit(_ownerId, adjAmt, isUnlock);
+		_rebalance(_ownerId, 0);
 	}
 
 	/**
@@ -270,15 +206,60 @@ contract StorageProviderCollateral is IStorageProviderCollateral, ReentrancyGuar
 
 		(uint256 adjAmt, bool isUnlock) = calcCollateralAdjustment(collateral.lockedCollateral, requirements);
 
-		emit log_named_uint("adjAmt:", adjAmt);
 		emit log_named_uint("isUnlock:", isUnlock ? 1 : 0);
+		emit log_named_uint("adjAmt before:", adjAmt);
 
 		if (!isUnlock) {
 			adjAmt = collateral.availableCollateral - adjAmt;
-			return (adjAmt, 0, isUnlock);
+			emit log_named_uint("adjAmt:", collateral.availableCollateral - adjAmt);
+
+			return (0, adjAmt, isUnlock);
 		} else {
 			return (adjAmt, collateral.availableCollateral, isUnlock);
 		}
+	}
+
+	/**
+	 * @notice Rebalances collateral for a specified `_ownerId` with `_allocated` in mind
+	 * @param _ownerId Storage Provider owner address
+	 * @param _allocated Hypothetical allocation for SP
+	 */
+	function _rebalance(uint64 _ownerId, uint256 _allocated) internal {
+		(uint256 allocationLimit, , uint256 usedAllocation, , uint256 accruedRewards, uint256 repaidPledge) = registry
+			.allocations(_ownerId);
+
+		if (_allocated > 0) {
+			require(usedAllocation + _allocated <= allocationLimit, "ALLOCATION_OVERFLOW");
+		}
+
+		uint256 totalRequirements = calcCollateralRequirements(
+			usedAllocation,
+			accruedRewards,
+			repaidPledge,
+			_allocated
+		);
+
+		SPCollateral memory collateral = collaterals[_ownerId];
+		require(
+			totalRequirements <= collateral.lockedCollateral + collateral.availableCollateral,
+			"INSUFFICIENT_COLLATERAL"
+		);
+
+		(uint256 adjAmt, bool isUnlock) = calcCollateralAdjustment(collateral.lockedCollateral, totalRequirements);
+
+		if (!isUnlock) {
+			collateral.lockedCollateral = collateral.lockedCollateral + adjAmt;
+			collateral.availableCollateral = collateral.availableCollateral - adjAmt;
+
+			emit StorageProviderCollateralRebalance(_ownerId, adjAmt, 0, isUnlock);
+		} else {
+			collateral.lockedCollateral = collateral.lockedCollateral - adjAmt;
+			collateral.availableCollateral = collateral.availableCollateral + adjAmt;
+
+			emit StorageProviderCollateralRebalance(_ownerId, 0, adjAmt, isUnlock);
+		}
+
+		collaterals[_ownerId] = collateral;
 	}
 
 	/**
@@ -314,24 +295,20 @@ contract StorageProviderCollateral is IStorageProviderCollateral, ReentrancyGuar
 	function calcCollateralAdjustment(
 		uint256 _lockedCollateral,
 		uint256 _collateralRequirements
-	) internal pure returns (uint256 adjAmt, bool isUnlock) {
+	) internal pure returns (uint256, bool) {
 		if (_lockedCollateral > 0 && _collateralRequirements > 0) {
 			if (_lockedCollateral > _collateralRequirements) {
-				adjAmt = _lockedCollateral - _collateralRequirements;
-				isUnlock = true;
+				return (_lockedCollateral - _collateralRequirements, true);
 			} else {
-				adjAmt = _collateralRequirements - _lockedCollateral;
-				isUnlock = false;
+				return (_collateralRequirements - _lockedCollateral, false);
 			}
 		} else if (_lockedCollateral > 0 && _collateralRequirements == 0) {
-			adjAmt = _lockedCollateral;
-			isUnlock = true;
+			return (_lockedCollateral, true);
 		} else if (_lockedCollateral == 0 && _collateralRequirements > 0) {
-			adjAmt = _collateralRequirements;
-			isUnlock = false;
+			return (_collateralRequirements, false);
+		} else if (_lockedCollateral == 0 && _collateralRequirements == 0) {
+			return (0, true);
 		}
-
-		return (adjAmt, isUnlock);
 	}
 
 	/**

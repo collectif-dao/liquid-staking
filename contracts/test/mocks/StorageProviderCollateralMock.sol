@@ -48,19 +48,27 @@ contract StorageProviderCollateralMock is StorageProviderCollateral {
 	 */
 	function withdraw(uint64 ownerId, uint256 _amount) public virtual {
 		require(_amount > 0, "ZERO_AMOUNT");
-
 		require(registry.isActiveProvider(ownerId), "INACTIVE_STORAGE_PROVIDER");
 
-		(uint256 maxWithdraw, uint256 availableWithdraw, bool isUnlock) = calcMaximumWithdraw(ownerId);
+		(uint256 lockedWithdraw, uint256 availableWithdraw, bool isUnlock) = calcMaximumWithdraw(ownerId);
+		uint256 maxWithdraw = lockedWithdraw + availableWithdraw;
+		emit log_named_uint("maxWithdraw:", maxWithdraw);
+
 		uint256 finalAmount = _amount > maxWithdraw ? maxWithdraw : _amount;
+		emit log_named_uint("finalAmount:", finalAmount);
+
+		uint256 delta;
 
 		if (isUnlock) {
-			collaterals[ownerId].lockedCollateral = collaterals[ownerId].lockedCollateral - finalAmount;
+			delta = finalAmount - lockedWithdraw;
+			emit log_named_uint("delta:", delta);
+			collaterals[ownerId].lockedCollateral = collaterals[ownerId].lockedCollateral - lockedWithdraw; // 10 - 2 == 8
+			collaterals[ownerId].availableCollateral = collaterals[ownerId].availableCollateral - delta; // 5 + 1 == 6
+
+			_unwrapWFIL(msg.sender, finalAmount);
 		} else {
 			collaterals[ownerId].availableCollateral = collaterals[ownerId].availableCollateral - finalAmount;
 		}
-
-		_unwrapWFIL(msg.sender, finalAmount);
 
 		emit StorageProviderCollateralWithdraw(ownerId, finalAmount);
 	}

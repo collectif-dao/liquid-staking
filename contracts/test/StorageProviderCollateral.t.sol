@@ -173,7 +173,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	// TODO: fix rounding errors on precision calculations
 
 	function testFitDown(uint256 percentage) public {
-		hevm.assume(percentage >= 0 && percentage <= BASIS_POINTS);
+		hevm.assume(percentage > 0 && percentage <= BASIS_POINTS);
 		hevm.deal(alice, SAMPLE_DAILY_ALLOCATION);
 
 		hevm.startPrank(alice);
@@ -208,17 +208,12 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		callerMock.fit(aliceOwnerId);
 
 		uint256 adjAmt = Math.mulDiv(lockedAmount, percentage, BASIS_POINTS);
-		emit log_named_uint("adjAmt:", adjAmt);
-		emit log_named_uint("lockedAmount:", lockedAmount);
 
 		lockedAmount = lockedAmount - adjAmt;
-		availableAmount = availableAmount + lockedAmount;
+		availableAmount = availableAmount + adjAmt;
 
-		emit log_named_uint("aliceOwnerId locked collateral:", collateral.getLockedCollateral(aliceOwnerId));
-		emit log_named_uint("lockedAmount:", lockedAmount);
-
-		// assertEq(collateral.getLockedCollateral(aliceOwnerId), lockedAmount);
-		// assertEq(collateral.getAvailableCollateral(aliceOwnerId), availableAmount);
+		assertEq(collateral.getLockedCollateral(aliceOwnerId), lockedAmount);
+		assertEq(collateral.getAvailableCollateral(aliceOwnerId), availableAmount);
 	}
 
 	function testFitUp(uint256 additionalAllocation) public {
@@ -256,7 +251,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		emit log_named_uint("adjAmt:", adjAmt);
 
 		lockedAmount = lockedAmount + adjAmt;
-		availableAmount = availableAmount - lockedAmount;
+		availableAmount = availableAmount - adjAmt;
 
 		emit log_named_uint("aliceOwnerId locked collateral:", collateral.getLockedCollateral(aliceOwnerId));
 		emit log_named_uint("lockedAmount:", lockedAmount);

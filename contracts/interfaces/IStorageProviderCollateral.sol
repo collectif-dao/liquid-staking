@@ -4,8 +4,12 @@ pragma solidity ^0.8.17;
 interface IStorageProviderCollateral {
 	event StorageProviderCollateralDeposit(uint64 _ownerId, uint256 amount);
 	event StorageProviderCollateralWithdraw(uint64 _ownerId, uint256 amount);
-	event StorageProviderCollateralLock(uint64 _ownerId, uint256 allocation, uint256 lockAmount);
-	event StorageProviderCollateralFit(uint64 _ownerId, uint256 adjustment, bool isUnlock);
+	event StorageProviderCollateralRebalance(
+		uint64 _ownerId,
+		uint256 lockedCollateral,
+		uint256 availableCollateral,
+		bool isUnlock
+	);
 	event StorageProviderCollateralSlash(uint64 _ownerId, uint256 slashingAmt, address pool);
 
 	/**
