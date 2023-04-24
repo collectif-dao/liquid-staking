@@ -217,8 +217,8 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		emit log_named_uint("aliceOwnerId locked collateral:", collateral.getLockedCollateral(aliceOwnerId));
 		emit log_named_uint("lockedAmount:", lockedAmount);
 
-		// assertEq(collateral.getLockedCollateral(aliceOwnerId), lockedAmount);
-		// assertEq(collateral.getAvailableCollateral(aliceOwnerId), availableAmount);
+		assertEq(collateral.getLockedCollateral(aliceOwnerId), lockedAmount);
+		assertEq(collateral.getAvailableCollateral(aliceOwnerId), availableAmount);
 	}
 
 	function testFitUp(uint256 additionalAllocation) public {

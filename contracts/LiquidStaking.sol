@@ -58,6 +58,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 
 	bytes32 private constant LIQUID_STAKING_ADMIN = keccak256("LIQUID_STAKING_ADMIN");
 	bytes32 private constant FEE_DISTRIBUTOR = keccak256("FEE_DISTRIBUTOR");
+	bytes32 private constant SLASHING_AGENT = keccak256("SLASHING_AGENT");
 
 	constructor(address _wFIL, uint256 _adminFee, uint256 _profitShare, address _rewardCollector) ClFILToken(_wFIL) {
 		require(_adminFee <= 10000, "INVALID_ADMIN_FEE");
@@ -69,6 +70,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 		grantRole(LIQUID_STAKING_ADMIN, msg.sender);
 		grantRole(FEE_DISTRIBUTOR, msg.sender);
+		grantRole(SLASHING_AGENT, msg.sender);
 	}
 
 	receive() external payable virtual {}
@@ -228,6 +230,26 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 		collateral.fit(ownerId);
 
 		emit PledgeRepayment(ownerId, minerId, amount);
+	}
+
+	/**
+	 * @notice Report slashing of SP accured on the Filecoin network
+	 * This function is triggered when SP get continiously slashed by faulting it's sectors
+	 * @param _ownerId Storage provider owner ID
+	 * @param _slashingAmt Slashing amount
+	 *
+	 * @dev Please note that slashing amount couldn't exceed the total amount of collateral provided by SP.
+	 * If sector has been slashed for 42 days and automatically terminated both operations
+	 * would take place after one another: slashing report and initial pledge withdrawal
+	 * which is the remaining pledge for a terminated sector.
+	 */
+	function reportSlashing(uint64 _ownerId, uint256 _slashingAmt) external virtual nonReentrant {
+		require(hasRole(SLASHING_AGENT, msg.sender), "INVALID_ACCESS");
+		(, , uint64 minerId, ) = registry.getStorageProvider(_ownerId);
+
+		collateral.slash(_ownerId, _slashingAmt);
+
+		emit ReportSlashing(_ownerId, minerId, _slashingAmt);
 	}
 
 	struct WithdrawAndRestakeLocalVars {

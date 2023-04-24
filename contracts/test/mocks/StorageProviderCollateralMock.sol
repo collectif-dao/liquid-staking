@@ -51,7 +51,7 @@ contract StorageProviderCollateralMock is StorageProviderCollateral {
 
 		require(registry.isActiveProvider(ownerId), "INACTIVE_STORAGE_PROVIDER");
 
-		(uint256 maxWithdraw, bool isUnlock) = calcMaximumWithdraw(ownerId);
+		(uint256 maxWithdraw, uint256 availableWithdraw, bool isUnlock) = calcMaximumWithdraw(ownerId);
 		uint256 finalAmount = _amount > maxWithdraw ? maxWithdraw : _amount;
 
 		if (isUnlock) {

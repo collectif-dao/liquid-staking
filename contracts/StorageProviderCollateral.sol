@@ -6,6 +6,7 @@ import "./interfaces/IStorageProviderRegistryClient.sol";
 import "solmate/utils/SafeTransferLib.sol";
 import {StorageProviderTypes} from "./types/StorageProviderTypes.sol";
 import {IWETH9} from "fei-protocol/erc4626/external/PeripheryPayments.sol";
+import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
 import {PrecompilesAPI} from "filecoin-solidity/contracts/v0.8/PrecompilesAPI.sol";
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
@@ -22,12 +23,15 @@ import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
  * making it a good option for collateralization in the system.
  *
  */
-contract StorageProviderCollateral is IStorageProviderCollateral, DSTestPlus {
+contract StorageProviderCollateral is IStorageProviderCollateral, ReentrancyGuard, DSTestPlus {
 	using SafeTransferLib for address;
 	using FixedPointMathLib for uint256;
 
 	// Mapping of storage provider collateral information to their owner ID
 	mapping(uint64 => SPCollateral) public collaterals;
+
+	// Mapping of storage provider total slashing amounts to their owner ID
+	mapping(uint64 => uint256) public slashings;
 
 	// Storage Provider parameters
 	struct SPCollateral {
@@ -91,16 +95,23 @@ contract StorageProviderCollateral is IStorageProviderCollateral, DSTestPlus {
 		uint64 ownerId = PrecompilesAPI.resolveEthAddress(msg.sender);
 		require(registry.isActiveProvider(ownerId), "INACTIVE_STORAGE_PROVIDER");
 
-		(uint256 maxWithdraw, bool isUnlock) = calcMaximumWithdraw(ownerId);
+		(uint256 lockedWithdraw, uint256 availableWithdraw, bool isUnlock) = calcMaximumWithdraw(ownerId);
+		uint256 maxWithdraw = lockedWithdraw + availableWithdraw;
 		uint256 finalAmount = _amount > maxWithdraw ? maxWithdraw : _amount;
+		uint256 delta;
+
+		if (finalAmount >= lockedWithdraw) {
+			delta = finalAmount - lockedWithdraw; // 3 - 2 == 1
+		}
 
 		if (isUnlock) {
-			collaterals[ownerId].lockedCollateral = collaterals[ownerId].lockedCollateral - finalAmount;
+			collaterals[ownerId].lockedCollateral = collaterals[ownerId].lockedCollateral - lockedWithdraw; // 10 - 2 == 8
+			collaterals[ownerId].availableCollateral = collaterals[ownerId].availableCollateral + delta; // 5 + 1 == 6
+
+			_unwrapWFIL(msg.sender, finalAmount);
 		} else {
 			collaterals[ownerId].availableCollateral = collaterals[ownerId].availableCollateral - finalAmount;
 		}
-
-		_unwrapWFIL(msg.sender, finalAmount);
 
 		emit StorageProviderCollateralWithdraw(ownerId, finalAmount);
 	}
@@ -111,7 +122,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral, DSTestPlus {
 	 * @param _ownerId Storage provider owner ID
 	 * @param _allocated FIL amount that is going to be pledged for Storage Provider
 	 */
-	function lock(uint64 _ownerId, uint256 _allocated) public activeStorageProvider(_ownerId) {
+	function lock(uint64 _ownerId, uint256 _allocated) external nonReentrant activeStorageProvider(_ownerId) {
 		require(registry.isActivePool(msg.sender), "INVALID_ACCESS");
 		require(_allocated > 0, "ZERO_ALLOCATION");
 		(uint256 allocationLimit, , uint256 usedAllocation, , uint256 accruedRewards, uint256 repaidPledge) = registry
@@ -157,7 +168,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral, DSTestPlus {
 	 * @notice Rebalances the total locked and available collateral amounts
 	 * @param _ownerId Storage provider owner ID
 	 */
-	function fit(uint64 _ownerId) public activeStorageProvider(_ownerId) {
+	function fit(uint64 _ownerId) external activeStorageProvider(_ownerId) {
 		require(registry.isActivePool(msg.sender), "INVALID_ACCESS");
 		(, , uint256 usedAllocation, , uint256 accruedRewards, uint256 repaidPledge) = registry.allocations(_ownerId);
 
@@ -192,6 +203,35 @@ contract StorageProviderCollateral is IStorageProviderCollateral, DSTestPlus {
 	}
 
 	/**
+	 * @dev Slashes SP for a `_slashingAmt` and delivers WFIL amount to the `msg.sender` LSP
+	 * @notice Doesn't perform a rebalancing checks
+	 * @param _ownerId Storage provider owner ID
+	 * @param _slashingAmt Slashing amount for SP
+	 */
+	function slash(uint64 _ownerId, uint256 _slashingAmt) external nonReentrant activeStorageProvider(_ownerId) {
+		require(registry.isActivePool(msg.sender), "INVALID_ACCESS");
+
+		SPCollateral memory collateral = collaterals[_ownerId];
+		if (_slashingAmt <= collateral.lockedCollateral) {
+			collateral.lockedCollateral = collateral.lockedCollateral - _slashingAmt;
+		} else {
+			uint256 totalCollateral = collateral.lockedCollateral + collateral.availableCollateral;
+			require(_slashingAmt <= totalCollateral, "NOT_ENOUGH_COLLATERAL"); // TODO: introduce debt for SP to cover worst case scenario
+
+			uint256 delta = _slashingAmt - collateral.lockedCollateral;
+			collateral.lockedCollateral = 0;
+			collateral.availableCollateral = collateral.availableCollateral - delta;
+		}
+
+		collaterals[_ownerId] = collateral;
+		slashings[_ownerId] += _slashingAmt;
+
+		WFIL.transfer(msg.sender, _slashingAmt);
+
+		emit StorageProviderCollateralSlash(_ownerId, _slashingAmt, msg.sender);
+	}
+
+	/**
 	 * @notice Return Storage Provider Collateral information with `_provider` address
 	 */
 	function getCollateral(uint64 _ownerId) public view returns (uint256, uint256) {
@@ -218,7 +258,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral, DSTestPlus {
 	 * total used FIL allocation and locked rewards.
 	 * @param _ownerId Storage Provider owner address
 	 */
-	function calcMaximumWithdraw(uint64 _ownerId) internal returns (uint256, bool) {
+	function calcMaximumWithdraw(uint64 _ownerId) internal returns (uint256, uint256, bool) {
 		(, , uint256 usedAllocation, , uint256 accruedRewards, uint256 repaidPledge) = registry.allocations(_ownerId);
 
 		uint256 requirements = calcCollateralRequirements(usedAllocation, accruedRewards, repaidPledge, 0);
@@ -235,9 +275,10 @@ contract StorageProviderCollateral is IStorageProviderCollateral, DSTestPlus {
 
 		if (!isUnlock) {
 			adjAmt = collateral.availableCollateral - adjAmt;
+			return (adjAmt, 0, isUnlock);
+		} else {
+			return (adjAmt, collateral.availableCollateral, isUnlock);
 		}
-
-		return (adjAmt, isUnlock);
 	}
 
 	/**
