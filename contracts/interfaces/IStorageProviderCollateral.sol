@@ -5,6 +5,7 @@ interface IStorageProviderCollateral {
 	event StorageProviderCollateralDeposit(uint64 _ownerId, uint256 amount);
 	event StorageProviderCollateralWithdraw(uint64 _ownerId, uint256 amount);
 	event StorageProviderCollateralLock(uint64 _ownerId, uint256 allocation, uint256 lockAmount);
+	event StorageProviderCollateralFit(uint64 _ownerId, uint256 adjustment, bool isUnlock);
 
 	/**
 	 * @dev Deposit `msg.value` FIL funds by the msg.sender into collateral
@@ -26,6 +27,13 @@ interface IStorageProviderCollateral {
 	 * @param _allocated FIL amount that is going to be pledged for Storage Provider
 	 */
 	function lock(uint64 _ownerId, uint256 _allocated) external;
+
+	/**
+	 * @dev Fits collateral amounts based on SP pledge usage, distributed rewards and pledge paybacks
+	 * @notice Rebalances the total locked and available collateral amounts
+	 * @param _ownerId Storage provider owner ID
+	 */
+	function fit(uint64 _ownerId) external;
 
 	/**
 	 * @notice Return Storage Provider Collateral information with `_provider` address

@@ -19,7 +19,7 @@ library StorageProviderTypes {
 		uint256 usedAllocation; // Used allocation in pledges
 		uint256 dailyAllocation; // Daily FIL allocation for SP
 		uint256 accruedRewards; // Storage Provider delivered rewards
-		uint256 lockedRewards; // Storage Provider locked rewards
+		uint256 repaidPledge; // Storage Provider repaid initial pledge
 	}
 
 	struct SPRestaking {

@@ -385,16 +385,30 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 	/**
 	 * @notice Increase collected rewards by Storage Provider
 	 * @param _ownerId Storage Provider owner ID
-	 * @param _accuredRewards Unlocked portion of rewards, that available for withdrawal
-	 * @param _lockedRewards Locked portion of rewards, that not available for withdrawal
+	 * @param _accuredRewards Withdrawn rewards from SP's miner actor
 	 */
-	function increaseRewards(uint64 _ownerId, uint256 _accuredRewards, uint256 _lockedRewards) external {
+	function increaseRewards(uint64 _ownerId, uint256 _accuredRewards) external {
 		require(pools[msg.sender], "INVALID_ACCESS");
 
 		StorageProviderTypes.SPAllocation storage spAllocation = allocations[_ownerId];
 		spAllocation.accruedRewards = spAllocation.accruedRewards + _accuredRewards;
 
-		emit StorageProviderLockedRewards(_ownerId, _lockedRewards);
+		emit StorageProviderAccruedRewards(_ownerId, _accuredRewards);
+	}
+
+	/**
+	 * @notice Increase repaid pledge by Storage Provider
+	 * @param _ownerId Storage Provider owner ID
+	 * @param _repaidPledge Withdrawn initial pledge after sector termination
+	 */
+	function increasePledgeRepayment(uint64 _ownerId, uint256 _repaidPledge) external {
+		require(pools[msg.sender], "INVALID_ACCESS");
+
+		StorageProviderTypes.SPAllocation storage spAllocation = allocations[_ownerId];
+		spAllocation.repaidPledge = spAllocation.repaidPledge + _repaidPledge;
+		require(spAllocation.repaidPledge <= spAllocation.usedAllocation, "PLEDGE_REPAYMENT_OVERFLOW");
+
+		emit StorageProviderRepaidPledge(_ownerId, _repaidPledge);
 	}
 
 	/**

@@ -596,7 +596,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		registry.changeBeneficiaryAddress(address(staking));
 		registry.acceptBeneficiaryAddress(ownerId, address(staking));
 
-		callerMock.increaseRewards(ownerId, _accruedRewards, 0);
+		callerMock.increaseRewards(ownerId, _accruedRewards);
 
 		(, , , , uint256 accruedRewards, ) = registry.allocations(ownerId);
 		assertEq(accruedRewards, _accruedRewards);
@@ -606,7 +606,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && _accruedRewards > 0 && lastEpoch > 0);
 
 		hevm.expectRevert("INVALID_ACCESS");
-		callerMock.increaseRewards(ownerId, _accruedRewards, 0);
+		callerMock.increaseRewards(ownerId, _accruedRewards);
 
 		(, , , , uint256 accruedRewards, ) = registry.allocations(ownerId);
 		assertEq(accruedRewards, 0);
@@ -648,5 +648,83 @@ contract StorageProviderRegistryTest is DSTestPlus {
 
 		(, , uint256 usedAllocation, , , ) = registry.allocations(ownerId);
 		assertEq(usedAllocation, 0);
+	}
+
+	function testIncreasePledgeRepayment(uint64 minerId, uint256 _repaidPledge, int64 lastEpoch) public {
+		hevm.assume(
+			_repaidPledge > 0 &&
+				_repaidPledge <= SAMPLE_DAILY_ALLOCATION &&
+				lastEpoch > 0 &&
+				minerId > 1 &&
+				minerId < 2115248121211227543
+		);
+		registry.registerPool(address(callerMock));
+		registry.setCollateralAddress(address(callerMock));
+
+		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.onboardStorageProvider(
+			minerId,
+			MAX_ALLOCATION,
+			SAMPLE_DAILY_ALLOCATION,
+			MAX_ALLOCATION + 10,
+			lastEpoch
+		);
+
+		registry.changeBeneficiaryAddress(address(staking));
+		registry.acceptBeneficiaryAddress(ownerId, address(staking));
+
+		callerMock.increaseUsedAllocation(ownerId, _repaidPledge, block.timestamp);
+		callerMock.increasePledgeRepayment(ownerId, _repaidPledge);
+
+		(, , , , , uint256 repaidPledge) = registry.allocations(ownerId);
+		assertEq(repaidPledge, _repaidPledge);
+	}
+
+	function testIncreasePledgeRepaymentReverts(uint64 minerId, uint256 _repaidPledge, int64 lastEpoch) public {
+		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && _repaidPledge > 0 && lastEpoch > 0);
+
+		hevm.expectRevert("INVALID_ACCESS");
+		callerMock.increasePledgeRepayment(ownerId, _repaidPledge);
+
+		(, , , , , uint256 repaidPledge) = registry.allocations(ownerId);
+		assertEq(repaidPledge, 0);
+	}
+
+	function testIncreasePledgeRepaymentRevertsWithOverflow(
+		uint64 minerId,
+		uint256 _repaidPledge,
+		int64 lastEpoch
+	) public {
+		hevm.assume(
+			_repaidPledge > 0 &&
+				_repaidPledge <= SAMPLE_DAILY_ALLOCATION &&
+				lastEpoch > 0 &&
+				minerId > 1 &&
+				minerId < 2115248121211227543
+		);
+		registry.registerPool(address(callerMock));
+		registry.setCollateralAddress(address(callerMock));
+
+		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.onboardStorageProvider(
+			minerId,
+			MAX_ALLOCATION,
+			SAMPLE_DAILY_ALLOCATION,
+			MAX_ALLOCATION + 10,
+			lastEpoch
+		);
+
+		registry.changeBeneficiaryAddress(address(staking));
+		registry.acceptBeneficiaryAddress(ownerId, address(staking));
+
+		uint256 _usedAllocation = _repaidPledge / 2;
+		callerMock.increaseUsedAllocation(ownerId, _usedAllocation, block.timestamp);
+
+		hevm.expectRevert("PLEDGE_REPAYMENT_OVERFLOW");
+		callerMock.increasePledgeRepayment(ownerId, _repaidPledge);
+
+		(, , uint256 usedAllocation, , , uint256 repaidPledge) = registry.allocations(ownerId);
+		assertEq(repaidPledge, 0);
+		assertEq(usedAllocation, _usedAllocation);
 	}
 }

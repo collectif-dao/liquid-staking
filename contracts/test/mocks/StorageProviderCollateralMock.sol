@@ -51,14 +51,22 @@ contract StorageProviderCollateralMock is StorageProviderCollateral {
 
 		require(registry.isActiveProvider(ownerId), "INACTIVE_STORAGE_PROVIDER");
 
-		uint256 maxWithdraw = calcMaximumWithdraw(ownerId);
+		(uint256 maxWithdraw, bool isUnlock) = calcMaximumWithdraw(ownerId);
 		uint256 finalAmount = _amount > maxWithdraw ? maxWithdraw : _amount;
 
-		collaterals[ownerId].availableCollateral = collaterals[ownerId].availableCollateral - finalAmount;
+		if (isUnlock) {
+			collaterals[ownerId].lockedCollateral = collaterals[ownerId].lockedCollateral - finalAmount;
+		} else {
+			collaterals[ownerId].availableCollateral = collaterals[ownerId].availableCollateral - finalAmount;
+		}
 
 		_unwrapWFIL(msg.sender, finalAmount);
 
 		emit StorageProviderCollateralWithdraw(ownerId, finalAmount);
+	}
+
+	function increaseUserAllocation(uint64 ownerId, uint256 amount) public {
+		registry.increaseUsedAllocation(ownerId, amount, block.timestamp);
 	}
 }
 
@@ -86,5 +94,14 @@ contract StorageProviderCollateralCallerMock {
 	 */
 	function lock(uint64 _ownerId, uint256 _allocated) public {
 		collateral.lock(_ownerId, _allocated);
+	}
+
+	/**
+	 * @dev Fits collateral amounts based on SP pledge usage, distributed rewards and pledge paybacks
+	 * @notice Rebalances the total locked and available collateral amounts
+	 * @param _ownerId Storage provider owner ID
+	 */
+	function fit(uint64 _ownerId) public {
+		collateral.fit(_ownerId);
 	}
 }

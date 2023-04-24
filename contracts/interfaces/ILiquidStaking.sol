@@ -20,6 +20,14 @@ interface ILiquidStaking {
 	event Pledge(uint64 ownerId, uint64 minerId, uint256 amount);
 
 	/**
+	 * @notice Emitted when storage provider's pledge is returned back to the LSP
+	 * @param ownerId Storage Provider's owner ID
+	 * @param minerId Storage Provider's miner actor ID
+	 * @param amount Total FIL amount of repayment
+	 */
+	event PledgeRepayment(uint64 ownerId, uint64 minerId, uint256 amount);
+
+	/**
 	 * @notice Emitted when collateral address is updated
 	 * @param collateral StorageProviderCollateral contract address
 	 */
@@ -59,6 +67,14 @@ interface ILiquidStaking {
 	 * @param amount Amount of FIL to pledge from Liquid Staking Pool
 	 */
 	function pledge(uint256 amount) external;
+
+	/**
+	 * @notice Withdraw initial pledge from Storage Provider's Miner Actor by `ownerId`
+	 * This function is triggered when sector is not extended by miner actor and initial pledge unlocked
+	 * @param ownerId Storage provider owner ID
+	 * @param amount Initial pledge amount
+	 */
+	function withdrawPledge(uint64 ownerId, uint256 amount) external;
 
 	/**
 	 * @notice Returns pool usage ratio to determine what percentage of FIL

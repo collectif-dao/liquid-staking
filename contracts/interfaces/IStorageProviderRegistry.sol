@@ -31,8 +31,9 @@ interface IStorageProviderRegistry {
 
 	event StorageProviderMinerRestakingRatioUpdate(uint64 ownerId, uint256 restakingRatio, address restakingAddress);
 
-	event StorageProviderLockedRewards(uint64 ownerId, uint256 rewards);
 	event StorageProviderAccruedRewards(uint64 ownerId, uint256 rewards);
+
+	event StorageProviderRepaidPledge(uint64 ownerId, uint256 pledge);
 
 	event CollateralAddressUpdated(address collateral);
 	event LiquidStakingPoolRegistered(address pool);
@@ -152,10 +153,16 @@ interface IStorageProviderRegistry {
 	/**
 	 * @notice Increase collected rewards by Storage Provider
 	 * @param _ownerId Storage Provider owner ID
-	 * @param _accuredRewards Unlocked portion of rewards, that available for withdrawal
-	 * @param _lockedRewards Locked portion of rewards, that not available for withdrawal
+	 * @param _accuredRewards Withdrawn rewards from SP's miner actor
 	 */
-	function increaseRewards(uint64 _ownerId, uint256 _accuredRewards, uint256 _lockedRewards) external;
+	function increaseRewards(uint64 _ownerId, uint256 _accuredRewards) external;
+
+	/**
+	 * @notice Increase repaid pledge by Storage Provider
+	 * @param _ownerId Storage Provider owner ID
+	 * @param _repaidPledge Withdrawn initial pledge after sector termination
+	 */
+	function increasePledgeRepayment(uint64 _ownerId, uint256 _repaidPledge) external;
 
 	/**
 	 * @notice Increase used allocation for Storage Provider

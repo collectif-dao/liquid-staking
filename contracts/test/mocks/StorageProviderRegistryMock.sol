@@ -281,11 +281,19 @@ contract StorageProviderRegistryCallerMock {
 	/**
 	 * @notice Increase collected rewards by Storage Provider
 	 * @param _ownerId Storage Provider owner ID
-	 * @param _accuredRewards Unlocked portion of rewards, that available for withdrawal
-	 * @param _lockedRewards Locked portion of rewards, that not available for withdrawal
+	 * @param _accuredRewards Withdrawn rewards from SP's miner actor
 	 */
-	function increaseRewards(uint64 _ownerId, uint256 _accuredRewards, uint256 _lockedRewards) external {
-		registry.increaseRewards(_ownerId, _accuredRewards, _lockedRewards);
+	function increaseRewards(uint64 _ownerId, uint256 _accuredRewards) external {
+		registry.increaseRewards(_ownerId, _accuredRewards);
+	}
+
+	/**
+	 * @notice Increase repaid pledge by Storage Provider
+	 * @param _ownerId Storage Provider owner ID
+	 * @param _repaidPledge Withdrawn initial pledge after sector termination
+	 */
+	function increasePledgeRepayment(uint64 _ownerId, uint256 _repaidPledge) external {
+		registry.increasePledgeRepayment(_ownerId, _repaidPledge);
 	}
 
 	/**

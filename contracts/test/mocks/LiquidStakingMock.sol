@@ -77,10 +77,42 @@ contract LiquidStakingMock is LiquidStaking {
 		WFIL.safeTransfer(ownerAddr, spShare);
 		WFIL.safeTransfer(rewardCollector, protocolFees);
 
+		// _unwrapWFIL(ownerAddr, spShare);
 		// WFIL.withdraw(spShare);
 		// payable(ownerAddr).transfer(spShare);
 
-		registry.increaseRewards(minerId, stakingProfit, 0);
+		registry.increaseRewards(minerId, stakingProfit);
+		collateral.fit(ownerId);
+	}
+
+	/**
+	 * @notice Withdraw initial pledge from Storage Provider's Miner Actor by `ownerId`
+	 * This function is triggered when sector is not extended by miner actor and initial pledge unlocked
+	 * @param ownerId Storage provider owner ID
+	 * @param amount Initial pledge amount
+	 */
+	function withdrawPledge(uint64 ownerId, uint256 amount) external virtual override nonReentrant {
+		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
+		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
+
+		CommonTypes.BigInt memory withdrawnBInt = minerActorMock.withdrawBalance(
+			minerActorId,
+			BigInts.fromUint256(amount)
+		);
+
+		(uint256 withdrawn, bool abort) = BigInts.toUint256(withdrawnBInt);
+		require(!abort, "INCORRECT_BIG_NUM");
+		require(withdrawn == amount, "INCORRECT_WITHDRAWAL_AMOUNT");
+
+		WFIL.deposit{value: withdrawn}();
+
+		registry.increasePledgeRepayment(ownerId, amount);
+
+		totalFilPledged -= amount;
+
+		collateral.fit(ownerId);
+
+		emit PledgeRepayment(ownerId, minerId, amount);
 	}
 
 	/**
@@ -120,7 +152,8 @@ contract LiquidStakingMock is LiquidStaking {
 		vars.protocolFees = (amount * adminFee) / BASIS_POINTS;
 		WFIL.safeTransfer(rewardCollector, vars.protocolFees);
 
-		registry.increaseRewards(minerId, amount, 0);
+		registry.increaseRewards(minerId, amount);
+		collateral.fit(_ownerId);
 
 		_restake(vars.restakingAmt, vars.restakingAddress);
 	}

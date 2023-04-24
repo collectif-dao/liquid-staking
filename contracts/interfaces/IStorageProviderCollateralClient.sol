@@ -9,4 +9,11 @@ interface IStorageProviderCollateralClient {
 	 * @param _allocated FIL amount that is going to be pledged for Storage Provider
 	 */
 	function lock(uint64 _ownerId, uint256 _allocated) external;
+
+	/**
+	 * @dev Fits collateral amounts based on SP pledge usage, distributed rewards and pledge paybacks
+	 * @notice Rebalances the total locked and available collateral amounts
+	 * @param _ownerId Storage provider owner ID
+	 */
+	function fit(uint64 _ownerId) external;
 }

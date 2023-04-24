@@ -190,11 +190,44 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 		uint256 spShare = withdrawn - (stakingProfit + protocolFees);
 
 		WFIL.deposit{value: withdrawn}();
-		// TODO: Add UNWRAP from WFIL to FIL operation
-		SendAPI.send(CommonTypes.FilActorId.wrap(ownerId), spShare);
 		WFIL.safeTransfer(rewardCollector, protocolFees);
 
-		registry.increaseRewards(ownerId, stakingProfit, 0);
+		// TODO: Add UNWRAP from WFIL to FIL operation
+
+		WFIL.withdraw(spShare);
+		SendAPI.send(CommonTypes.FilActorId.wrap(ownerId), spShare);
+
+		registry.increaseRewards(ownerId, stakingProfit);
+		collateral.fit(ownerId);
+	}
+
+	/**
+	 * @notice Withdraw initial pledge from Storage Provider's Miner Actor by `ownerId`
+	 * This function is triggered when sector is not extended by miner actor and initial pledge unlocked
+	 * @param ownerId Storage provider owner ID
+	 * @param amount Initial pledge amount
+	 * @dev Please note that pledge amount withdrawn couldn't exceed used allocation by SP
+	 */
+	function withdrawPledge(uint64 ownerId, uint256 amount) external virtual nonReentrant {
+		require(hasRole(FEE_DISTRIBUTOR, msg.sender), "INVALID_ACCESS");
+		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
+		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
+
+		CommonTypes.BigInt memory withdrawnBInt = MinerAPI.withdrawBalance(minerActorId, BigInts.fromUint256(amount));
+
+		(uint256 withdrawn, bool abort) = BigInts.toUint256(withdrawnBInt);
+		require(!abort, "INCORRECT_BIG_NUM");
+		require(withdrawn == amount, "INCORRECT_WITHDRAWAL_AMOUNT");
+
+		WFIL.deposit{value: withdrawn}();
+
+		registry.increasePledgeRepayment(ownerId, amount);
+
+		totalFilPledged -= amount;
+
+		collateral.fit(ownerId);
+
+		emit PledgeRepayment(ownerId, minerId, amount);
 	}
 
 	struct WithdrawAndRestakeLocalVars {
@@ -245,8 +278,8 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 		vars.protocolFees = (amount * adminFee) / BASIS_POINTS;
 		WFIL.safeTransfer(rewardCollector, vars.protocolFees);
 
-		registry.increaseRewards(minerId, amount, 0);
-
+		registry.increaseRewards(minerId, amount);
+		// TODO: add fit collateral
 		_restake(vars.restakingAmt, vars.restakingAddress);
 	}
 
