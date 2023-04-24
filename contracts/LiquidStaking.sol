@@ -171,39 +171,6 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 	}
 
 	/**
-	 * @notice Withdraw FIL assets from Storage Provider by `ownerId` and it's Miner actor
-	 * @param ownerId Storage provider owner ID
-	 * @param amount Withdrawal amount
-	 */
-	function withdrawRewards(uint64 ownerId, uint256 amount) external virtual nonReentrant {
-		require(hasRole(FEE_DISTRIBUTOR, msg.sender), "INVALID_ACCESS");
-		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
-		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
-		CommonTypes.BigInt memory amountBInt = BigInts.fromUint256(amount);
-
-		CommonTypes.BigInt memory withdrawnBInt = MinerAPI.withdrawBalance(minerActorId, amountBInt);
-
-		(uint256 withdrawn, bool abort) = BigInts.toUint256(withdrawnBInt);
-		require(!abort, "INCORRECT_BIG_NUM");
-		require(withdrawn == amount, "INCORRECT_WITHDRAWAL_AMOUNT");
-
-		uint256 stakingProfit = (withdrawn * profitShare) / BASIS_POINTS;
-		uint256 protocolFees = (withdrawn * adminFee) / BASIS_POINTS;
-		uint256 spShare = withdrawn - (stakingProfit + protocolFees);
-
-		WFIL.deposit{value: withdrawn}();
-		WFIL.safeTransfer(rewardCollector, protocolFees);
-
-		// TODO: Add UNWRAP from WFIL to FIL operation
-
-		WFIL.withdraw(spShare);
-		SendAPI.send(CommonTypes.FilActorId.wrap(ownerId), spShare);
-
-		registry.increaseRewards(ownerId, stakingProfit);
-		collateral.fit(ownerId);
-	}
-
-	/**
 	 * @notice Withdraw initial pledge from Storage Provider's Miner Actor by `ownerId`
 	 * This function is triggered when sector is not extended by miner actor and initial pledge unlocked
 	 * @param ownerId Storage provider owner ID
@@ -252,16 +219,17 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 		emit ReportSlashing(_ownerId, minerId, _slashingAmt);
 	}
 
-	struct WithdrawAndRestakeLocalVars {
+	struct WithdrawRewardsLocalVars {
 		uint256 restakingRatio;
 		address restakingAddress;
-		uint256 restakingAmt;
-		uint256 targetWithdraw;
 		uint256 withdrawn;
 		bool abort;
+		bool isRestaking;
 		uint256 protocolFees;
+		uint256 stakingProfit;
+		uint256 restakingAmt;
+		uint256 spShare;
 		CommonTypes.FilActorId minerActorId;
-		CommonTypes.BigInt amountBInt;
 		CommonTypes.BigInt withdrawnBInt;
 	}
 
@@ -270,39 +238,45 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 	 * and restake `restakeAmount` into the Storage Provider specified f4 address
 	 * @param ownerId Storage provider owner ID
 	 * @param amount Withdrawal amount
-	 * @param totalRewards Total amount of rewards accured by SP - profit sharing
 	 */
-	function withdrawAndRestakeRewards(
-		uint64 ownerId,
-		uint256 amount,
-		uint256 totalRewards
-	) external virtual nonReentrant {
+	function withdrawRewards(uint64 ownerId, uint256 amount) external virtual nonReentrant {
 		require(hasRole(FEE_DISTRIBUTOR, msg.sender), "INVALID_ACCESS");
-		WithdrawAndRestakeLocalVars memory vars;
+		WithdrawRewardsLocalVars memory vars;
 
 		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
 		vars.minerActorId = CommonTypes.FilActorId.wrap(minerId);
 
-		(vars.restakingRatio, vars.restakingAddress) = registry.restakings(ownerId);
-		require(vars.restakingAddress != address(0), "RESTAKING_NOT_SET");
-		vars.restakingAmt = (totalRewards * vars.restakingRatio) / BASIS_POINTS;
-
-		vars.targetWithdraw = amount + vars.restakingAmt;
-		vars.amountBInt = BigInts.fromUint256(vars.targetWithdraw);
-		vars.withdrawnBInt = MinerAPI.withdrawBalance(vars.minerActorId, vars.amountBInt);
+		vars.withdrawnBInt = MinerAPI.withdrawBalance(vars.minerActorId, BigInts.fromUint256(amount));
 
 		(vars.withdrawn, vars.abort) = BigInts.toUint256(vars.withdrawnBInt);
 		require(!vars.abort, "INCORRECT_BIG_NUM");
-		require(vars.withdrawn == vars.targetWithdraw, "INCORRECT_WITHDRAWAL_AMOUNT");
+		require(vars.withdrawn == amount, "INCORRECT_WITHDRAWAL_AMOUNT");
+
+		vars.stakingProfit = (vars.withdrawn * profitShare) / BASIS_POINTS;
+		vars.protocolFees = (vars.withdrawn * adminFee) / BASIS_POINTS;
+
+		(vars.restakingRatio, vars.restakingAddress) = registry.restakings(ownerId);
+
+		vars.isRestaking = vars.restakingRatio > 0 && vars.restakingAddress != address(0);
+
+		if (vars.isRestaking) {
+			vars.restakingAmt = (vars.withdrawn * vars.restakingRatio) / BASIS_POINTS;
+		}
+
+		vars.spShare = vars.withdrawn - (vars.stakingProfit + vars.protocolFees + vars.restakingAmt);
 
 		WFIL.deposit{value: vars.withdrawn}();
-
-		vars.protocolFees = (amount * adminFee) / BASIS_POINTS;
 		WFIL.safeTransfer(rewardCollector, vars.protocolFees);
 
-		registry.increaseRewards(minerId, amount);
-		// TODO: add fit collateral
-		_restake(vars.restakingAmt, vars.restakingAddress);
+		WFIL.withdraw(vars.spShare);
+		SendAPI.send(CommonTypes.FilActorId.wrap(ownerId), vars.spShare);
+
+		registry.increaseRewards(ownerId, vars.stakingProfit);
+		collateral.fit(ownerId);
+
+		if (vars.isRestaking) {
+			_restake(vars.restakingAmt, vars.restakingAddress);
+		}
 	}
 
 	/**
@@ -326,6 +300,13 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 	 */
 	function totalAssets() public view virtual override returns (uint256) {
 		return totalFilAvailable() + totalFilPledged;
+	}
+
+	/**
+	 * @notice Returns total amount of fees held by LSP
+	 */
+	function totalFees() public view virtual override returns (uint256) {
+		return profitShare + adminFee;
 	}
 
 	/**

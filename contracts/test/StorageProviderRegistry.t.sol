@@ -10,18 +10,26 @@ import {Buffer} from "@ensdomains/buffer/contracts/Buffer.sol";
 import {PrecompilesAPI} from "filecoin-solidity/contracts/v0.8/PrecompilesAPI.sol";
 
 import {StorageProviderRegistryMock, StorageProviderRegistryCallerMock} from "./mocks/StorageProviderRegistryMock.sol";
+import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 
 contract StorageProviderRegistryTest is DSTestPlus {
 	StorageProviderRegistryMock public registry;
 	StorageProviderRegistryCallerMock public callerMock;
 
-	IERC4626 public staking;
+	LiquidStakingMock public staking;
 	IWETH9 public wfil;
 
 	bytes public owner;
 	uint64 public ownerId = 1508;
 	uint64 private oldMinerId = 1648;
+
+	address private aliceOwnerAddr = address(0x12341214212);
+	uint256 private adminFee = 1000;
+	uint256 private profitShare = 2000;
+	address private rewardCollector = address(0x12523);
+	uint64 public aliceOwnerId = 1508;
+	uint256 maxRestaking = 10000 - profitShare - adminFee;
 
 	uint256 private constant MAX_STORAGE_PROVIDERS = 200;
 	uint256 private constant MAX_ALLOCATION = 10000 ether;
@@ -34,7 +42,15 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		owner = ownerBytes.buf;
 
 		wfil = IWETH9(address(new WFIL()));
-		staking = IERC4626(address(new MockERC4626(wfil, "Collective FIL Liquid Staking", "clFIL")));
+		staking = new LiquidStakingMock(
+			address(wfil),
+			address(0x21421),
+			aliceOwnerId,
+			adminFee,
+			profitShare,
+			rewardCollector,
+			aliceOwnerAddr
+		);
 
 		registry = new StorageProviderRegistryMock(
 			owner,
@@ -498,7 +514,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			minerId > 1 &&
 				minerId < 2115248121211227543 &&
 				restakingRatio > 0 &&
-				restakingRatio < 10000 &&
+				restakingRatio <= maxRestaking &&
 				restakingAddress != address(0) &&
 				lastEpoch > 0
 		);
@@ -521,8 +537,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		assertEq(rAddr, restakingAddress);
 	}
 
-	function testSetRestakingReverts(uint64 minerId, int64 lastEpoch) public {
-		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
+	function testSetRestakingReverts(uint64 minerId, uint256 restakingRatio, int64 lastEpoch) public {
+		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0 && restakingRatio > maxRestaking);
 		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 		registry.onboardStorageProvider(
 			minerId,
@@ -536,7 +552,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		registry.acceptBeneficiaryAddress(ownerId, address(staking));
 
 		hevm.expectRevert("INVALID_RESTAKING_RATIO");
-		registry.setRestaking(15000, address(0x412412));
+		registry.setRestaking(restakingRatio, address(0x412412));
 
 		hevm.expectRevert("INVALID_ADDRESS");
 		registry.setRestaking(1500, address(0));

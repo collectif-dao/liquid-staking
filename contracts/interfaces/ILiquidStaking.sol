@@ -115,6 +115,11 @@ interface ILiquidStaking {
 	function totalFilAvailable() external view returns (uint256);
 
 	/**
+	 * @notice Returns total amount of fees held by LSP
+	 */
+	function totalFees() external view returns (uint256);
+
+	/**
 	 * @notice Updates StorageProviderRegistry contract address
 	 * @param newAddr StorageProviderRegistry contract address
 	 */

@@ -26,11 +26,12 @@ contract LiquidStakingMock is LiquidStaking {
 		uint64 _ownerId,
 		uint256 _adminFee,
 		uint256 _profitShare,
-		address _rewardCollector
+		address _rewardCollector,
+		address _ownerAddr
 	) LiquidStaking(_wFIL, _adminFee, _profitShare, _rewardCollector) {
 		minerActorMock = IMinerActorMock(minerActor);
 		ownerId = _ownerId;
-		ownerAddr = msg.sender;
+		ownerAddr = _ownerAddr;
 	}
 
 	/**
@@ -51,38 +52,6 @@ contract LiquidStakingMock is LiquidStaking {
 		totalFilPledged += amount;
 
 		msg.sender.safeTransferETH(amount);
-	}
-
-	/**
-	 * @notice Withdraw FIL assets from Storage Provider by `ownerId` and it's Miner actor
-	 * @param ownerId Storage provider owner ID
-	 * @param amount Withdrawal amount
-	 */
-	function withdrawRewards(uint64 ownerId, uint256 amount) external virtual override nonReentrant {
-		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
-		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
-		CommonTypes.BigInt memory amountBInt = BigInts.fromUint256(amount);
-
-		CommonTypes.BigInt memory withdrawnBInt = minerActorMock.withdrawBalance(minerActorId, amountBInt);
-
-		(uint256 withdrawn, bool abort) = BigInts.toUint256(withdrawnBInt);
-		require(!abort, "INCORRECT_BIG_NUM");
-		require(withdrawn == amount, "INCORRECT_WITHDRAWAL_AMOUNT");
-
-		uint256 stakingProfit = (withdrawn * profitShare) / BASIS_POINTS;
-		uint256 protocolFees = (withdrawn * adminFee) / BASIS_POINTS;
-		uint256 spShare = withdrawn - (stakingProfit + protocolFees);
-
-		WFIL.deposit{value: withdrawn}();
-		WFIL.safeTransfer(ownerAddr, spShare);
-		WFIL.safeTransfer(rewardCollector, protocolFees);
-
-		// _unwrapWFIL(ownerAddr, spShare);
-		// WFIL.withdraw(spShare);
-		// payable(ownerAddr).transfer(spShare);
-
-		registry.increaseRewards(minerId, stakingProfit);
-		collateral.fit(ownerId);
 	}
 
 	/**
@@ -118,43 +87,45 @@ contract LiquidStakingMock is LiquidStaking {
 	/**
 	 * @notice Withdraw FIL assets from Storage Provider by `ownerId` and it's Miner actor
 	 * and restake `restakeAmount` into the Storage Provider specified f4 address
-	 * @param _ownerId Storage provider owner ID
+	 * @param ownerId Storage provider owner ID
 	 * @param amount Withdrawal amount
-	 * @param totalRewards Total amount of rewards accured by SP - profit sharing
 	 */
-	function withdrawAndRestakeRewards(
-		uint64 _ownerId,
-		uint256 amount,
-		uint256 totalRewards
-	) external virtual override nonReentrant {
-		WithdrawAndRestakeLocalVars memory vars;
+	function withdrawRewards(uint64 ownerId, uint256 amount) external virtual override nonReentrant {
+		WithdrawRewardsLocalVars memory vars;
 
-		(, , uint64 minerId, ) = registry.getStorageProvider(_ownerId);
+		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
 		vars.minerActorId = CommonTypes.FilActorId.wrap(minerId);
 
-		(vars.restakingRatio, vars.restakingAddress) = registry.restakings(_ownerId);
-		require(vars.restakingAddress != address(0), "RESTAKING_NOT_SET");
-		vars.restakingAmt = (totalRewards * vars.restakingRatio) / BASIS_POINTS;
-
-		uint256 shares;
-		require((shares = previewDeposit(vars.restakingAmt)) != 0, "ZERO_SHARES");
-
-		vars.targetWithdraw = amount + vars.restakingAmt;
-		vars.amountBInt = BigInts.fromUint256(vars.targetWithdraw);
-		vars.withdrawnBInt = minerActorMock.withdrawBalance(vars.minerActorId, vars.amountBInt);
+		vars.withdrawnBInt = minerActorMock.withdrawBalance(vars.minerActorId, BigInts.fromUint256(amount));
 
 		(vars.withdrawn, vars.abort) = BigInts.toUint256(vars.withdrawnBInt);
 		require(!vars.abort, "INCORRECT_BIG_NUM");
-		require(vars.withdrawn == vars.targetWithdraw, "INCORRECT_WITHDRAWAL_AMOUNT");
+		require(vars.withdrawn == amount, "INCORRECT_WITHDRAWAL_AMOUNT");
+
+		vars.stakingProfit = (vars.withdrawn * profitShare) / BASIS_POINTS;
+		vars.protocolFees = (vars.withdrawn * adminFee) / BASIS_POINTS;
+
+		(vars.restakingRatio, vars.restakingAddress) = registry.restakings(ownerId);
+
+		vars.isRestaking = vars.restakingRatio > 0 && vars.restakingAddress != address(0);
+
+		if (vars.isRestaking) {
+			vars.restakingAmt = (vars.withdrawn * vars.restakingRatio) / BASIS_POINTS;
+		}
+
+		vars.spShare = vars.withdrawn - (vars.stakingProfit + vars.protocolFees + vars.restakingAmt);
 
 		WFIL.deposit{value: vars.withdrawn}();
-
-		vars.protocolFees = (amount * adminFee) / BASIS_POINTS;
 		WFIL.safeTransfer(rewardCollector, vars.protocolFees);
 
-		registry.increaseRewards(minerId, amount);
-		collateral.fit(_ownerId);
+		WFIL.withdraw(vars.spShare);
+		ownerAddr.safeTransferETH(vars.spShare);
 
-		_restake(vars.restakingAmt, vars.restakingAddress);
+		registry.increaseRewards(ownerId, vars.stakingProfit);
+		collateral.fit(ownerId);
+
+		if (vars.isRestaking) {
+			_restake(vars.restakingAmt, vars.restakingAddress);
+		}
 	}
 }

@@ -69,8 +69,4 @@ library BokkyPooBahsDateTimeLibrary {
 	function timestampToDate(uint timestamp) internal pure returns (uint year, uint month, uint day) {
 		(year, month, day) = _daysToDate(timestamp / SECONDS_PER_DAY);
 	}
-
-	function hash(uint year, uint month, uint day) internal pure returns (bytes32) {
-		return keccak256(abi.encodePacked(year, month, day));
-	}
 }

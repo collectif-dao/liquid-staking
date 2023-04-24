@@ -14,6 +14,7 @@ import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {BokkyPooBahsDateTimeLibrary} from "./libraries/DateTimeLibraryCompressed.sol";
 import "./interfaces/IStorageProviderRegistry.sol";
+import "./interfaces/ILiquidStakingClient.sol";
 
 /**
  * @title Storage Provider Registry contract allows storage providers to register
@@ -343,7 +344,9 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 	 */
 	function setRestaking(uint256 _restakingRatio, address _restakingAddress) public virtual override {
 		uint64 ownerId = PrecompilesAPI.resolveEthAddress(msg.sender);
-		require(_restakingRatio <= 10000, "INVALID_RESTAKING_RATIO");
+		uint256 totalFees = ILiquidStakingClient(storageProviders[ownerId].targetPool).totalFees();
+
+		require(_restakingRatio <= 10000 - totalFees, "INVALID_RESTAKING_RATIO");
 		require(_restakingAddress != address(0), "INVALID_ADDRESS");
 
 		StorageProviderTypes.SPRestaking storage restaking = restakings[ownerId];

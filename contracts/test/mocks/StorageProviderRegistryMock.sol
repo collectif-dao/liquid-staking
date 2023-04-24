@@ -251,7 +251,9 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 	 * @dev Only triggered by Storage Provider
 	 */
 	function setRestaking(uint256 _restakingRatio, address _restakingAddress) public virtual override {
-		require(_restakingRatio <= 10000, "INVALID_RESTAKING_RATIO");
+		uint256 totalFees = ILiquidStakingClient(storageProviders[ownerId].targetPool).totalFees();
+
+		require(_restakingRatio <= 10000 - totalFees, "INVALID_RESTAKING_RATIO");
 		require(_restakingAddress != address(0), "INVALID_ADDRESS");
 
 		StorageProviderTypes.SPRestaking storage restaking = restakings[ownerId];
