@@ -42,7 +42,7 @@ contract LiquidStakingMock is LiquidStaking {
 
 		collateral.lock(ownerId, amount);
 
-		(, , uint64 minerId, , , , , , ) = registry.getStorageProvider(ownerId);
+		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
 
 		emit Pledge(ownerId, minerId, amount);
 
@@ -59,7 +59,7 @@ contract LiquidStakingMock is LiquidStaking {
 	 * @param amount Withdrawal amount
 	 */
 	function withdrawRewards(uint64 ownerId, uint256 amount) external virtual override nonReentrant {
-		(, , uint64 minerId, , , , , , ) = registry.getStorageProvider(ownerId);
+		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
 		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
 		CommonTypes.BigInt memory amountBInt = BigInts.fromUint256(amount);
 
@@ -77,27 +77,30 @@ contract LiquidStakingMock is LiquidStaking {
 		WFIL.safeTransfer(ownerAddr, spShare);
 		WFIL.safeTransfer(rewardCollector, protocolFees);
 
+		// WFIL.withdraw(spShare);
+		// payable(ownerAddr).transfer(spShare);
+
 		registry.increaseRewards(minerId, stakingProfit, 0);
 	}
 
 	/**
 	 * @notice Withdraw FIL assets from Storage Provider by `ownerId` and it's Miner actor
 	 * and restake `restakeAmount` into the Storage Provider specified f4 address
-	 * @param ownerId Storage provider owner ID
+	 * @param _ownerId Storage provider owner ID
 	 * @param amount Withdrawal amount
 	 * @param totalRewards Total amount of rewards accured by SP - profit sharing
 	 */
 	function withdrawAndRestakeRewards(
-		uint64 ownerId,
+		uint64 _ownerId,
 		uint256 amount,
 		uint256 totalRewards
-	) external virtual override nonReentrant returns (uint256) {
+	) external virtual override nonReentrant {
 		WithdrawAndRestakeLocalVars memory vars;
 
-		(, , uint64 minerId, , , , , , ) = registry.getStorageProvider(ownerId);
+		(, , uint64 minerId, ) = registry.getStorageProvider(_ownerId);
 		vars.minerActorId = CommonTypes.FilActorId.wrap(minerId);
 
-		(vars.restakingRatio, vars.restakingAddress) = registry.restakings(ownerId);
+		(vars.restakingRatio, vars.restakingAddress) = registry.restakings(_ownerId);
 		require(vars.restakingAddress != address(0), "RESTAKING_NOT_SET");
 		vars.restakingAmt = (totalRewards * vars.restakingRatio) / BASIS_POINTS;
 

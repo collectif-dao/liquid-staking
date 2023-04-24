@@ -10,16 +10,25 @@ library StorageProviderTypes {
 		bool active;
 		address targetPool;
 		uint64 minerId; // Miner worker address
+		int64 lastEpoch; // Max time period for accessing FIL from liquid staking
+	}
+
+	struct SPAllocation {
 		uint256 allocationLimit; // FIL allocation
 		uint256 repayment; // FIL repayment amount
 		uint256 usedAllocation; // Used allocation in pledges
+		uint256 dailyAllocation; // Daily FIL allocation for SP
 		uint256 accruedRewards; // Storage Provider delivered rewards
 		uint256 lockedRewards; // Storage Provider locked rewards
-		int64 lastEpoch; // Max time period for accessing FIL from liquid staking
 	}
 
 	struct SPRestaking {
 		uint256 restakingRatio; // Percentage of FIL rewards that is going to be restaked into liquid staking pool
 		address restakingAddress;
+	}
+
+	struct AllocationRequest {
+		uint256 allocationLimit;
+		uint256 dailyAllocation;
 	}
 }

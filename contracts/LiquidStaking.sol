@@ -156,7 +156,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 		uint64 ownerId = PrecompilesAPI.resolveEthAddress(msg.sender);
 		collateral.lock(ownerId, amount);
 
-		(, , uint64 minerId, , , , , , ) = registry.getStorageProvider(ownerId);
+		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
 		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
 
 		emit Pledge(ownerId, minerId, amount);
@@ -175,7 +175,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 	 */
 	function withdrawRewards(uint64 ownerId, uint256 amount) external virtual nonReentrant {
 		require(hasRole(FEE_DISTRIBUTOR, msg.sender), "INVALID_ACCESS");
-		(, , uint64 minerId, , , , , , ) = registry.getStorageProvider(ownerId);
+		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
 		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
 		CommonTypes.BigInt memory amountBInt = BigInts.fromUint256(amount);
 
@@ -221,11 +221,11 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 		uint64 ownerId,
 		uint256 amount,
 		uint256 totalRewards
-	) external virtual nonReentrant returns (uint256 shares) {
+	) external virtual nonReentrant {
 		require(hasRole(FEE_DISTRIBUTOR, msg.sender), "INVALID_ACCESS");
 		WithdrawAndRestakeLocalVars memory vars;
 
-		(, , uint64 minerId, , , , , , ) = registry.getStorageProvider(ownerId);
+		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
 		vars.minerActorId = CommonTypes.FilActorId.wrap(minerId);
 
 		(vars.restakingRatio, vars.restakingAddress) = registry.restakings(ownerId);

@@ -42,6 +42,7 @@ contract LiquidStakingTest is DSTestPlus {
 	uint256 private constant MAX_ALLOCATION = 10000 ether;
 	uint256 private constant MIN_TIME_PERIOD = 90 days;
 	uint256 private constant MAX_TIME_PERIOD = 360 days;
+	uint256 private constant SAMPLE_DAILY_ALLOCATION = MAX_ALLOCATION / 30;
 
 	uint256 public collateralRequirements = 1500;
 	uint256 public constant BASIS_POINTS = 10000;
@@ -236,19 +237,26 @@ contract LiquidStakingTest is DSTestPlus {
 		require(staking.totalAssets() == 0, "INVALID_BALANCE");
 	}
 
-	function testPledgeAmount(uint128 amount) public {
-		hevm.assume(amount != 0 && amount <= MAX_ALLOCATION && amount > 1 ether);
+	function testPledge(uint128 amount) public {
+		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
 		uint256 collateralAmount = (amount * collateralRequirements) / BASIS_POINTS;
+
 		hevm.deal(address(this), amount);
 		hevm.deal(alice, collateralAmount);
 
 		// prepare storage provider for getting FIL from liquid staking
 		hevm.startPrank(alice);
-		registry.register(aliceMinerId, address(staking), amount);
+		registry.register(aliceMinerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 		registry.changeBeneficiaryAddress(address(staking));
 		hevm.stopPrank();
 
-		registry.onboardStorageProvider(aliceMinerId, amount, amount + 10 ether, 412678);
+		registry.onboardStorageProvider(
+			aliceMinerId,
+			MAX_ALLOCATION,
+			SAMPLE_DAILY_ALLOCATION,
+			MAX_ALLOCATION + 10 ether,
+			412678
+		);
 		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
 
 		hevm.prank(alice);
@@ -274,14 +282,14 @@ contract LiquidStakingTest is DSTestPlus {
 		uint256 withdrawAmount = (amount * 500) / BASIS_POINTS;
 		hevm.deal(address(minerActor), withdrawAmount);
 
-		uint256 pledgeAmt = preCommitDeposit + initialPledge;
+		uint256 dailyAllocation = amount / 30;
 
 		hevm.startPrank(alice);
-		registry.register(aliceMinerId, address(staking), amount);
+		registry.register(aliceMinerId, address(staking), amount, dailyAllocation);
 		registry.changeBeneficiaryAddress(address(staking));
 		hevm.stopPrank();
 
-		registry.onboardStorageProvider(aliceMinerId, amount, amount + 10 ether, 412678);
+		registry.onboardStorageProvider(aliceMinerId, amount, dailyAllocation, amount + 10 ether, 412678);
 		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
 
 		hevm.prank(alice);
@@ -290,9 +298,9 @@ contract LiquidStakingTest is DSTestPlus {
 		staking.stake{value: amount}();
 
 		hevm.prank(alice);
-		staking.pledge(pledgeAmt);
+		staking.pledge(dailyAllocation);
 
-		require(alice.balance == preCommitDeposit + initialPledge, "INVALID_BALANCE");
+		require(alice.balance == dailyAllocation, "INVALID_BALANCE");
 		require(address(minerActor).balance == withdrawAmount, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 
@@ -314,7 +322,7 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.deal(address(this), amount);
 		hevm.deal(alice, collateralAmount);
 
-		uint256 pledgeAmt = preCommitDeposit + initialPledge;
+		uint256 dailyAllocation = amount / 30;
 
 		uint256 withdrawAmount = (amount * 500) / BASIS_POINTS;
 		uint256 restakingAmt = (withdrawAmount * 2000) / BASIS_POINTS;
@@ -322,12 +330,12 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.deal(address(minerActor), totalAmount);
 
 		hevm.startPrank(alice);
-		registry.register(aliceMinerId, address(staking), amount);
+		registry.register(aliceMinerId, address(staking), amount, dailyAllocation);
 		registry.changeBeneficiaryAddress(address(staking));
 		registry.setRestaking(1000, aliceRestaking);
 		hevm.stopPrank();
 
-		registry.onboardStorageProvider(aliceMinerId, amount, amount + 10 ether, 412678);
+		registry.onboardStorageProvider(aliceMinerId, amount, dailyAllocation, amount + 10 ether, 412678);
 		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
 
 		hevm.prank(alice);
@@ -336,7 +344,7 @@ contract LiquidStakingTest is DSTestPlus {
 		staking.stake{value: amount}();
 
 		hevm.prank(alice);
-		staking.pledge(pledgeAmt);
+		staking.pledge(dailyAllocation);
 
 		staking.withdrawAndRestakeRewards(aliceOwnerId, withdrawAmount, withdrawAmount * 2);
 	}
@@ -347,7 +355,7 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.deal(address(this), amount);
 		hevm.deal(alice, collateralAmount);
 
-		uint256 pledgeAmt = preCommitDeposit + initialPledge;
+		uint256 dailyAllocation = amount / 30;
 
 		uint256 withdrawAmount = (amount * 500) / BASIS_POINTS;
 		uint256 restakingAmt = (withdrawAmount * 2000) / BASIS_POINTS;
@@ -355,11 +363,11 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.deal(address(minerActor), totalAmount);
 
 		hevm.startPrank(alice);
-		registry.register(aliceMinerId, address(staking), amount);
+		registry.register(aliceMinerId, address(staking), amount, dailyAllocation);
 		registry.changeBeneficiaryAddress(address(staking));
 		hevm.stopPrank();
 
-		registry.onboardStorageProvider(aliceMinerId, amount, amount + 10 ether, 412678);
+		registry.onboardStorageProvider(aliceMinerId, amount, dailyAllocation, amount + 10 ether, 412678);
 		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
 
 		hevm.prank(alice);
@@ -368,7 +376,7 @@ contract LiquidStakingTest is DSTestPlus {
 		staking.stake{value: amount}();
 
 		hevm.prank(alice);
-		staking.pledge(pledgeAmt);
+		staking.pledge(dailyAllocation);
 
 		hevm.expectRevert("RESTAKING_NOT_SET");
 		staking.withdrawAndRestakeRewards(aliceOwnerId, withdrawAmount, withdrawAmount * 2);

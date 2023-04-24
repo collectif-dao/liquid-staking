@@ -5,9 +5,7 @@ interface IStorageProviderRegistryClient {
 	/**
 	 * @notice Return Storage Provider information with `_ownerId`
 	 */
-	function getStorageProvider(
-		uint64 _ownerId
-	) external view returns (bool, address, uint64, uint256, uint256, uint256, uint256, uint256, int64);
+	function getStorageProvider(uint64 _ownerId) external view returns (bool, address, uint64, int64);
 
 	/**
 	 * @notice Increase collected rewards by Storage Provider
@@ -21,8 +19,9 @@ interface IStorageProviderRegistryClient {
 	 * @notice Increase used allocation for Storage Provider
 	 * @param _ownerId Storage Provider owner ID
 	 * @param _allocated FIL amount that is going to be pledged for Storage Provider
+	 * @param _timestamp Transaction timestamp
 	 */
-	function increaseUsedAllocation(uint64 _ownerId, uint256 _allocated) external;
+	function increaseUsedAllocation(uint64 _ownerId, uint256 _allocated, uint256 _timestamp) external;
 
 	/**
 	 * @notice Return a boolean flag of Storage Provider activity
@@ -38,4 +37,9 @@ interface IStorageProviderRegistryClient {
 	 * @notice Return a restaking information for a storage provider
 	 */
 	function restakings(uint64 ownerId) external view returns (uint256, address);
+
+	/**
+	 * @notice Return allocation information for a storage provider
+	 */
+	function allocations(uint64 ownerId) external view returns (uint256, uint256, uint256, uint256, uint256, uint256);
 }

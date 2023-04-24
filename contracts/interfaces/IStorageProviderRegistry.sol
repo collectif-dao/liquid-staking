@@ -7,12 +7,14 @@ interface IStorageProviderRegistry {
 		uint64 ownerId,
 		uint64 minerId,
 		address targetPool,
-		uint256 allocationLimit
+		uint256 allocationLimit,
+		uint256 dailyAllocation
 	);
 	event StorageProviderOnboarded(
 		uint64 ownerId,
 		uint64 minerId,
 		uint256 allocationLimit,
+		uint256 dailyAllocation,
 		uint256 repayment,
 		int64 lastEpoch
 	);
@@ -40,14 +42,21 @@ interface IStorageProviderRegistry {
 	 * @param _minerId Storage Provider miner ID in Filecoin network
 	 * @param _targetPool Target liquid staking strategy
 	 * @param _allocationLimit FIL allocation for storage provider
+	 * @param _dailyAllocation Daily FIL allocation for storage provider
 	 * @dev Only triggered by Storage Provider owner
 	 */
-	function register(uint64 _minerId, address _targetPool, uint256 _allocationLimit) external;
+	function register(
+		uint64 _minerId,
+		address _targetPool,
+		uint256 _allocationLimit,
+		uint256 _dailyAllocation
+	) external;
 
 	/**
 	 * @notice Onboard storage provider with `_minerId`, desired `_allocationLimit`, `_repayment` amount
 	 * @param _minerId Storage Provider miner ID in Filecoin network
 	 * @param _allocationLimit FIL allocation for storage provider
+	 * @param _dailyAllocation Daily FIL allocation for storage provider
 	 * @param _repayment FIL repayment for storage provider
 	 * @param _lastEpoch Last epoch for FIL allocation utilization
 	 * @dev Only triggered by owner contract
@@ -55,6 +64,7 @@ interface IStorageProviderRegistry {
 	function onboardStorageProvider(
 		uint64 _minerId,
 		uint256 _allocationLimit,
+		uint256 _dailyAllocation,
 		uint256 _repayment,
 		int64 _lastEpoch
 	) external;
@@ -91,18 +101,25 @@ interface IStorageProviderRegistry {
 	/**
 	 * @notice Request storage provider's FIL allocation update with `_allocationLimit`
 	 * @param _allocationLimit New FIL allocation for storage provider
+	 * @param _dailyAllocation New daily FIL allocation for storage provider
 	 * @dev Only triggered by Storage Provider owner
 	 */
-	function requestAllocationLimitUpdate(uint256 _allocationLimit) external;
+	function requestAllocationLimitUpdate(uint256 _allocationLimit, uint256 _dailyAllocation) external;
 
 	/**
 	 * @notice Update storage provider FIL allocation with `_allocationLimit`
 	 * @param _ownerId Storage provider owner ID
 	 * @param _allocationLimit New FIL allocation for storage provider
+	 * @param _dailyAllocation New daily FIL allocation for storage provider
 	 * @param _repaymentAmount New FIL repayment amount for storage provider
 	 * @dev Only triggered by registry admin
 	 */
-	function updateAllocationLimit(uint64 _ownerId, uint256 _allocationLimit, uint256 _repaymentAmount) external;
+	function updateAllocationLimit(
+		uint64 _ownerId,
+		uint256 _allocationLimit,
+		uint256 _dailyAllocation,
+		uint256 _repaymentAmount
+	) external;
 
 	/**
 	 * @notice Update storage provider's restaking ratio
@@ -125,9 +142,7 @@ interface IStorageProviderRegistry {
 	/**
 	 * @notice Return Storage Provider information with `_ownerId`
 	 */
-	function getStorageProvider(
-		uint64 _ownerId
-	) external view returns (bool, address, uint64, uint256, uint256, uint256, uint256, uint256, int64);
+	function getStorageProvider(uint64 _ownerId) external view returns (bool, address, uint64, int64);
 
 	/**
 	 * @notice Return a boolean flag of Storage Provider activity
@@ -146,8 +161,9 @@ interface IStorageProviderRegistry {
 	 * @notice Increase used allocation for Storage Provider
 	 * @param _ownerId Storage Provider owner ID
 	 * @param _allocated FIL amount that is going to be pledged for Storage Provider
+	 * @param _timestamp Transaction timestamp
 	 */
-	function increaseUsedAllocation(uint64 _ownerId, uint256 _allocated) external;
+	function increaseUsedAllocation(uint64 _ownerId, uint256 _allocated, uint256 _timestamp) external;
 
 	/**
 	 * @notice Update StorageProviderCollateral smart contract
@@ -167,4 +183,14 @@ interface IStorageProviderRegistry {
 	 * @notice Return a boolean flag whether `_pool` is active or not
 	 */
 	function isActivePool(address _pool) external view returns (bool);
+
+	/**
+	 * @notice Return a restaking information for a storage provider
+	 */
+	function restakings(uint64 ownerId) external view returns (uint256, address);
+
+	/**
+	 * @notice Return allocation information for a storage provider
+	 */
+	function allocations(uint64 ownerId) external view returns (uint256, uint256, uint256, uint256, uint256, uint256);
 }

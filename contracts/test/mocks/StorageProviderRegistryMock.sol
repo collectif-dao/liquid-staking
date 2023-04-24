@@ -50,12 +50,14 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 	 * @param _minerId Storage Provider miner ID in Filecoin network
 	 * @param _targetPool Target liquid staking strategy
 	 * @param _allocationLimit FIL allocation for storage provider
+	 * @param _dailyAllocation Daily FIL allocation for storage provider
 	 * @dev Only triggered by Storage Provider owner
 	 */
 	function register(
 		uint64 _minerId,
 		address _targetPool,
-		uint256 _allocationLimit
+		uint256 _allocationLimit,
+		uint256 _dailyAllocation
 	) public override validActorID(_minerId) {
 		require(_allocationLimit <= maxAllocation, "INVALID_ALLOCATION");
 		require(_targetPool.isContract(), "INVALID_TARGET_POOL");
@@ -70,20 +72,31 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[ownerId];
 		storageProvider.minerId = _minerId;
 		storageProvider.targetPool = _targetPool;
-		storageProvider.allocationLimit = _allocationLimit;
+
+		StorageProviderTypes.SPAllocation storage spAllocation = allocations[ownerId];
+		spAllocation.allocationLimit = _allocationLimit;
+		spAllocation.dailyAllocation = _dailyAllocation;
 
 		sectorSizes[ownerId] = sampleSectorSize;
 
 		totalStorageProviders.increment();
 		totalInactiveStorageProviders.increment();
 
-		emit StorageProviderRegistered(ownerReturn.owner.data, ownerId, _minerId, _targetPool, _allocationLimit);
+		emit StorageProviderRegistered(
+			ownerReturn.owner.data,
+			ownerId,
+			_minerId,
+			_targetPool,
+			_allocationLimit,
+			_dailyAllocation
+		);
 	}
 
 	/**
 	 * @notice Onboard storage provider with `_minerId`, desired `_allocationLimit`, `_repayment` amount
 	 * @param _minerId Storage Provider miner ID in Filecoin network
 	 * @param _allocationLimit FIL allocation for storage provider
+	 * @param _dailyAllocation Daily FIL allocation for storage provider
 	 * @param _repayment FIL repayment for storage provider
 	 * @param _lastEpoch Last epoch for FIL allocation utilization
 	 * @dev Only triggered by owner contract
@@ -91,6 +104,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 	function onboardStorageProvider(
 		uint64 _minerId,
 		uint256 _allocationLimit,
+		uint256 _dailyAllocation,
 		uint256 _repayment,
 		int64 _lastEpoch
 	) public virtual override validActorID(_minerId) {
@@ -101,13 +115,17 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 		require(keccak256(ownerReturn.proposed.data) == keccak256(bytes("0x00")), "PROPOSED_NEW_OWNER");
 
 		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[ownerId];
+		StorageProviderTypes.SPAllocation storage spAllocation = allocations[ownerId];
+
 		require(storageProvider.targetPool != address(0x0), "INVALID_TARGET_POOL");
 
-		storageProvider.repayment = _repayment;
-		storageProvider.allocationLimit = _allocationLimit;
 		storageProvider.lastEpoch = _lastEpoch;
 
-		emit StorageProviderOnboarded(ownerId, _minerId, _allocationLimit, _repayment, _lastEpoch);
+		spAllocation.repayment = _repayment;
+		spAllocation.allocationLimit = _allocationLimit;
+		spAllocation.dailyAllocation = _dailyAllocation;
+
+		emit StorageProviderOnboarded(ownerId, _minerId, _allocationLimit, _dailyAllocation, _repayment, _lastEpoch);
 	}
 
 	/**
@@ -123,7 +141,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 		MinerTypes.ChangeBeneficiaryParams memory params;
 
 		params.new_beneficiary = FilAddresses.fromEthAddress(_beneficiaryAddress);
-		params.new_quota = BigInts.fromUint256(storageProvider.allocationLimit);
+		params.new_quota = BigInts.fromUint256(allocations[ownerId].allocationLimit);
 		params.new_expiration = CommonTypes.ChainEpoch.wrap(storageProvider.lastEpoch);
 
 		MockAPI.changeBeneficiary(params);
@@ -145,7 +163,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 
 		MinerTypes.ChangeBeneficiaryParams memory params;
 		params.new_beneficiary = FilAddresses.fromEthAddress(_beneficiaryAddress);
-		params.new_quota = BigInts.fromUint256(storageProvider.allocationLimit);
+		params.new_quota = BigInts.fromUint256(allocations[_ownerId].allocationLimit);
 		params.new_expiration = CommonTypes.ChainEpoch.wrap(storageProvider.lastEpoch);
 
 		storageProviders[_ownerId].active = true;
@@ -159,16 +177,23 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 	/**
 	 * @notice Request storage provider's FIL allocation update with `_allocationLimit`
 	 * @param _allocationLimit New FIL allocation for storage provider
+	 * @param _dailyAllocation New daily FIL allocation for storage provider
 	 * @dev Only triggered by Storage Provider owner
 	 */
-	function requestAllocationLimitUpdate(uint256 _allocationLimit) public virtual override {
+	function requestAllocationLimitUpdate(uint256 _allocationLimit, uint256 _dailyAllocation) public virtual override {
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[ownerId];
-
 		require(storageProvider.active, "INACTIVE_STORAGE_PROVIDER");
-		require(storageProvider.allocationLimit != _allocationLimit, "SAME_ALLOCATION_LIMIT");
+
+		StorageProviderTypes.SPAllocation memory spAllocation = allocations[ownerId];
+		require(
+			spAllocation.allocationLimit != _allocationLimit || spAllocation.dailyAllocation != _dailyAllocation,
+			"SAME_ALLOCATION_LIMIT"
+		);
 		require(_allocationLimit <= maxAllocation, "ALLOCATION_OVERFLOW");
 
-		allocationRequests[ownerId] = _allocationLimit;
+		StorageProviderTypes.AllocationRequest storage allocationRequest = allocationRequests[ownerId];
+		allocationRequest.allocationLimit = _allocationLimit;
+		allocationRequest.dailyAllocation = _dailyAllocation;
 
 		MinerTypes.ChangeBeneficiaryParams memory params;
 
@@ -185,16 +210,22 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 	 * @notice Update storage provider FIL allocation with `_allocationLimit`
 	 * @param _ownerId Storage provider owner ID
 	 * @param _allocationLimit New FIL allocation for storage provider
+	 * @param _dailyAllocation New daily FIL allocation for storage provider
 	 * @param _repaymentAmount New FIL repayment amount for storage provider
 	 * @dev Only triggered by owner contract
 	 */
 	function updateAllocationLimit(
 		uint64 _ownerId,
 		uint256 _allocationLimit,
+		uint256 _dailyAllocation,
 		uint256 _repaymentAmount
 	) public virtual override activeStorageProvider(_ownerId) {
 		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
-		require(allocationRequests[_ownerId] == _allocationLimit, "INVALID_ALLOCATION");
+
+		StorageProviderTypes.AllocationRequest memory allocationRequest = allocationRequests[_ownerId];
+		require(allocationRequest.allocationLimit == _allocationLimit, "INVALID_ALLOCATION");
+		require(allocationRequest.dailyAllocation == _dailyAllocation, "INVALID_DAILY_ALLOCATION");
+
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_ownerId];
 		MinerTypes.ChangeBeneficiaryParams memory params;
 
@@ -204,8 +235,9 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 
 		MockAPI.changeBeneficiary(params);
 
-		storageProviders[_ownerId].allocationLimit = _allocationLimit;
-		storageProviders[_ownerId].repayment = _repaymentAmount;
+		StorageProviderTypes.SPAllocation storage spAllocation = allocations[_ownerId];
+		spAllocation.allocationLimit = _allocationLimit;
+		spAllocation.repayment = _repaymentAmount;
 
 		delete allocationRequests[_ownerId];
 
@@ -261,7 +293,7 @@ contract StorageProviderRegistryCallerMock {
 	 * @param _ownerId Storage Provider owner ID
 	 * @param _allocated FIL amount that is going to be pledged for Storage Provider
 	 */
-	function increaseUsedAllocation(uint64 _ownerId, uint256 _allocated) external {
-		registry.increaseUsedAllocation(_ownerId, _allocated);
+	function increaseUsedAllocation(uint64 _ownerId, uint256 _allocated, uint256 _timestamp) external {
+		registry.increaseUsedAllocation(_ownerId, _allocated, _timestamp);
 	}
 }
