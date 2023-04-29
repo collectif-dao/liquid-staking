@@ -2,7 +2,6 @@
 pragma solidity ^0.8.16;
 
 import "forge-std/Script.sol";
-import "../contracts/test/mocks/WFIL.sol";
 import "../contracts/LiquidStaking.sol";
 import "../contracts/StakingRouter.sol";
 import "../contracts/StorageProviderRegistry.sol";

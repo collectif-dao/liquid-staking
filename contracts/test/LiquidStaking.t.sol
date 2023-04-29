@@ -3,7 +3,7 @@ pragma solidity ^0.8.17;
 
 import {ERC20, MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
 import {MockERC4626} from "solmate/test/utils/mocks/MockERC4626.sol";
-import {WFIL} from "./mocks/WFIL.sol";
+import {WFIL} from "fevmate/token/WFIL.sol";
 import {Buffer} from "@ensdomains/buffer/contracts/Buffer.sol";
 import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
 
@@ -59,7 +59,7 @@ contract LiquidStakingTest is DSTestPlus {
 		Buffer.buffer memory ownerBytes = Leb128.encodeUnsignedLeb128FromUInt64(aliceOwnerId);
 		owner = ownerBytes.buf;
 
-		wfil = IWETH9(address(new WFIL()));
+		wfil = IWETH9(address(new WFIL(msg.sender)));
 		minerActor = new MinerActorMock();
 		staking = new LiquidStakingMock(
 			address(wfil),
@@ -117,36 +117,53 @@ contract LiquidStakingTest is DSTestPlus {
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 	}
 
-	function testStakeWithPermitViaRouterMulticall(uint256 amount) public {
+	function testStakeViaRouterMulticall(uint256 amount) public {
 		hevm.assume(amount != 0);
 		hevm.deal(alice, amount);
+
 		hevm.startPrank(alice);
-
 		wfil.deposit{value: amount}();
+		wfil.approve(address(router), amount);
 
-		(uint8 v, bytes32 r, bytes32 s) = hevm.sign(
-			aliceKey,
-			keccak256(
-				abi.encodePacked(
-					"\x19\x01",
-					wfil.DOMAIN_SEPARATOR(),
-					keccak256(abi.encode(PERMIT_TYPEHASH, alice, address(router), amount, 0, block.timestamp))
-				)
-			)
-		);
-
-		bytes[] memory data = new bytes[](3);
-		data[0] = abi.encodeWithSelector(SelfPermit.selfPermit.selector, wfil, amount, block.timestamp, v, r, s);
-		data[1] = abi.encodeWithSelector(PeripheryPayments.approve.selector, wfil, address(staking), amount);
-		data[2] = abi.encodeWithSelector(StakingRouter.depositToVault.selector, staking, alice, amount, amount);
-
-		router.multicall(data);
+		router.approve(wfil, address(staking), amount);
+		router.depositToVault(IERC4626(address(staking)), alice, amount, amount);
 		hevm.stopPrank();
 
 		require(staking.balanceOf(alice) == amount, "INVALID_BALANCE");
 		require(wfil.balanceOf(alice) == 0, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 	}
+
+	// function testStakeWithPermitViaRouterMulticall(uint256 amount) public {
+	// 	hevm.assume(amount != 0);
+	// 	hevm.deal(alice, amount);
+	// 	hevm.startPrank(alice);
+
+	// 	wfil.deposit{value: amount}();
+
+	// 	(uint8 v, bytes32 r, bytes32 s) = hevm.sign(
+	// 		aliceKey,
+	// 		keccak256(
+	// 			abi.encodePacked(
+	// 				"\x19\x01",
+	// 				wfil.DOMAIN_SEPARATOR(),
+	// 				keccak256(abi.encode(PERMIT_TYPEHASH, alice, address(router), amount, 0, block.timestamp))
+	// 			)
+	// 		)
+	// 	);
+
+	// 	bytes[] memory data = new bytes[](3);
+	// 	data[0] = abi.encodeWithSelector(SelfPermit.selfPermit.selector, wfil, amount, block.timestamp, v, r, s);
+	// 	data[1] = abi.encodeWithSelector(PeripheryPayments.approve.selector, wfil, address(staking), amount);
+	// 	data[2] = abi.encodeWithSelector(StakingRouter.depositToVault.selector, staking, alice, amount, amount);
+
+	// 	router.multicall(data);
+	// 	hevm.stopPrank();
+
+	// 	require(staking.balanceOf(alice) == amount, "INVALID_BALANCE");
+	// 	require(wfil.balanceOf(alice) == 0, "INVALID_BALANCE");
+	// 	require(staking.totalAssets() == amount, "INVALID_BALANCE");
+	// }
 
 	function testStakeZeroFIL(uint256 amount) public {
 		hevm.assume(amount == 0);

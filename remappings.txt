@@ -7,3 +7,4 @@ filecoin-solidity/=lib/filecoin-solidity/
 solidity-cborutils/contracts/=lib/solidity-cborutils/contracts/
 @ensdomains/buffer=lib/buffer
 @zondax/solidity-bignumber/=lib/solidity-BigNumber/
+fevmate=lib/fevmate/contracts

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.17;
 
 import {MockERC4626} from "solmate/test/utils/mocks/MockERC4626.sol";
-import {WFIL} from "./mocks/WFIL.sol";
+import {WFIL} from "fevmate/token/WFIL.sol";
 import {IERC4626} from "fei-protocol/erc4626/interfaces/IERC4626.sol";
 import {IWETH9} from "fei-protocol/erc4626/external/PeripheryPayments.sol";
 import {Buffer} from "@ensdomains/buffer/contracts/Buffer.sol";
@@ -49,7 +49,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		Buffer.buffer memory ownerBytes = Leb128.encodeUnsignedLeb128FromUInt64(aliceOwnerId);
 		owner = ownerBytes.buf;
 
-		wfil = IWETH9(address(new WFIL()));
+		wfil = IWETH9(address(new WFIL(msg.sender)));
 		staking = new LiquidStakingMock(
 			address(wfil),
 			address(0x21421),
