@@ -25,3 +25,6 @@
 [submodule "lib/filecoin-solidity"]
 	path = lib/filecoin-solidity
 	url = https://github.com/Zondax/filecoin-solidity
+[submodule "lib/fevmate"]
+	path = lib/fevmate
+	url = https://github.com/wadealexc/fevmate
