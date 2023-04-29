@@ -117,22 +117,6 @@ contract LiquidStakingTest is DSTestPlus {
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 	}
 
-	function testStakeViaMulticall(uint256 amount) public {
-		hevm.assume(amount != 0 && amount > 100);
-		hevm.deal(alice, amount);
-		hevm.startPrank(alice);
-
-		bytes[] memory data = new bytes[](1);
-		data[0] = abi.encodeWithSelector(LiquidStaking.stake.selector, amount);
-
-		staking.multicall{value: amount}(data);
-		hevm.stopPrank();
-
-		require(staking.balanceOf(alice) == amount, "INVALID_BALANCE");
-		require(wfil.balanceOf(alice) == 0, "INVALID_BALANCE");
-		require(staking.totalAssets() == amount, "INVALID_BALANCE");
-	}
-
 	function testStakeWithPermitViaRouterMulticall(uint256 amount) public {
 		hevm.assume(amount != 0);
 		hevm.deal(alice, amount);
@@ -547,5 +531,27 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.prank(alice);
 		hevm.expectRevert("INVALID_ACCESS");
 		staking.reportSlashing(aliceOwnerId, collateralAmount + 1);
+	}
+
+	function testUpdateProfitShare(uint256 share) public {
+		hevm.assume(share <= 10000 && share > 0 && share != profitShare);
+
+		staking.updateProfitShare(aliceOwnerId, share);
+
+		require(staking.profitShares(aliceOwnerId) == share, "INVALID_PROFIT_SHARE");
+	}
+
+	function testUpdateProfitShareReverts(uint256 share) public {
+		hevm.assume(share > 10000);
+
+		hevm.expectRevert("PROFIT_SHARE_OVERFLOW");
+		staking.updateProfitShare(aliceOwnerId, share);
+	}
+
+	function testUpdateProfitShareRevertsWithSameRequirements() public {
+		staking.updateProfitShare(aliceOwnerId, 0);
+
+		hevm.expectRevert("SAME_PROFIT_SHARE");
+		staking.updateProfitShare(aliceOwnerId, profitShare);
 	}
 }

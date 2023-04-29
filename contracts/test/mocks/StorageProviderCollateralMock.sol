@@ -21,7 +21,7 @@ contract StorageProviderCollateralMock is StorageProviderCollateral {
 	 * @param _wFIL WFIL token implementation
 	 *
 	 */
-	constructor(IWETH9 _wFIL, address _registry) StorageProviderCollateral(_wFIL, _registry) {}
+	constructor(IWETH9 _wFIL, address _registry) StorageProviderCollateral(_wFIL, _registry, 1500) {}
 
 	/**
 	 * @dev Deposit `msg.value` FIL funds by the msg.sender into collateral

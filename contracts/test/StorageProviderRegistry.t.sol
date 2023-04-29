@@ -10,12 +10,14 @@ import {Buffer} from "@ensdomains/buffer/contracts/Buffer.sol";
 import {PrecompilesAPI} from "filecoin-solidity/contracts/v0.8/PrecompilesAPI.sol";
 
 import {StorageProviderRegistryMock, StorageProviderRegistryCallerMock} from "./mocks/StorageProviderRegistryMock.sol";
+import {StorageProviderCollateralMock} from "./mocks/StorageProviderCollateralMock.sol";
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 
 contract StorageProviderRegistryTest is DSTestPlus {
 	StorageProviderRegistryMock public registry;
 	StorageProviderRegistryCallerMock public callerMock;
+	StorageProviderCollateralMock public collateral;
 
 	LiquidStakingMock public staking;
 	IWETH9 public wfil;
@@ -60,6 +62,10 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			MIN_TIME_PERIOD,
 			MAX_TIME_PERIOD
 		);
+
+		collateral = new StorageProviderCollateralMock(wfil, address(registry));
+		registry.setCollateralAddress(address(collateral));
+		staking.setRegistryAddress(address(registry));
 		callerMock = new StorageProviderRegistryCallerMock(address(registry));
 	}
 
@@ -562,20 +568,20 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		assertEq(rAddr, address(0));
 	}
 
-	function testCollateralAddress(address collateral) public {
-		hevm.assume(collateral != address(0));
-		hevm.etch(collateral, bytes("0x10378"));
+	function testSetCollateralAddress(address collateralAddr) public {
+		hevm.assume(collateralAddr != address(0) || collateralAddr != address(collateral));
+		hevm.etch(collateralAddr, bytes("0x10378"));
 
-		registry.setCollateralAddress(collateral);
+		registry.setCollateralAddress(collateralAddr);
 	}
 
-	function testCollateralAddressReverts(address collateral, address provider) public {
-		hevm.assume(collateral != address(0) && provider != address(0) && provider != address(this));
-		hevm.etch(collateral, bytes("0x103789851206015297"));
+	function testCollateralAddressReverts(address collateralAddr, address provider) public {
+		hevm.assume(collateralAddr != address(0) && provider != address(0) && provider != address(this));
+		hevm.etch(collateralAddr, bytes("0x103789851206015297"));
 
 		hevm.prank(provider);
 		hevm.expectRevert("INVALID_ACCESS");
-		registry.setCollateralAddress(collateral);
+		registry.setCollateralAddress(collateralAddr);
 	}
 
 	function testRegisterPool(address pool) public {
@@ -636,7 +642,6 @@ contract StorageProviderRegistryTest is DSTestPlus {
 				allocated > 0 &&
 				allocated <= SAMPLE_DAILY_ALLOCATION
 		);
-		registry.setCollateralAddress(address(callerMock));
 
 		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 		registry.onboardStorageProvider(
@@ -650,6 +655,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		registry.changeBeneficiaryAddress(address(staking));
 		registry.acceptBeneficiaryAddress(ownerId, address(staking));
 
+		registry.setCollateralAddress(address(callerMock)); // Test case only
 		callerMock.increaseUsedAllocation(ownerId, allocated, block.timestamp);
 
 		(, , uint256 usedAllocation, , , ) = registry.allocations(ownerId);
@@ -675,7 +681,6 @@ contract StorageProviderRegistryTest is DSTestPlus {
 				minerId < 2115248121211227543
 		);
 		registry.registerPool(address(callerMock));
-		registry.setCollateralAddress(address(callerMock));
 
 		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 		registry.onboardStorageProvider(
@@ -689,6 +694,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		registry.changeBeneficiaryAddress(address(staking));
 		registry.acceptBeneficiaryAddress(ownerId, address(staking));
 
+		registry.setCollateralAddress(address(callerMock)); // Test case only
 		callerMock.increaseUsedAllocation(ownerId, _repaidPledge, block.timestamp);
 		callerMock.increasePledgeRepayment(ownerId, _repaidPledge);
 
@@ -719,7 +725,6 @@ contract StorageProviderRegistryTest is DSTestPlus {
 				minerId < 2115248121211227543
 		);
 		registry.registerPool(address(callerMock));
-		registry.setCollateralAddress(address(callerMock));
 
 		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 		registry.onboardStorageProvider(
@@ -732,6 +737,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 
 		registry.changeBeneficiaryAddress(address(staking));
 		registry.acceptBeneficiaryAddress(ownerId, address(staking));
+
+		registry.setCollateralAddress(address(callerMock)); // Test case only
 
 		uint256 _usedAllocation = _repaidPledge / 2;
 		callerMock.increaseUsedAllocation(ownerId, _usedAllocation, block.timestamp);

@@ -102,6 +102,7 @@ contract LiquidStakingMock is LiquidStaking {
 		require(!vars.abort, "INCORRECT_BIG_NUM");
 		require(vars.withdrawn == amount, "INCORRECT_WITHDRAWAL_AMOUNT");
 
+		uint256 profitShare = profitShares[ownerId];
 		vars.stakingProfit = (vars.withdrawn * profitShare) / BASIS_POINTS;
 		vars.protocolFees = (vars.withdrawn * adminFee) / BASIS_POINTS;
 

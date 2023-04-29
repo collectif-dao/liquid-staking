@@ -2,8 +2,6 @@
 pragma solidity ^0.8.17;
 
 import {ClFILToken} from "./ClFIL.sol";
-import {Multicall} from "fei-protocol/erc4626/external/Multicall.sol";
-import {SelfPermit} from "fei-protocol/erc4626/external/SelfPermit.sol";
 import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
@@ -26,31 +24,16 @@ import "./interfaces/IStorageProviderRegistryClient.sol";
  * While staking FIL user would get clFIL token in exchange, the token follows ERC4626
  * standard and it's price is recalculated once mining rewards are distributed to the
  * liquid staking pool and once new FIL is deposited. Please note that LiquidStaking contract
- * only works with Wrapped Filecoin (wFIL) token, there for users could use Multicall contract
- * for wrap/unwrap operations.
- *
- * Please use the following multi-call pattern to wrap/unwrap FIL:
- *
- * For Deposits with wrapping:
- *     bytes[] memory data = new bytes[](2);
- *     data[0] = abi.encodeWithSelector(PeripheryPayments.wrapWFIL.selector);
- *     data[1] = abi.encodeWithSelector(LiquidStaking.stake.selector, amount);
- *     router.multicall{value: amount}(data);
- *
- * For Withdrawals with unwrapping:
- *     bytes[] memory data = new bytes[](2);
- *     data[0] = abi.encodeWithSelector(StakingRouter.unstake.selector, amount);
- *     data[1] = abi.encodeWithSelector(PeripheryPayments.unwrapWFIL.selector, amount, address(this));
- *     router.multicall{value: amount}(data);
+ * performs wrapping of the native FIL into Wrapped Filecoin (WFIL) token.
  */
-contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, ReentrancyGuard, AccessControl {
+contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessControl {
 	using SafeTransferLib for *;
 
 	/// @notice The current total amount of FIL that is allocated to SPs.
 	uint256 public totalFilPledged;
 	uint256 private constant BASIS_POINTS = 10000;
 	uint256 public adminFee;
-	uint256 public profitShare;
+	uint256 public baseProfitShare;
 	address public rewardCollector;
 
 	IStorageProviderCollateralClient internal collateral;
@@ -60,11 +43,18 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 	bytes32 private constant FEE_DISTRIBUTOR = keccak256("FEE_DISTRIBUTOR");
 	bytes32 private constant SLASHING_AGENT = keccak256("SLASHING_AGENT");
 
-	constructor(address _wFIL, uint256 _adminFee, uint256 _profitShare, address _rewardCollector) ClFILToken(_wFIL) {
+	mapping(uint64 => uint256) public profitShares;
+
+	constructor(
+		address _wFIL,
+		uint256 _adminFee,
+		uint256 _baseProfitShare,
+		address _rewardCollector
+	) ClFILToken(_wFIL) {
 		require(_adminFee <= 10000, "INVALID_ADMIN_FEE");
 		require(_rewardCollector != address(0), "INVALID_REWARD_COLLECTOR");
 		adminFee = _adminFee;
-		profitShare = _profitShare;
+		baseProfitShare = _baseProfitShare;
 		rewardCollector = _rewardCollector;
 
 		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -252,6 +242,8 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 		require(!vars.abort, "INCORRECT_BIG_NUM");
 		require(vars.withdrawn == amount, "INCORRECT_WITHDRAWAL_AMOUNT");
 
+		uint256 profitShare = profitShares[ownerId];
+
 		vars.stakingProfit = (vars.withdrawn * profitShare) / BASIS_POINTS;
 		vars.protocolFees = (vars.withdrawn * adminFee) / BASIS_POINTS;
 
@@ -280,6 +272,30 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 	}
 
 	/**
+	 * @dev Updates profit sharing requirements for SP with `_ownerId` by `_profitShare` percentage
+	 * @notice Only triggered by Liquid Staking admin or registry contract while registering SP
+	 * @param _ownerId Storage provider owner ID
+	 * @param _profitShare Percentage of profit sharing
+	 */
+	function updateProfitShare(uint64 _ownerId, uint256 _profitShare) external {
+		require(hasRole(LIQUID_STAKING_ADMIN, msg.sender) || msg.sender == address(registry), "INVALID_ACCESS");
+
+		if (_profitShare == 0) {
+			profitShares[_ownerId] = baseProfitShare;
+
+			emit ProfitShareUpdate(_ownerId, 0, baseProfitShare);
+		} else {
+			uint256 prevShare = profitShares[_ownerId];
+			require(_profitShare <= 10000, "PROFIT_SHARE_OVERFLOW");
+			require(_profitShare != prevShare, "SAME_PROFIT_SHARE");
+
+			profitShares[_ownerId] = _profitShare;
+
+			emit ProfitShareUpdate(_ownerId, prevShare, _profitShare);
+		}
+	}
+
+	/**
 	 * @notice Restakes `assets` for a specified `target` address
 	 * @param assets Amount of assets to restake
 	 * @param target f4 address to receive clFIL tokens
@@ -303,10 +319,11 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 	}
 
 	/**
-	 * @notice Returns total amount of fees held by LSP
+	 * @notice Returns total amount of fees held by LSP for a specific SP with `_ownerId`
+	 * @param _ownerId Storage Provider owner ID
 	 */
-	function totalFees() public view virtual override returns (uint256) {
-		return profitShare + adminFee;
+	function totalFees(uint64 _ownerId) external view virtual override returns (uint256) {
+		return profitShares[_ownerId] + adminFee;
 	}
 
 	/**

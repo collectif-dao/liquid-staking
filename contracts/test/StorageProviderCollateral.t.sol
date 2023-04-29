@@ -11,6 +11,7 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 
 import {StorageProviderCollateralMock, IStorageProviderCollateral, StorageProviderCollateralCallerMock} from "./mocks/StorageProviderCollateralMock.sol";
 import {StorageProviderRegistryMock, StorageProviderRegistryCallerMock} from "./mocks/StorageProviderRegistryMock.sol";
+import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 import {Bytes32AddressLib} from "solmate/utils/Bytes32AddressLib.sol";
 
@@ -20,7 +21,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	StorageProviderRegistryCallerMock public registryCallerMock;
 
 	StorageProviderRegistryMock public registry;
-	IERC4626 public staking;
+	LiquidStakingMock public staking;
 	IWETH9 public wfil;
 
 	bytes public owner;
@@ -32,6 +33,8 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	address private alice = address(0x122);
 	bytes private aliceBytesAddress = abi.encodePacked(alice);
 	address private bob = address(0x123);
+	address private rewardCollector = address(0x12523);
+	address private aliceOwnerAddr = address(0x12341214212);
 
 	uint256 private constant MAX_STORAGE_PROVIDERS = 200;
 	uint256 private constant MAX_ALLOCATION = 10000 ether;
@@ -47,7 +50,15 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		owner = ownerBytes.buf;
 
 		wfil = IWETH9(address(new WFIL()));
-		staking = IERC4626(address(new MockERC4626(wfil, "Collective FIL Liquid Staking", "clFIL")));
+		staking = new LiquidStakingMock(
+			address(wfil),
+			address(0x21421),
+			aliceOwnerId,
+			1000,
+			3000,
+			rewardCollector,
+			aliceOwnerAddr
+		);
 
 		registry = new StorageProviderRegistryMock(
 			owner,
@@ -63,6 +74,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		registryCallerMock = new StorageProviderRegistryCallerMock(address(registry));
 
 		registry.setCollateralAddress(address(collateral));
+		staking.setRegistryAddress(address(registry));
 
 		hevm.startPrank(alice);
 		registry.register(aliceMinerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION); // TODO: add missing steps for SP onboarding
@@ -105,11 +117,17 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		hevm.assume(amount != 0 && amount < 2000000000 ether);
 		hevm.deal(alice, amount);
 
+		hevm.startPrank(alice);
+		registry.register(aliceMinerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.changeBeneficiaryAddress(address(staking));
+		hevm.stopPrank();
+
+		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
+
 		uint256 balanceBefore = amount;
 
 		hevm.startPrank(alice);
 		collateral.deposit{value: amount}(aliceOwnerId);
-
 		collateral.withdraw(aliceOwnerId, amount);
 		hevm.stopPrank();
 
@@ -377,5 +395,27 @@ contract StorageProviderCollateralTest is DSTestPlus {
 
 		hevm.expectRevert("NOT_ENOUGH_COLLATERAL");
 		callerMock.slash(aliceOwnerId, amount + 1);
+	}
+
+	function testUpdateCollateralRequirements(uint256 requirements) public {
+		hevm.assume(requirements <= 10000 && requirements > 0 && requirements != 1500);
+
+		collateral.updateCollateralRequirements(aliceOwnerId, requirements);
+
+		require(collateral.collateralRequirements(aliceOwnerId) == requirements, "INVALID_REQUIREMENTS");
+	}
+
+	function testUpdateCollateralRequirementsReverts(uint256 requirements) public {
+		hevm.assume(requirements > 10000);
+
+		hevm.expectRevert("COLLATERAL_REQUIREMENTS_OVERFLOW");
+		collateral.updateCollateralRequirements(aliceOwnerId, requirements);
+	}
+
+	function testUpdateCollateralRequirementsRevertsWithSameRequirements() public {
+		collateral.updateCollateralRequirements(aliceOwnerId, 0);
+
+		hevm.expectRevert("SAME_COLLATERAL_REQUIREMENTS");
+		collateral.updateCollateralRequirements(aliceOwnerId, 1500);
 	}
 }

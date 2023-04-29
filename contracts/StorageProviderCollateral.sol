@@ -10,6 +10,7 @@ import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
 import {PrecompilesAPI} from "filecoin-solidity/contracts/v0.8/PrecompilesAPI.sol";
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 /**
  * @title Storage Provider Collateral stores collateral for covering potential
@@ -23,7 +24,7 @@ import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
  * making it a good option for collateralization in the system.
  *
  */
-contract StorageProviderCollateral is IStorageProviderCollateral, ReentrancyGuard, DSTestPlus {
+contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl, ReentrancyGuard, DSTestPlus {
 	using SafeTransferLib for address;
 	using FixedPointMathLib for uint256;
 
@@ -33,17 +34,21 @@ contract StorageProviderCollateral is IStorageProviderCollateral, ReentrancyGuar
 	// Mapping of storage provider total slashing amounts to their owner ID
 	mapping(uint64 => uint256) public slashings;
 
+	mapping(uint64 => uint256) public collateralRequirements;
+
+	bytes32 private constant COLLATERAL_ADMIN = keccak256("COLLATERAL_ADMIN");
+
+	uint256 public baseRequirements; // Number in basis points (10000 = 100%)
+	uint256 public constant BASIS_POINTS = 10000;
+	IStorageProviderRegistryClient public registry;
+
+	IWETH9 public immutable WFIL; // WFIL implementation
+
 	// Storage Provider parameters
 	struct SPCollateral {
 		uint256 availableCollateral;
 		uint256 lockedCollateral;
 	}
-
-	uint256 public collateralRequirements; // Number in basis points (10000 = 100%)
-	uint256 public constant BASIS_POINTS = 10000;
-	IStorageProviderRegistryClient public registry;
-
-	IWETH9 public immutable WFIL; // WFIL implementation
 
 	modifier activeStorageProvider(uint64 _ownerId) {
 		require(registry.isActiveProvider(_ownerId), "INACTIVE_STORAGE_PROVIDER");
@@ -55,10 +60,15 @@ contract StorageProviderCollateral is IStorageProviderCollateral, ReentrancyGuar
 	 * @param _wFIL WFIL token implementation
 	 *
 	 */
-	constructor(IWETH9 _wFIL, address _registry) {
+	constructor(IWETH9 _wFIL, address _registry, uint256 _baseRequirements) {
 		WFIL = _wFIL;
 		registry = IStorageProviderRegistryClient(_registry);
-		collateralRequirements = 1500;
+
+		require(_baseRequirements > 0 || _baseRequirements <= 10000, "BASE_REQUIREMENTS_OVERFLOW");
+		baseRequirements = _baseRequirements;
+
+		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+		grantRole(COLLATERAL_ADMIN, msg.sender);
 	}
 
 	receive() external payable virtual {}
@@ -197,7 +207,14 @@ contract StorageProviderCollateral is IStorageProviderCollateral, ReentrancyGuar
 	function calcMaximumWithdraw(uint64 _ownerId) internal returns (uint256, uint256, bool) {
 		(, , uint256 usedAllocation, , uint256 accruedRewards, uint256 repaidPledge) = registry.allocations(_ownerId);
 
-		uint256 requirements = calcCollateralRequirements(usedAllocation, accruedRewards, repaidPledge, 0);
+		uint256 _collateralRequirements = collateralRequirements[_ownerId];
+		uint256 requirements = calcCollateralRequirements(
+			usedAllocation,
+			accruedRewards,
+			repaidPledge,
+			0,
+			_collateralRequirements
+		);
 		SPCollateral memory collateral = collaterals[_ownerId];
 
 		emit log_named_uint("collateral.lockedCollateral:", collateral.lockedCollateral);
@@ -231,12 +248,13 @@ contract StorageProviderCollateral is IStorageProviderCollateral, ReentrancyGuar
 		if (_allocated > 0) {
 			require(usedAllocation + _allocated <= allocationLimit, "ALLOCATION_OVERFLOW");
 		}
-
+		uint256 _collateralRequirements = collateralRequirements[_ownerId];
 		uint256 totalRequirements = calcCollateralRequirements(
 			usedAllocation,
 			accruedRewards,
 			repaidPledge,
-			_allocated
+			_allocated,
+			_collateralRequirements
 		);
 
 		SPCollateral memory collateral = collaterals[_ownerId];
@@ -269,18 +287,20 @@ contract StorageProviderCollateral is IStorageProviderCollateral, ReentrancyGuar
 	 * @param _accruedRewards Accured rewards by SP
 	 * @param _repaidPledge Repaid pledge by SP
 	 * @param _allocationToUse Allocation to be used by SP
+	 * @param _collateralRequirements Percentage of collateral coverage
 	 */
 	function calcCollateralRequirements(
 		uint256 _usedAllocation,
 		uint256 _accruedRewards,
 		uint256 _repaidPledge,
-		uint256 _allocationToUse
-	) internal view returns (uint256) {
+		uint256 _allocationToUse,
+		uint256 _collateralRequirements
+	) internal pure returns (uint256) {
 		uint256 usedAllocation = _allocationToUse > 0 ? _usedAllocation + _allocationToUse : _usedAllocation;
 		uint256 req = (usedAllocation - _accruedRewards) - _repaidPledge;
 
 		if (req > 0) {
-			return req.mulDivDown(collateralRequirements, BASIS_POINTS);
+			return req.mulDivDown(_collateralRequirements, BASIS_POINTS);
 		} else {
 			return 0;
 		}
@@ -308,6 +328,30 @@ contract StorageProviderCollateral is IStorageProviderCollateral, ReentrancyGuar
 			return (_collateralRequirements, false);
 		} else if (_lockedCollateral == 0 && _collateralRequirements == 0) {
 			return (0, true);
+		}
+	}
+
+	/**
+	 * @dev Updates collateral requirements for SP with `_ownerId` by `requirements` percentage
+	 * @notice Only triggered by Collateral admin or registry contract while registering SP
+	 * @param _ownerId Storage provider owner ID
+	 * @param requirements Percentage of collateral requirements
+	 */
+	function updateCollateralRequirements(uint64 _ownerId, uint256 requirements) external {
+		require(hasRole(COLLATERAL_ADMIN, msg.sender) || msg.sender == address(registry), "INVALID_ACCESS");
+
+		if (requirements == 0) {
+			collateralRequirements[_ownerId] = baseRequirements;
+
+			emit StorageProviderCollateralUpdate(_ownerId, 0, baseRequirements);
+		} else {
+			uint256 prevRequirements = collateralRequirements[_ownerId];
+			require(requirements <= 10000, "COLLATERAL_REQUIREMENTS_OVERFLOW");
+			require(requirements != prevRequirements, "SAME_COLLATERAL_REQUIREMENTS");
+
+			collateralRequirements[_ownerId] = requirements;
+
+			emit StorageProviderCollateralUpdate(_ownerId, prevRequirements, requirements);
 		}
 	}
 

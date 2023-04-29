@@ -13,7 +13,7 @@
     "prepare": "husky install",
     "prettier:check": "prettier --check '**/*.{ts,js,json,sol}'",
     "prettier:fix": "prettier --write '**/*.{ts,js,json,sol}'",
-    "slither": "slither contracts/ --config-file slither.config.json",
+    "slither": "slither . --config-file slither.config.json --compile-force-framework foundry",
     "test": "forge test -vvv",
     "test:gas": "forge test --gas-report"
   },

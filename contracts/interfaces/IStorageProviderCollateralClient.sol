@@ -24,4 +24,12 @@ interface IStorageProviderCollateralClient {
 	 * @param _slashingAmt Slashing amount for SP
 	 */
 	function slash(uint64 _ownerId, uint256 _slashingAmt) external;
+
+	/**
+	 * @dev Updates collateral requirements for SP with `_ownerId` by `requirements` percentage
+	 * @notice Only triggered by Collateral admin or registry contract while registering SP
+	 * @param _ownerId Storage provider owner ID
+	 * @param requirements Percentage of collateral requirements
+	 */
+	function updateCollateralRequirements(uint64 _ownerId, uint256 requirements) external;
 }

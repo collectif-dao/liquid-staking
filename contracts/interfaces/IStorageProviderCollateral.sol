@@ -11,6 +11,7 @@ interface IStorageProviderCollateral {
 		bool isUnlock
 	);
 	event StorageProviderCollateralSlash(uint64 _ownerId, uint256 slashingAmt, address pool);
+	event StorageProviderCollateralUpdate(uint64 _ownerId, uint256 prevRequirements, uint256 requirements);
 
 	/**
 	 * @dev Deposit `msg.value` FIL funds by the msg.sender into collateral
@@ -62,4 +63,12 @@ interface IStorageProviderCollateral {
 	 * @notice Return Storage Provider Locked Collateral information with `_provider` address
 	 */
 	function getLockedCollateral(uint64 _ownerId) external view returns (uint256);
+
+	/**
+	 * @dev Updates collateral requirements for SP with `_ownerId` by `requirements` percentage
+	 * @notice Only triggered by Collateral admin or registry contract while registering SP
+	 * @param _ownerId Storage provider owner ID
+	 * @param requirements Percentage of collateral requirements
+	 */
+	function updateCollateralRequirements(uint64 _ownerId, uint256 requirements) external;
 }

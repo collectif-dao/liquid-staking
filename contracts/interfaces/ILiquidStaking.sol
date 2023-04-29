@@ -48,6 +48,14 @@ interface ILiquidStaking {
 	event SetRegistryAddress(address indexed registry);
 
 	/**
+	 * @notice Emitted when profit sharing is update for SP
+	 * @param ownerId SP owner ID
+	 * @param prevShare Previous profit sharing value
+	 * @param profitShare New profit share percentage
+	 */
+	event ProfitShareUpdate(uint64 ownerId, uint256 prevShare, uint256 profitShare);
+
+	/**
 	 * @notice Stake FIL to the Liquid Staking pool and get clFIL in return
 	 * native FIL is wrapped into WFIL and deposited into LiquidStaking
 	 *
@@ -98,6 +106,14 @@ interface ILiquidStaking {
 	function reportSlashing(uint64 _ownerId, uint256 _slashingAmt) external;
 
 	/**
+	 * @dev Updates profit sharing requirements for SP with `_ownerId` by `_profitShare` percentage
+	 * @notice Only triggered by Liquid Staking admin or registry contract while registering SP
+	 * @param _ownerId Storage provider owner ID
+	 * @param _profitShare Percentage of profit sharing
+	 */
+	function updateProfitShare(uint64 _ownerId, uint256 _profitShare) external;
+
+	/**
 	 * @notice Returns pool usage ratio to determine what percentage of FIL
 	 * is pledged compared to the total amount of FIL staked.
 	 */
@@ -115,9 +131,10 @@ interface ILiquidStaking {
 	function totalFilAvailable() external view returns (uint256);
 
 	/**
-	 * @notice Returns total amount of fees held by LSP
+	 * @notice Returns total amount of fees held by LSP for a specific SP with `_ownerId`
+	 * @param _ownerId Storage Provider owner ID
 	 */
-	function totalFees() external view returns (uint256);
+	function totalFees(uint64 _ownerId) external view returns (uint256);
 
 	/**
 	 * @notice Updates StorageProviderRegistry contract address

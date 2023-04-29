@@ -17,4 +17,15 @@ yul = false
 hyperspace = "${HYPERSPACE_RPC_URL}"
 localnet = "${LOCALNET_RPC_URL}"
 
+[fuzz]
+runs = 1024
+max_test_rejects = 170000
+
+[invariant]
+runs = 256
+depth = 15
+dictionary_weight = 80
+include_storage = true
+include_push_bytes = true
+
 # See more config options https://github.com/foundry-rs/foundry/tree/master/config

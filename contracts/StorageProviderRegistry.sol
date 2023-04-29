@@ -15,6 +15,7 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {BokkyPooBahsDateTimeLibrary} from "./libraries/DateTimeLibraryCompressed.sol";
 import "./interfaces/IStorageProviderRegistry.sol";
 import "./interfaces/ILiquidStakingClient.sol";
+import "./interfaces/IStorageProviderCollateralClient.sol";
 
 /**
  * @title Storage Provider Registry contract allows storage providers to register
@@ -58,7 +59,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 	uint256 public minTimePeriod;
 	uint256 public maxTimePeriod;
 
-	address public collateral;
+	IStorageProviderCollateralClient public collateral;
 
 	modifier validActorID(uint64 _id) {
 		CommonTypes.FilAddress memory addr = FilAddresses.fromActorID(_id);
@@ -127,6 +128,9 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 
 		totalStorageProviders.increment();
 		totalInactiveStorageProviders.increment();
+
+		collateral.updateCollateralRequirements(ownerId, 0);
+		ILiquidStakingClient(_targetPool).updateProfitShare(ownerId, 0);
 
 		emit StorageProviderRegistered(
 			ownerReturn.owner.data,
@@ -344,7 +348,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 	 */
 	function setRestaking(uint256 _restakingRatio, address _restakingAddress) public virtual override {
 		uint64 ownerId = PrecompilesAPI.resolveEthAddress(msg.sender);
-		uint256 totalFees = ILiquidStakingClient(storageProviders[ownerId].targetPool).totalFees();
+		uint256 totalFees = ILiquidStakingClient(storageProviders[ownerId].targetPool).totalFees(ownerId);
 
 		require(_restakingRatio <= 10000 - totalFees, "INVALID_RESTAKING_RATIO");
 		require(_restakingAddress != address(0), "INVALID_ADDRESS");
@@ -421,7 +425,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 	 * @param _timestamp Transaction timestamp
 	 */
 	function increaseUsedAllocation(uint64 _ownerId, uint256 _allocated, uint256 _timestamp) external {
-		require(msg.sender == collateral, "INVALID_ACCESS");
+		require(msg.sender == address(collateral), "INVALID_ACCESS");
 
 		(uint year, uint month, uint day) = BokkyPooBahsDateTimeLibrary.timestampToDate(_timestamp);
 		bytes32 dateHash = keccak256(abi.encodePacked(year, month, day));
@@ -447,10 +451,10 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 	function setCollateralAddress(address _collateral) public {
 		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
 
-		address prevCollateral = collateral;
+		address prevCollateral = address(collateral);
 		require(prevCollateral != _collateral, "SAME_ADDRESS");
 
-		collateral = _collateral;
+		collateral = IStorageProviderCollateralClient(_collateral);
 
 		emit CollateralAddressUpdated(_collateral);
 	}

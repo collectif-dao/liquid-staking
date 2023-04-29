@@ -82,6 +82,9 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 		totalStorageProviders.increment();
 		totalInactiveStorageProviders.increment();
 
+		collateral.updateCollateralRequirements(ownerId, 0);
+		ILiquidStakingClient(_targetPool).updateProfitShare(ownerId, 0);
+
 		emit StorageProviderRegistered(
 			ownerReturn.owner.data,
 			ownerId,
@@ -251,7 +254,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 	 * @dev Only triggered by Storage Provider
 	 */
 	function setRestaking(uint256 _restakingRatio, address _restakingAddress) public virtual override {
-		uint256 totalFees = ILiquidStakingClient(storageProviders[ownerId].targetPool).totalFees();
+		uint256 totalFees = ILiquidStakingClient(storageProviders[ownerId].targetPool).totalFees(ownerId);
 
 		require(_restakingRatio <= 10000 - totalFees, "INVALID_RESTAKING_RATIO");
 		require(_restakingAddress != address(0), "INVALID_ADDRESS");
