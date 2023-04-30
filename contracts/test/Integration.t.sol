@@ -207,6 +207,237 @@ contract IntegrationTest is DSTestPlus {
 		}
 	}
 
+	function testDailyAndTotalAllocationOverflows(uint256 totalAllocation) public {
+		hevm.assume(totalAllocation > ALICE_TOTAL_ALLOCATION && totalAllocation <= MAX_ALLOCATION);
+		hevm.deal(staker, totalAllocation);
+
+		TestExecutionLocalVars memory vars;
+
+		vars.dailyAllocation = totalAllocation / ALICE_ALLOCATION_PERIOD;
+		vars.hypotheticalRepayment = (totalAllocation * 15000) / BASIS_POINTS;
+
+		hevm.prank(alice);
+		registry.requestAllocationLimitUpdate(totalAllocation, vars.dailyAllocation);
+		registry.updateAllocationLimit(aliceOwnerId, totalAllocation, vars.dailyAllocation, vars.hypotheticalRepayment);
+
+		hevm.prank(staker);
+		staking.stake{value: totalAllocation}();
+
+		require(staking.balanceOf(address(staker)) == totalAllocation, "INVALID_STAKER_CLFIL_BALANCE");
+		require(wfil.balanceOf(address(staker)) == 0, "INVALID_STAKER_WFIL_BALANCE");
+		require(staker.balance == 0, "INVALID_STAKER_FIL_BALANCE");
+		require(wfil.balanceOf(address(staking)) == totalAllocation, "INVALID_LSP_WFIL_BALANCE");
+		require(staking.totalAssets() == totalAllocation, "INVALID_LSP_ASSETS");
+
+		vars.targetCollateral = (totalAllocation * collateral.collateralRequirements(aliceOwnerId)) / BASIS_POINTS;
+		hevm.deal(alice, vars.targetCollateral);
+
+		hevm.prank(alice);
+		collateral.deposit{value: vars.targetCollateral}(aliceOwnerId);
+
+		require(alice.balance == 0, "INVALID_ALICE_BALANCE_AFTER_cDEPOSIT");
+
+		vars.newSectors = calculateNumSectors(vars.dailyAllocation);
+
+		vars.totalRewardsPerDay = calculateRewardsForSectors(vars.newSectors);
+		vars.availableRewardsPerDay = (vars.totalRewardsPerDay * 2500) / BASIS_POINTS;
+		vars.revenuePerDay = (vars.availableRewardsPerDay * profitShare) / BASIS_POINTS;
+		// vars.lockedRewardsPerDay = vars.totalRewardsPerDay - vars.availableRewardsPerDay;
+
+		vars.totalSectors = vars.newSectors * ALICE_ALLOCATION_PERIOD;
+
+		// vars.totalRewards = vars.totalRewardsPerDay * ALICE_ALLOCATION_PERIOD;
+		vars.totalAvailableRewards = vars.availableRewardsPerDay * ALICE_ALLOCATION_PERIOD;
+
+		hevm.deal(address(minerActor), vars.totalAvailableRewards);
+
+		for (uint256 i = 0; i <= ALICE_ALLOCATION_PERIOD; i++) {
+			uint256 timeDelta = ONE_DAY * i;
+			hevm.warp(genesisTimestamp + timeDelta);
+			uint256 collateralRequirements;
+
+			if (i == ALICE_ALLOCATION_PERIOD) {
+				hevm.prank(alice);
+				hevm.expectRevert("ALLOCATION_OVERFLOW");
+				staking.pledge(vars.dailyAllocation);
+			} else {
+				hevm.prank(alice);
+				staking.pledge(vars.dailyAllocation);
+				vars.totalAllocated = vars.totalAllocated + vars.dailyAllocation;
+
+				collateralRequirements =
+					(vars.totalAllocated * collateral.collateralRequirements(aliceOwnerId)) /
+					BASIS_POINTS;
+
+				require(alice.balance == vars.totalAllocated, "INVALID_ALICE_BALANCE_AFTER_PLEDGE");
+				require(
+					collateral.getLockedCollateral(aliceOwnerId) == collateralRequirements,
+					"INVALID_LOCKED_COLLATERAL"
+				);
+			}
+
+			if (i == 50) {
+				hevm.prank(alice);
+				hevm.expectRevert("DAILY_ALLOCATION_OVERFLOW");
+				staking.pledge(1); // trying to pledge 1 wei after pledging daily allocation
+			}
+
+			if (i > 0 && i < ALICE_ALLOCATION_PERIOD) {
+				staking.withdrawRewards(aliceOwnerId, vars.availableRewardsPerDay);
+				uint256 rewardsDelta = vars.totalAvailableRewards - (vars.availableRewardsPerDay * (i));
+
+				require(address(minerActor).balance == rewardsDelta, "INVALID_MINER_ACTOR_BALANCE_AFTER_WITHDRAWAL");
+				require(staking.totalAssets() == totalAllocation + (vars.revenuePerDay * (i)), "INVALID_LSP_ASSETS_2");
+				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
+				require(
+					collateral.getLockedCollateral(aliceOwnerId) == collateralRequirements,
+					"INVALID_LOCKED_COLLATERAL"
+				);
+				require(
+					wfil.balanceOf(address(staking)) ==
+						totalAllocation - vars.totalAllocated + (vars.revenuePerDay * (i)),
+					"INVALID_LSP_WFIL_BALANCE"
+				);
+			} else if (i == 0) {
+				require(staking.totalAssets() == totalAllocation, "INVALID_LSP_ASSETS");
+				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
+			}
+		}
+	}
+
+	function testSlashingEffectOnPledge(uint256 totalAllocation) public {
+		hevm.assume(totalAllocation > ALICE_TOTAL_ALLOCATION && totalAllocation <= MAX_ALLOCATION);
+		hevm.deal(staker, totalAllocation);
+
+		TestExecutionLocalVars memory vars;
+
+		vars.dailyAllocation = totalAllocation / ALICE_ALLOCATION_PERIOD;
+		vars.hypotheticalRepayment = (totalAllocation * 15000) / BASIS_POINTS;
+
+		hevm.prank(alice);
+		registry.requestAllocationLimitUpdate(totalAllocation, vars.dailyAllocation);
+		registry.updateAllocationLimit(aliceOwnerId, totalAllocation, vars.dailyAllocation, vars.hypotheticalRepayment);
+
+		hevm.prank(staker);
+		staking.stake{value: totalAllocation}();
+
+		require(staking.balanceOf(address(staker)) == totalAllocation, "INVALID_STAKER_CLFIL_BALANCE");
+		require(wfil.balanceOf(address(staker)) == 0, "INVALID_STAKER_WFIL_BALANCE");
+		require(staker.balance == 0, "INVALID_STAKER_FIL_BALANCE");
+		require(wfil.balanceOf(address(staking)) == totalAllocation, "INVALID_LSP_WFIL_BALANCE");
+		require(staking.totalAssets() == totalAllocation, "INVALID_LSP_ASSETS");
+
+		vars.targetCollateral = (totalAllocation * collateral.collateralRequirements(aliceOwnerId)) / BASIS_POINTS;
+		hevm.deal(alice, vars.targetCollateral);
+
+		hevm.prank(alice);
+		collateral.deposit{value: vars.targetCollateral}(aliceOwnerId);
+
+		require(alice.balance == 0, "INVALID_ALICE_BALANCE_AFTER_cDEPOSIT");
+
+		vars.newSectors = calculateNumSectors(vars.dailyAllocation);
+
+		vars.totalRewardsPerDay = calculateRewardsForSectors(vars.newSectors);
+		vars.availableRewardsPerDay = (vars.totalRewardsPerDay * 2500) / BASIS_POINTS;
+		vars.revenuePerDay = (vars.availableRewardsPerDay * profitShare) / BASIS_POINTS;
+		vars.totalSectors = vars.newSectors * ALICE_ALLOCATION_PERIOD;
+		vars.totalAvailableRewards = vars.availableRewardsPerDay * ALICE_ALLOCATION_PERIOD;
+
+		hevm.deal(address(minerActor), vars.totalAvailableRewards);
+
+		uint256 slashingDay = 50;
+		uint256 slashingAllocation = (vars.dailyAllocation * slashingDay);
+		uint256 slashingColReq = (slashingAllocation * collateral.collateralRequirements(aliceOwnerId)) / BASIS_POINTS;
+		uint256 slashingAmt = (slashingColReq * 5000) / BASIS_POINTS;
+
+		hevm.deal(alice, slashingAmt);
+
+		for (uint256 i = 0; i < ALICE_ALLOCATION_PERIOD; i++) {
+			uint256 timeDelta = ONE_DAY * i;
+			hevm.warp(genesisTimestamp + timeDelta);
+
+			hevm.prank(alice);
+			staking.pledge(vars.dailyAllocation);
+			vars.totalAllocated = vars.totalAllocated + vars.dailyAllocation;
+
+			uint256 collateralRequirements = (vars.totalAllocated * collateral.collateralRequirements(aliceOwnerId)) /
+				BASIS_POINTS;
+
+			if (i <= slashingDay) {
+				require(alice.balance == slashingAmt + vars.totalAllocated, "INVALID_ALICE_BALANCE_AFTER_PLEDGE");
+			} else {
+				require(alice.balance == vars.totalAllocated, "INVALID_ALICE_BALANCE_AFTER_PLEDGE");
+			}
+			require(
+				collateral.getLockedCollateral(aliceOwnerId) == collateralRequirements,
+				"INVALID_LOCKED_COLLATERAL"
+			);
+
+			if (i == slashingDay) {
+				emit log_named_uint(
+					"collateral.getLockedCollateral before:",
+					collateral.getLockedCollateral(aliceOwnerId)
+				);
+
+				staking.reportSlashing(aliceOwnerId, slashingAmt);
+
+				uint256 lockedCol = collateralRequirements > slashingAmt
+					? collateralRequirements - slashingAmt
+					: slashingAmt - collateralRequirements;
+
+				require(collateral.getLockedCollateral(aliceOwnerId) == lockedCol, "INVALID_LOCKED_COLLATERAL");
+				assertEq(collateral.slashings(aliceOwnerId), slashingAmt);
+				assertBoolEq(staking.activeSlashings(aliceOwnerId), true);
+
+				// Try to pledge daily allocation after slashing
+				hevm.prank(alice);
+				hevm.expectRevert("ACTIVE_SLASHING");
+				staking.pledge(vars.dailyAllocation);
+
+				// Recover SP after recovering sectors
+				staking.reportRecovery(aliceOwnerId);
+				assertBoolEq(staking.activeSlashings(aliceOwnerId), false);
+
+				hevm.prank(alice);
+				collateral.deposit{value: slashingAmt}(aliceOwnerId);
+			}
+
+			if (i > 0) {
+				staking.withdrawRewards(aliceOwnerId, vars.availableRewardsPerDay);
+				uint256 rewardsDelta = vars.totalAvailableRewards - (vars.availableRewardsPerDay * (i));
+
+				if (i >= slashingDay) {
+					uint256 slashingEffect = (vars.revenuePerDay * (i)) + slashingAmt;
+					require(staking.totalAssets() == totalAllocation + slashingEffect, "INVALID_LSP_ASSETS");
+					require(
+						wfil.balanceOf(address(staking)) == totalAllocation - vars.totalAllocated + slashingEffect,
+						"INVALID_LSP_WFIL_BALANCE"
+					);
+				} else {
+					require(
+						staking.totalAssets() == totalAllocation + (vars.revenuePerDay * (i)),
+						"INVALID_LSP_ASSETS"
+					);
+					require(
+						wfil.balanceOf(address(staking)) ==
+							totalAllocation - vars.totalAllocated + (vars.revenuePerDay * (i)),
+						"INVALID_LSP_WFIL_BALANCE"
+					);
+				}
+
+				require(address(minerActor).balance == rewardsDelta, "INVALID_MINER_ACTOR_BALANCE_AFTER_WITHDRAWAL");
+				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
+				require(
+					collateral.getLockedCollateral(aliceOwnerId) == collateralRequirements,
+					"INVALID_LOCKED_COLLATERAL"
+				);
+			} else if (i == 0) {
+				require(staking.totalAssets() == totalAllocation, "INVALID_LSP_ASSETS");
+				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
+			}
+		}
+	}
+
 	function calculateNumSectors(uint256 allocation) internal pure returns (uint256) {
 		return allocation / initialPledge;
 	}
