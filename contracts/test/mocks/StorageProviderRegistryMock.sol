@@ -5,6 +5,7 @@ import "../../StorageProviderRegistry.sol";
 import {MinerMockAPI as MockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {FilAddresses} from "filecoin-solidity/contracts/v0.8/utils/FilAddresses.sol";
 import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
+import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
@@ -13,7 +14,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
  * @title Storage Provider Registry Mock contract that works with mock Filecoin Miner API
  * @author Collective DAO
  */
-contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
+contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI, DSTestPlus {
 	using Counters for Counters.Counter;
 	using Address for address;
 
@@ -60,7 +61,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 		uint256 _dailyAllocation
 	) public override validActorID(_minerId) {
 		require(_allocationLimit <= maxAllocation, "INVALID_ALLOCATION");
-		require(_targetPool.isContract(), "INVALID_TARGET_POOL");
+		require(pools[_targetPool], "INVALID_TARGET_POOL");
 
 		MinerTypes.GetOwnerReturn memory ownerReturn = MockAPI.getOwner();
 		require(keccak256(ownerReturn.proposed.data) == keccak256(bytes("0x00")), "PROPOSED_NEW_OWNER");
@@ -68,6 +69,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 		bytes memory senderBytes = Leb128.encodeUnsignedLeb128FromUInt64(ownerId).buf;
 		bytes memory ownerBytes = FilAddresses.fromBytes(ownerReturn.owner.data).data;
 		require(keccak256(senderBytes) == keccak256(ownerBytes), "INVALID_MINER_OWNERSHIP");
+		require(!storageProviders[ownerId].onboarded, "ALREADY_REGISTERED");
 
 		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[ownerId];
 		storageProvider.minerId = _minerId;
@@ -120,8 +122,9 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[ownerId];
 		StorageProviderTypes.SPAllocation storage spAllocation = allocations[ownerId];
 
-		require(storageProvider.targetPool != address(0x0), "INVALID_TARGET_POOL");
+		require(!storageProviders[ownerId].onboarded, "ALREADY_REGISTERED");
 
+		storageProvider.onboarded = true;
 		storageProvider.lastEpoch = _lastEpoch;
 
 		spAllocation.repayment = _repayment;
@@ -133,40 +136,36 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 
 	/**
 	 * @notice Transfer beneficiary address of a miner to the target pool
-	 * @param _beneficiaryAddress Beneficiary address like a pool strategy (i.e liquid staking pool)
 	 */
-	function changeBeneficiaryAddress(address _beneficiaryAddress) public override {
-		require(_beneficiaryAddress.isContract(), "INVALID_CONTRACT");
-
+	function changeBeneficiaryAddress() public override {
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[ownerId];
-		require(storageProvider.targetPool == _beneficiaryAddress, "INVALID_ADDRESS");
+		require(storageProvider.onboarded, "NON_ONBOARDED_SP");
 
 		MinerTypes.ChangeBeneficiaryParams memory params;
 
-		params.new_beneficiary = FilAddresses.fromEthAddress(_beneficiaryAddress);
-		params.new_quota = BigInts.fromUint256(allocations[ownerId].allocationLimit);
+		params.new_beneficiary = FilAddresses.fromEthAddress(storageProvider.targetPool);
+		params.new_quota = BigInts.fromUint256(allocations[ownerId].repayment);
 		params.new_expiration = CommonTypes.ChainEpoch.wrap(storageProvider.lastEpoch);
 
 		MockAPI.changeBeneficiary(params);
 
-		emit StorageProviderBeneficiaryAddressUpdated(_beneficiaryAddress);
+		emit StorageProviderBeneficiaryAddressUpdated(storageProvider.targetPool);
 	}
 
 	/**
 	 * @notice Accept beneficiary address transfer and activate FIL allocation
 	 * @param _ownerId Storage Provider owner ID
-	 * @param _beneficiaryAddress Beneficiary address like a pool strategy (i.e liquid staking pool)
 	 * @dev Only triggered by owner contract
 	 */
-	function acceptBeneficiaryAddress(uint64 _ownerId, address _beneficiaryAddress) public override {
+	function acceptBeneficiaryAddress(uint64 _ownerId) public override {
 		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
-		require(_beneficiaryAddress.isContract(), "INVALID_CONTRACT");
 
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_ownerId];
+		require(storageProvider.onboarded, "NON_ONBOARDED_SP");
 
 		MinerTypes.ChangeBeneficiaryParams memory params;
-		params.new_beneficiary = FilAddresses.fromEthAddress(_beneficiaryAddress);
-		params.new_quota = BigInts.fromUint256(allocations[_ownerId].allocationLimit);
+		params.new_beneficiary = FilAddresses.fromEthAddress(storageProvider.targetPool);
+		params.new_quota = BigInts.fromUint256(allocations[_ownerId].repayment);
 		params.new_expiration = CommonTypes.ChainEpoch.wrap(storageProvider.lastEpoch);
 
 		storageProviders[_ownerId].active = true;
@@ -198,15 +197,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 		allocationRequest.allocationLimit = _allocationLimit;
 		allocationRequest.dailyAllocation = _dailyAllocation;
 
-		MinerTypes.ChangeBeneficiaryParams memory params;
-
-		params.new_beneficiary = FilAddresses.fromEthAddress(storageProvider.targetPool);
-		params.new_quota = BigInts.fromUint256(_allocationLimit);
-		params.new_expiration = CommonTypes.ChainEpoch.wrap(storageProvider.lastEpoch);
-
-		MockAPI.changeBeneficiary(params);
-
-		emit StorageProviderAllocationLimitRequest(ownerId, _allocationLimit);
+		emit StorageProviderAllocationLimitRequest(ownerId, _allocationLimit, _dailyAllocation);
 	}
 
 	/**
@@ -233,18 +224,19 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI {
 		MinerTypes.ChangeBeneficiaryParams memory params;
 
 		params.new_beneficiary = FilAddresses.fromEthAddress(storageProvider.targetPool);
-		params.new_quota = BigInts.fromUint256(_allocationLimit);
+		params.new_quota = BigInts.fromUint256(_repaymentAmount);
 		params.new_expiration = CommonTypes.ChainEpoch.wrap(storageProvider.lastEpoch);
 
 		MockAPI.changeBeneficiary(params);
 
 		StorageProviderTypes.SPAllocation storage spAllocation = allocations[_ownerId];
 		spAllocation.allocationLimit = _allocationLimit;
+		spAllocation.dailyAllocation = _dailyAllocation;
 		spAllocation.repayment = _repaymentAmount;
 
 		delete allocationRequests[_ownerId];
 
-		emit StorageProviderAllocationLimitUpdate(_ownerId, _allocationLimit);
+		emit StorageProviderAllocationLimitUpdate(_ownerId, _allocationLimit, _dailyAllocation, _repaymentAmount);
 	}
 
 	/**

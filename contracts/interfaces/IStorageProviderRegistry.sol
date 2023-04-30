@@ -25,8 +25,13 @@ interface IStorageProviderRegistry {
 
 	event StorageProviderLastEpochUpdate(uint64 ownerId, int64 lastEpoch);
 
-	event StorageProviderAllocationLimitRequest(uint64 ownerId, uint256 allocationLimit);
-	event StorageProviderAllocationLimitUpdate(uint64 ownerId, uint256 allocationLimit);
+	event StorageProviderAllocationLimitRequest(uint64 ownerId, uint256 allocationLimit, uint256 dailyAllocation);
+	event StorageProviderAllocationLimitUpdate(
+		uint64 ownerId,
+		uint256 allocationLimit,
+		uint256 dailyAllocation,
+		uint256 repayment
+	);
 	event StorageProviderAllocationUsed(uint64 ownerId, uint256 usedAllocation);
 
 	event StorageProviderMinerRestakingRatioUpdate(uint64 ownerId, uint256 restakingRatio, address restakingAddress);
@@ -72,17 +77,15 @@ interface IStorageProviderRegistry {
 
 	/**
 	 * @notice Transfer beneficiary address of a miner to the target pool
-	 * @param _beneficiaryAddress Beneficiary address like a pool strategy (i.e liquid staking pool)
 	 */
-	function changeBeneficiaryAddress(address _beneficiaryAddress) external;
+	function changeBeneficiaryAddress() external;
 
 	/**
 	 * @notice Accept beneficiary address transfer and activate FIL allocation
 	 * @param _ownerId Storage Provider owner ID
-	 * @param _beneficiaryAddress Beneficiary address like a pool strategy (i.e liquid staking pool)
 	 * @dev Only triggered by owner contract
 	 */
-	function acceptBeneficiaryAddress(uint64 _ownerId, address _beneficiaryAddress) external;
+	function acceptBeneficiaryAddress(uint64 _ownerId) external;
 
 	/**
 	 * @notice Deactive storage provider with ID `_ownerId`

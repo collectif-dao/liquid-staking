@@ -8,6 +8,7 @@ pragma solidity ^0.8.17;
 library StorageProviderTypes {
 	struct StorageProvider {
 		bool active;
+		bool onboarded;
 		address targetPool;
 		uint64 minerId; // Miner worker address
 		int64 lastEpoch; // Max time period for accessing FIL from liquid staking

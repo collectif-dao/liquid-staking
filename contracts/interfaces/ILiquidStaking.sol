@@ -36,6 +36,13 @@ interface ILiquidStaking {
 	event ReportSlashing(uint64 ownerId, uint64 minerId, uint256 slashingAmount);
 
 	/**
+	 * @notice Emitted when storage provider has been reported to recover slashed sectors
+	 * @param ownerId Storage Provider's owner ID
+	 * @param minerId Storage Provider's miner actor ID
+	 */
+	event ReportRecovery(uint64 ownerId, uint64 minerId);
+
+	/**
 	 * @notice Emitted when collateral address is updated
 	 * @param collateral StorageProviderCollateral contract address
 	 */
@@ -104,6 +111,12 @@ interface ILiquidStaking {
 	 * which is the remaining pledge for a terminated sector.
 	 */
 	function reportSlashing(uint64 _ownerId, uint256 _slashingAmt) external;
+
+	/**
+	 * @notice Report recovery of previously slashed sectors for SP with `_ownerId`
+	 * @param _ownerId Storage provider owner ID
+	 */
+	function reportRecovery(uint64 _ownerId) external;
 
 	/**
 	 * @dev Updates profit sharing requirements for SP with `_ownerId` by `_profitShare` percentage

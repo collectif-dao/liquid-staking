@@ -66,6 +66,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		collateral = new StorageProviderCollateralMock(wfil, address(registry));
 		registry.setCollateralAddress(address(collateral));
 		staking.setRegistryAddress(address(registry));
+		registry.registerPool(address(staking));
+
 		callerMock = new StorageProviderRegistryCallerMock(address(registry));
 	}
 
@@ -201,34 +203,19 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			MAX_ALLOCATION + 10,
 			lastEpoch
 		);
-		registry.changeBeneficiaryAddress(address(staking));
+		registry.changeBeneficiaryAddress();
 
 		(, address targetPool, , ) = registry.getStorageProvider(ownerId);
 
 		assertEq(targetPool, address(staking));
 	}
 
-	function testChangeBeneficiaryAddressReverts(uint64 minerId, address beneficiary, int64 lastEpoch) public {
-		hevm.assume(
-			beneficiary != address(0) &&
-				beneficiary != address(staking) &&
-				minerId > 1 &&
-				minerId < 2115248121211227543 &&
-				lastEpoch > 0
-		);
-		hevm.etch(beneficiary, bytes("0x102"));
-
+	function testChangeBeneficiaryAddressReverts(uint64 minerId, int64 lastEpoch) public {
+		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
 		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
-		registry.onboardStorageProvider(
-			minerId,
-			MAX_ALLOCATION,
-			SAMPLE_DAILY_ALLOCATION,
-			MAX_ALLOCATION + 10,
-			lastEpoch
-		);
 
-		hevm.expectRevert("INVALID_ADDRESS");
-		registry.changeBeneficiaryAddress(beneficiary);
+		hevm.expectRevert("NON_ONBOARDED_SP");
+		registry.changeBeneficiaryAddress();
 	}
 
 	function testAcceptBeneficiaryAddress(uint64 minerId, int64 lastEpoch) public {
@@ -244,8 +231,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		);
 		assertBoolEq(registry.isActiveProvider(ownerId), false);
 
-		registry.changeBeneficiaryAddress(address(staking));
-		registry.acceptBeneficiaryAddress(ownerId, address(staking));
+		registry.changeBeneficiaryAddress();
+		registry.acceptBeneficiaryAddress(ownerId);
 
 		assertBoolEq(registry.isActiveProvider(ownerId), true);
 		assertEq(registry.getTotalActiveStorageProviders(), 1);
@@ -269,11 +256,11 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			lastEpoch
 		);
 
-		registry.changeBeneficiaryAddress(address(staking));
+		registry.changeBeneficiaryAddress();
 
 		hevm.prank(provider);
 		hevm.expectRevert("INVALID_ACCESS");
-		registry.acceptBeneficiaryAddress(ownerId, address(staking));
+		registry.acceptBeneficiaryAddress(ownerId);
 
 		assertBoolEq(registry.isActiveProvider(ownerId), false);
 		assertEq(registry.getTotalActiveStorageProviders(), 0);
@@ -291,8 +278,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			lastEpoch
 		);
 
-		registry.changeBeneficiaryAddress(address(staking));
-		registry.acceptBeneficiaryAddress(ownerId, address(staking));
+		registry.changeBeneficiaryAddress();
+		registry.acceptBeneficiaryAddress(ownerId);
 		assertBoolEq(registry.isActiveProvider(ownerId), true);
 
 		registry.deactivateStorageProvider(ownerId);
@@ -320,9 +307,9 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		);
 
 		hevm.prank(provider);
-		registry.changeBeneficiaryAddress(address(staking));
+		registry.changeBeneficiaryAddress();
 
-		registry.acceptBeneficiaryAddress(ownerId, address(staking));
+		registry.acceptBeneficiaryAddress(ownerId);
 
 		hevm.prank(provider);
 		hevm.expectRevert("INVALID_ACCESS");
@@ -341,8 +328,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			lastEpoch
 		);
 
-		registry.changeBeneficiaryAddress(address(staking));
-		registry.acceptBeneficiaryAddress(ownerId, address(staking));
+		registry.changeBeneficiaryAddress();
+		registry.acceptBeneficiaryAddress(ownerId);
 
 		registry.setMinerAddress(ownerId, newMinerId);
 		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
@@ -371,8 +358,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			lastEpoch
 		);
 
-		registry.changeBeneficiaryAddress(address(staking));
-		registry.acceptBeneficiaryAddress(ownerId, address(staking));
+		registry.changeBeneficiaryAddress();
+		registry.acceptBeneficiaryAddress(ownerId);
 
 		hevm.expectRevert("SAME_MINER");
 		registry.setMinerAddress(ownerId, newMinerId);
@@ -397,8 +384,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		registry.register(minerId, address(staking), MAX_ALLOCATION, dailyAllocation);
 		registry.onboardStorageProvider(minerId, MAX_ALLOCATION, dailyAllocation, MAX_ALLOCATION + 10, lastEpoch);
 
-		registry.changeBeneficiaryAddress(address(staking));
-		registry.acceptBeneficiaryAddress(ownerId, address(staking));
+		registry.changeBeneficiaryAddress();
+		registry.acceptBeneficiaryAddress(ownerId);
 
 		registry.requestAllocationLimitUpdate(allocation, dailyAllocation);
 	}
@@ -421,7 +408,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			lastEpoch
 		);
 
-		registry.changeBeneficiaryAddress(address(staking));
+		registry.changeBeneficiaryAddress();
 
 		hevm.expectRevert("INACTIVE_STORAGE_PROVIDER");
 		registry.requestAllocationLimitUpdate(allocation, SAMPLE_DAILY_ALLOCATION);
@@ -438,8 +425,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			lastEpoch
 		);
 
-		registry.changeBeneficiaryAddress(address(staking));
-		registry.acceptBeneficiaryAddress(ownerId, address(staking));
+		registry.changeBeneficiaryAddress();
+		registry.acceptBeneficiaryAddress(ownerId);
 
 		hevm.expectRevert("SAME_ALLOCATION_LIMIT");
 		registry.requestAllocationLimitUpdate(MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
@@ -457,8 +444,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			lastEpoch
 		);
 
-		registry.changeBeneficiaryAddress(address(staking));
-		registry.acceptBeneficiaryAddress(ownerId, address(staking));
+		registry.changeBeneficiaryAddress();
+		registry.acceptBeneficiaryAddress(ownerId);
 
 		hevm.expectRevert("ALLOCATION_OVERFLOW");
 		registry.requestAllocationLimitUpdate(newAllocation, SAMPLE_DAILY_ALLOCATION);
@@ -482,8 +469,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			lastEpoch
 		);
 
-		registry.changeBeneficiaryAddress(address(staking));
-		registry.acceptBeneficiaryAddress(ownerId, address(staking));
+		registry.changeBeneficiaryAddress();
+		registry.acceptBeneficiaryAddress(ownerId);
 
 		registry.requestAllocationLimitUpdate(allocation, SAMPLE_DAILY_ALLOCATION); // TODO: add alice prank here
 		registry.updateAllocationLimit(ownerId, allocation, SAMPLE_DAILY_ALLOCATION, allocation + 10);
@@ -501,8 +488,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			lastEpoch
 		);
 
-		registry.changeBeneficiaryAddress(address(staking));
-		registry.acceptBeneficiaryAddress(ownerId, address(staking));
+		registry.changeBeneficiaryAddress();
+		registry.acceptBeneficiaryAddress(ownerId);
 
 		registry.requestAllocationLimitUpdate(newAllocation, SAMPLE_DAILY_ALLOCATION); // TODO: add alice prank here
 
@@ -533,8 +520,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			lastEpoch
 		);
 
-		registry.changeBeneficiaryAddress(address(staking));
-		registry.acceptBeneficiaryAddress(ownerId, address(staking));
+		registry.changeBeneficiaryAddress();
+		registry.acceptBeneficiaryAddress(ownerId);
 
 		registry.setRestaking(restakingRatio, restakingAddress);
 
@@ -554,8 +541,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			lastEpoch
 		);
 
-		registry.changeBeneficiaryAddress(address(staking));
-		registry.acceptBeneficiaryAddress(ownerId, address(staking));
+		registry.changeBeneficiaryAddress();
+		registry.acceptBeneficiaryAddress(ownerId);
 
 		hevm.expectRevert("INVALID_RESTAKING_RATIO");
 		registry.setRestaking(restakingRatio, address(0x412412));
@@ -615,8 +602,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			lastEpoch
 		);
 
-		registry.changeBeneficiaryAddress(address(staking));
-		registry.acceptBeneficiaryAddress(ownerId, address(staking));
+		registry.changeBeneficiaryAddress();
+		registry.acceptBeneficiaryAddress(ownerId);
 
 		callerMock.increaseRewards(ownerId, _accruedRewards);
 
@@ -652,8 +639,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			lastEpoch
 		);
 
-		registry.changeBeneficiaryAddress(address(staking));
-		registry.acceptBeneficiaryAddress(ownerId, address(staking));
+		registry.changeBeneficiaryAddress();
+		registry.acceptBeneficiaryAddress(ownerId);
 
 		registry.setCollateralAddress(address(callerMock)); // Test case only
 		callerMock.increaseUsedAllocation(ownerId, allocated, block.timestamp);
@@ -691,8 +678,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			lastEpoch
 		);
 
-		registry.changeBeneficiaryAddress(address(staking));
-		registry.acceptBeneficiaryAddress(ownerId, address(staking));
+		registry.changeBeneficiaryAddress();
+		registry.acceptBeneficiaryAddress(ownerId);
 
 		registry.setCollateralAddress(address(callerMock)); // Test case only
 		callerMock.increaseUsedAllocation(ownerId, _repaidPledge, block.timestamp);
@@ -735,8 +722,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			lastEpoch
 		);
 
-		registry.changeBeneficiaryAddress(address(staking));
-		registry.acceptBeneficiaryAddress(ownerId, address(staking));
+		registry.changeBeneficiaryAddress();
+		registry.acceptBeneficiaryAddress(ownerId);
 
 		registry.setCollateralAddress(address(callerMock)); // Test case only
 

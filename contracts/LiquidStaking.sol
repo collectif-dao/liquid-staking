@@ -44,6 +44,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 	bytes32 private constant SLASHING_AGENT = keccak256("SLASHING_AGENT");
 
 	mapping(uint64 => uint256) public profitShares;
+	mapping(uint64 => bool) public activeSlashings;
 
 	constructor(
 		address _wFIL,
@@ -146,6 +147,8 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 		require(amount <= totalAssets(), "PLEDGE_WITHDRAWAL_OVERFLOW");
 
 		uint64 ownerId = PrecompilesAPI.resolveEthAddress(msg.sender);
+		require(!activeSlashings[ownerId], "ACTIVE_SLASHING");
+
 		collateral.lock(ownerId, amount);
 
 		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
@@ -206,7 +209,23 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 
 		collateral.slash(_ownerId, _slashingAmt);
 
+		activeSlashings[_ownerId] = true;
+
 		emit ReportSlashing(_ownerId, minerId, _slashingAmt);
+	}
+
+	/**
+	 * @notice Report recovery of previously slashed sectors for SP with `_ownerId`
+	 * @param _ownerId Storage provider owner ID
+	 */
+	function reportRecovery(uint64 _ownerId) external virtual nonReentrant {
+		require(hasRole(SLASHING_AGENT, msg.sender), "INVALID_ACCESS");
+		require(activeSlashings[_ownerId], "INACTIVE_SLASHINGS");
+		(, , uint64 minerId, ) = registry.getStorageProvider(_ownerId);
+
+		activeSlashings[_ownerId] = false;
+
+		emit ReportRecovery(_ownerId, minerId);
 	}
 
 	struct WithdrawRewardsLocalVars {

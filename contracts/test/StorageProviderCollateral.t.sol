@@ -35,6 +35,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	address private bob = address(0x123);
 	address private rewardCollector = address(0x12523);
 	address private aliceOwnerAddr = address(0x12341214212);
+	int64 private lastEpoch = 897999909;
 
 	uint256 private constant MAX_STORAGE_PROVIDERS = 200;
 	uint256 private constant MAX_ALLOCATION = 10000 ether;
@@ -75,13 +76,23 @@ contract StorageProviderCollateralTest is DSTestPlus {
 
 		registry.setCollateralAddress(address(collateral));
 		staking.setRegistryAddress(address(registry));
+		registry.registerPool(address(staking));
 
-		hevm.startPrank(alice);
+		hevm.prank(alice);
 		registry.register(aliceMinerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION); // TODO: add missing steps for SP onboarding
-		registry.changeBeneficiaryAddress(address(staking));
-		hevm.stopPrank();
 
-		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
+		registry.onboardStorageProvider(
+			aliceMinerId,
+			MAX_ALLOCATION,
+			SAMPLE_DAILY_ALLOCATION,
+			MAX_ALLOCATION + 10,
+			lastEpoch
+		);
+
+		hevm.prank(alice);
+		registry.changeBeneficiaryAddress();
+
+		registry.acceptBeneficiaryAddress(aliceOwnerId);
 		registry.registerPool(address(callerMock));
 	}
 
@@ -117,13 +128,6 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		hevm.assume(amount != 0 && amount < 2000000000 ether);
 		hevm.deal(alice, amount);
 
-		hevm.startPrank(alice);
-		registry.register(aliceMinerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
-		registry.changeBeneficiaryAddress(address(staking));
-		hevm.stopPrank();
-
-		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
-
 		uint256 balanceBefore = amount;
 
 		hevm.startPrank(alice);
@@ -144,13 +148,6 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		uint256 balanceBefore = amount;
 
 		hevm.startPrank(alice);
-		registry.register(aliceMinerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
-		registry.changeBeneficiaryAddress(address(staking));
-		hevm.stopPrank();
-
-		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
-
-		hevm.startPrank(alice);
 		collateral.deposit{value: amount}(aliceOwnerId);
 		collateral.withdraw(aliceOwnerId, amount + 10 ether); // try to withdraw 10 FIL more
 		hevm.stopPrank();
@@ -165,13 +162,6 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	function testLock(uint256 amount) public {
 		hevm.assume(amount != 0 && amount <= SAMPLE_DAILY_ALLOCATION);
 		hevm.deal(alice, amount);
-
-		hevm.startPrank(alice);
-		registry.register(aliceMinerId, address(staking), amount, SAMPLE_DAILY_ALLOCATION);
-		registry.changeBeneficiaryAddress(address(staking));
-		hevm.stopPrank();
-
-		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
 
 		hevm.startPrank(alice);
 		collateral.deposit{value: amount}(aliceOwnerId);
@@ -193,13 +183,6 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	function testFitDown(uint256 percentage) public {
 		hevm.assume(percentage > 0 && percentage <= BASIS_POINTS);
 		hevm.deal(alice, SAMPLE_DAILY_ALLOCATION);
-
-		hevm.startPrank(alice);
-		registry.register(aliceMinerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
-		registry.changeBeneficiaryAddress(address(staking));
-		hevm.stopPrank();
-
-		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
 
 		hevm.startPrank(alice);
 		collateral.deposit{value: SAMPLE_DAILY_ALLOCATION}(aliceOwnerId);
@@ -238,17 +221,13 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		hevm.assume(additionalAllocation >= 0 && additionalAllocation <= SAMPLE_DAILY_ALLOCATION);
 		hevm.deal(alice, SAMPLE_DAILY_ALLOCATION);
 
-		hevm.startPrank(alice);
-		registry.register(aliceMinerId, address(staking), MAX_ALLOCATION, MAX_ALLOCATION);
-		registry.changeBeneficiaryAddress(address(staking));
-		hevm.stopPrank();
+		hevm.prank(alice);
+		registry.requestAllocationLimitUpdate(MAX_ALLOCATION, MAX_ALLOCATION);
+		registry.updateAllocationLimit(aliceOwnerId, MAX_ALLOCATION, MAX_ALLOCATION, MAX_ALLOCATION + 10);
 
-		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
-
-		hevm.startPrank(alice);
+		hevm.prank(alice);
 		collateral.deposit{value: SAMPLE_DAILY_ALLOCATION}(aliceOwnerId);
 		assertEq(collateral.getAvailableCollateral(aliceOwnerId), SAMPLE_DAILY_ALLOCATION);
-		hevm.stopPrank();
 
 		// call via mock contract
 		callerMock.lock(aliceOwnerId, SAMPLE_DAILY_ALLOCATION);
@@ -279,21 +258,14 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	}
 
 	function testLockReverts(uint256 amount) public {
-		hevm.assume(amount != 0 && amount <= MAX_ALLOCATION);
+		hevm.assume(amount > MAX_ALLOCATION);
 		hevm.deal(alice, amount);
-
-		hevm.startPrank(alice);
-		registry.register(aliceMinerId, address(staking), amount, SAMPLE_DAILY_ALLOCATION);
-		registry.changeBeneficiaryAddress(address(staking));
-		hevm.stopPrank();
-
-		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
 
 		hevm.prank(alice);
 		collateral.deposit{value: amount}(aliceOwnerId);
 
 		hevm.expectRevert("ALLOCATION_OVERFLOW");
-		callerMock.lock(aliceOwnerId, amount * 2);
+		callerMock.lock(aliceOwnerId, amount);
 
 		assertEq(collateral.getAvailableCollateral(aliceOwnerId), amount);
 		assertEq(collateral.getLockedCollateral(aliceOwnerId), 0);
@@ -302,13 +274,6 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	function testLockRevertsWithInvalidAccess(uint256 amount) public {
 		hevm.assume(amount != 0 && amount <= MAX_ALLOCATION);
 		hevm.deal(alice, amount);
-
-		hevm.startPrank(alice);
-		registry.register(aliceMinerId, address(staking), amount, SAMPLE_DAILY_ALLOCATION);
-		registry.changeBeneficiaryAddress(address(staking));
-		hevm.stopPrank();
-
-		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
 
 		hevm.prank(alice);
 		collateral.deposit{value: amount}(aliceOwnerId);
@@ -320,13 +285,6 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	function testSlash(uint256 amount) public {
 		hevm.assume(amount > 1 ether && amount <= SAMPLE_DAILY_ALLOCATION);
 		hevm.deal(alice, amount);
-
-		hevm.startPrank(alice);
-		registry.register(aliceMinerId, address(staking), amount, SAMPLE_DAILY_ALLOCATION);
-		registry.changeBeneficiaryAddress(address(staking));
-		hevm.stopPrank();
-
-		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
 
 		hevm.startPrank(alice);
 		collateral.deposit{value: amount}(aliceOwnerId);
@@ -372,12 +330,6 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		hevm.assume(amount > 1 ether && amount <= SAMPLE_DAILY_ALLOCATION);
 		hevm.deal(alice, amount);
 
-		hevm.startPrank(alice);
-		registry.register(aliceMinerId, address(staking), amount, SAMPLE_DAILY_ALLOCATION);
-		registry.changeBeneficiaryAddress(address(staking));
-		hevm.stopPrank();
-
-		registry.acceptBeneficiaryAddress(aliceOwnerId, address(staking));
 		uint256 lockedAmount = (amount * collateralRequirements) / BASIS_POINTS;
 
 		hevm.startPrank(alice);

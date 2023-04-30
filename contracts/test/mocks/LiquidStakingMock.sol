@@ -40,6 +40,7 @@ contract LiquidStakingMock is LiquidStaking {
 	 */
 	function pledge(uint256 amount) external virtual override nonReentrant {
 		require(amount <= totalAssets(), "PLEDGE_WITHDRAWAL_OVERFLOW");
+		require(!activeSlashings[ownerId], "ACTIVE_SLASHING");
 
 		collateral.lock(ownerId, amount);
 

@@ -104,7 +104,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 		uint256 _dailyAllocation
 	) public virtual override validActorID(_minerId) {
 		require(_allocationLimit <= maxAllocation, "INVALID_ALLOCATION");
-		require(_targetPool.isContract(), "INVALID_TARGET_POOL");
+		require(pools[_targetPool], "INVALID_TARGET_POOL");
 
 		CommonTypes.FilActorId actorId = CommonTypes.FilActorId.wrap(_minerId);
 
@@ -114,6 +114,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 		uint64 ownerId = PrecompilesAPI.resolveAddress(ownerReturn.owner);
 		uint64 msgSenderId = PrecompilesAPI.resolveEthAddress(msg.sender);
 		require(ownerId == msgSenderId, "INVALID_MINER_OWNERSHIP");
+		require(!storageProviders[ownerId].onboarded, "ALREADY_REGISTERED");
 
 		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[ownerId];
 		storageProvider.minerId = _minerId;
@@ -170,8 +171,9 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 
 		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[ownerId];
 		StorageProviderTypes.SPAllocation storage spAllocation = allocations[ownerId];
-		require(storageProvider.targetPool != address(0x0), "INVALID_TARGET_POOL");
+		require(!storageProviders[ownerId].onboarded, "ALREADY_REGISTERED");
 
+		storageProvider.onboarded = true;
 		storageProvider.lastEpoch = _lastEpoch;
 
 		spAllocation.repayment = _repayment;
@@ -183,43 +185,42 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 
 	/**
 	 * @notice Transfer beneficiary address of a miner to the target pool
-	 * @param _beneficiaryAddress Beneficiary address like a pool strategy (i.e liquid staking pool)
 	 */
-	function changeBeneficiaryAddress(address _beneficiaryAddress) public virtual override {
-		require(_beneficiaryAddress.isContract(), "INVALID_CONTRACT");
+	function changeBeneficiaryAddress() public virtual override {
 		uint64 ownerId = PrecompilesAPI.resolveEthAddress(msg.sender);
 
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[ownerId];
+		require(storageProvider.onboarded, "NON_ONBOARDED_SP");
+
 		CommonTypes.FilActorId minerId = CommonTypes.FilActorId.wrap(storageProvider.minerId);
-		require(storageProvider.targetPool == _beneficiaryAddress, "INVALID_ADDRESS");
 
 		MinerTypes.ChangeBeneficiaryParams memory params;
 
-		params.new_beneficiary = FilAddresses.fromEthAddress(_beneficiaryAddress);
-		params.new_quota = BigInts.fromUint256(allocations[ownerId].allocationLimit);
+		params.new_beneficiary = FilAddresses.fromEthAddress(storageProvider.targetPool);
+		params.new_quota = BigInts.fromUint256(allocations[ownerId].repayment);
 		params.new_expiration = CommonTypes.ChainEpoch.wrap(storageProvider.lastEpoch);
 
 		MinerAPI.changeBeneficiary(minerId, params);
 
-		emit StorageProviderBeneficiaryAddressUpdated(_beneficiaryAddress);
+		emit StorageProviderBeneficiaryAddressUpdated(storageProvider.targetPool);
 	}
 
 	/**
 	 * @notice Accept beneficiary address transfer and activate FIL allocation
 	 * @param _ownerId Storage Provider owner ID
-	 * @param _beneficiaryAddress Beneficiary address like a pool strategy (i.e liquid staking pool)
 	 * @dev Only triggered by registry admin
 	 */
-	function acceptBeneficiaryAddress(uint64 _ownerId, address _beneficiaryAddress) public virtual override {
+	function acceptBeneficiaryAddress(uint64 _ownerId) public virtual override {
 		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
-		require(_beneficiaryAddress.isContract(), "INVALID_CONTRACT");
 
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_ownerId];
+		require(storageProvider.onboarded, "NON_ONBOARDED_SP");
+
 		CommonTypes.FilActorId minerId = CommonTypes.FilActorId.wrap(storageProvider.minerId);
 
 		MinerTypes.ChangeBeneficiaryParams memory params;
-		params.new_beneficiary = FilAddresses.fromEthAddress(_beneficiaryAddress);
-		params.new_quota = BigInts.fromUint256(allocations[_ownerId].allocationLimit);
+		params.new_beneficiary = FilAddresses.fromEthAddress(storageProvider.targetPool);
+		params.new_quota = BigInts.fromUint256(allocations[_ownerId].repayment);
 		params.new_expiration = CommonTypes.ChainEpoch.wrap(storageProvider.lastEpoch);
 
 		storageProviders[_ownerId].active = true;
@@ -282,21 +283,11 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 		);
 		require(_allocationLimit <= maxAllocation, "ALLOCATION_OVERFLOW");
 
-		CommonTypes.FilActorId minerId = CommonTypes.FilActorId.wrap(storageProvider.minerId);
-
 		StorageProviderTypes.AllocationRequest storage allocationRequest = allocationRequests[ownerId];
 		allocationRequest.allocationLimit = _allocationLimit;
 		allocationRequest.dailyAllocation = _dailyAllocation;
 
-		MinerTypes.ChangeBeneficiaryParams memory params;
-
-		params.new_beneficiary = FilAddresses.fromEthAddress(storageProvider.targetPool);
-		params.new_quota = BigInts.fromUint256(_allocationLimit);
-		params.new_expiration = CommonTypes.ChainEpoch.wrap(storageProvider.lastEpoch);
-
-		MinerAPI.changeBeneficiary(minerId, params);
-
-		emit StorageProviderAllocationLimitRequest(ownerId, _allocationLimit);
+		emit StorageProviderAllocationLimitRequest(ownerId, _allocationLimit, _dailyAllocation);
 	}
 
 	/**
@@ -325,7 +316,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 		MinerTypes.ChangeBeneficiaryParams memory params;
 
 		params.new_beneficiary = FilAddresses.fromEthAddress(storageProvider.targetPool);
-		params.new_quota = BigInts.fromUint256(_allocationLimit);
+		params.new_quota = BigInts.fromUint256(_repaymentAmount);
 		params.new_expiration = CommonTypes.ChainEpoch.wrap(storageProvider.lastEpoch);
 
 		MinerAPI.changeBeneficiary(minerId, params);
@@ -337,7 +328,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 
 		delete allocationRequests[_ownerId];
 
-		emit StorageProviderAllocationLimitUpdate(_ownerId, _allocationLimit);
+		emit StorageProviderAllocationLimitUpdate(_ownerId, _allocationLimit, _dailyAllocation, _repaymentAmount);
 	}
 
 	/**
@@ -436,6 +427,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 		StorageProviderTypes.SPAllocation storage spAllocation = allocations[_ownerId];
 
 		require(totalDailyUsage <= spAllocation.dailyAllocation, "DAILY_ALLOCATION_OVERFLOW");
+		// require(spAllocation.usedAllocation + _allocated <= spAllocation.allocationLimit, "TOTAL_ALLOCATION_OVERFLOW");
 
 		spAllocation.usedAllocation = spAllocation.usedAllocation + _allocated;
 		dailyUsages[dateHash] += _allocated;
@@ -466,6 +458,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 	 */
 	function registerPool(address _pool) public {
 		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
+		require(_pool != address(0), "INVALID_ADDRESS");
 
 		pools[_pool] = true;
 
