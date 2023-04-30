@@ -43,7 +43,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	uint256 private constant MAX_TIME_PERIOD = 360 days;
 	uint256 private constant SAMPLE_DAILY_ALLOCATION = MAX_ALLOCATION / 30;
 
-	uint256 public collateralRequirements = 1500;
+	uint256 public baseCollateralRequirements = 1500;
 	uint256 public constant BASIS_POINTS = 10000;
 
 	function setUp() public {
@@ -70,7 +70,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 			MAX_TIME_PERIOD
 		);
 
-		collateral = new StorageProviderCollateralMock(wfil, address(registry));
+		collateral = new StorageProviderCollateralMock(wfil, address(registry), baseCollateralRequirements);
 		callerMock = new StorageProviderCollateralCallerMock(address(collateral));
 		registryCallerMock = new StorageProviderRegistryCallerMock(address(registry));
 
@@ -171,7 +171,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		// call via mock contract
 		callerMock.lock(aliceOwnerId, amount);
 
-		uint256 lockedAmount = (amount * collateralRequirements) / BASIS_POINTS;
+		uint256 lockedAmount = (amount * baseCollateralRequirements) / BASIS_POINTS;
 		assertEq(collateral.getLockedCollateral(aliceOwnerId), lockedAmount);
 
 		require(wfil.balanceOf(address(collateral)) == amount, "INVALID_BALANCE");
@@ -192,7 +192,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		// call via mock contract
 		callerMock.lock(aliceOwnerId, SAMPLE_DAILY_ALLOCATION);
 
-		uint256 lockedAmount = Math.mulDiv(SAMPLE_DAILY_ALLOCATION, collateralRequirements, BASIS_POINTS);
+		uint256 lockedAmount = Math.mulDiv(SAMPLE_DAILY_ALLOCATION, baseCollateralRequirements, BASIS_POINTS);
 		uint256 availableAmount = SAMPLE_DAILY_ALLOCATION - lockedAmount;
 		assertEq(collateral.getLockedCollateral(aliceOwnerId), lockedAmount);
 		assertEq(collateral.getAvailableCollateral(aliceOwnerId), availableAmount);
@@ -232,7 +232,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		// call via mock contract
 		callerMock.lock(aliceOwnerId, SAMPLE_DAILY_ALLOCATION);
 
-		uint256 lockedAmount = Math.mulDiv(SAMPLE_DAILY_ALLOCATION, collateralRequirements, BASIS_POINTS);
+		uint256 lockedAmount = Math.mulDiv(SAMPLE_DAILY_ALLOCATION, baseCollateralRequirements, BASIS_POINTS);
 		uint256 availableAmount = SAMPLE_DAILY_ALLOCATION - lockedAmount;
 		assertEq(collateral.getLockedCollateral(aliceOwnerId), lockedAmount);
 		assertEq(collateral.getAvailableCollateral(aliceOwnerId), availableAmount);
@@ -244,7 +244,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 
 		callerMock.fit(aliceOwnerId);
 
-		uint256 adjAmt = Math.mulDiv(additionalAllocation, collateralRequirements, BASIS_POINTS);
+		uint256 adjAmt = Math.mulDiv(additionalAllocation, baseCollateralRequirements, BASIS_POINTS);
 		emit log_named_uint("adjAmt:", adjAmt);
 
 		lockedAmount = lockedAmount + adjAmt;
@@ -294,7 +294,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		// call via mock contract
 		callerMock.lock(aliceOwnerId, amount);
 
-		uint256 lockedAmount = (amount * collateralRequirements) / BASIS_POINTS;
+		uint256 lockedAmount = (amount * baseCollateralRequirements) / BASIS_POINTS;
 		assertEq(collateral.getLockedCollateral(aliceOwnerId), lockedAmount);
 
 		require(wfil.balanceOf(address(collateral)) == amount, "INVALID_BALANCE");
@@ -330,7 +330,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		hevm.assume(amount > 1 ether && amount <= SAMPLE_DAILY_ALLOCATION);
 		hevm.deal(alice, amount);
 
-		uint256 lockedAmount = (amount * collateralRequirements) / BASIS_POINTS;
+		uint256 lockedAmount = (amount * baseCollateralRequirements) / BASIS_POINTS;
 
 		hevm.startPrank(alice);
 		collateral.deposit{value: lockedAmount}(aliceOwnerId);

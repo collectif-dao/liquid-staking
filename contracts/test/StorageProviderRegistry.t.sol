@@ -63,7 +63,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			MAX_TIME_PERIOD
 		);
 
-		collateral = new StorageProviderCollateralMock(wfil, address(registry));
+		collateral = new StorageProviderCollateralMock(wfil, address(registry), 1500);
 		registry.setCollateralAddress(address(collateral));
 		staking.setRegistryAddress(address(registry));
 		registry.registerPool(address(staking));

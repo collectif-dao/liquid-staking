@@ -19,7 +19,7 @@ localnet = "${LOCALNET_RPC_URL}"
 
 [fuzz]
 runs = 1024
-max_test_rejects = 170000
+max_test_rejects = 2500000
 
 [invariant]
 runs = 256

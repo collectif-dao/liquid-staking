@@ -10,11 +10,16 @@ import {BigInts} from "filecoin-solidity/contracts/v0.8/utils/BigInts.sol";
 
 contract MinerAPICallerMock {
 	bytes public owner;
+	bytes public proposed;
 	uint64 public sectorSize;
 
 	function getOwner(uint64 target) public {
 		CommonTypes.FilActorId actorId = CommonTypes.FilActorId.wrap(target);
-		owner = MinerAPI.getOwner(actorId).owner.data;
+
+		MinerTypes.GetOwnerReturn memory ownerReturn = MinerAPI.getOwner(actorId);
+
+		owner = ownerReturn.owner.data;
+		proposed = ownerReturn.proposed.data;
 	}
 
 	function getSectorSize(uint64 target) public {

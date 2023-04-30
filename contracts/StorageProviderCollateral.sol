@@ -205,16 +205,10 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	 * @param _ownerId Storage Provider owner address
 	 */
 	function calcMaximumWithdraw(uint64 _ownerId) internal returns (uint256, uint256, bool) {
-		(, , uint256 usedAllocation, , uint256 accruedRewards, uint256 repaidPledge) = registry.allocations(_ownerId);
+		(, , uint256 usedAllocation, , , uint256 repaidPledge) = registry.allocations(_ownerId);
 
 		uint256 _collateralRequirements = collateralRequirements[_ownerId];
-		uint256 requirements = calcCollateralRequirements(
-			usedAllocation,
-			accruedRewards,
-			repaidPledge,
-			0,
-			_collateralRequirements
-		);
+		uint256 requirements = calcCollateralRequirements(usedAllocation, repaidPledge, 0, _collateralRequirements);
 		SPCollateral memory collateral = collaterals[_ownerId];
 
 		emit log_named_uint("collateral.lockedCollateral:", collateral.lockedCollateral);
@@ -242,8 +236,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	 * @param _allocated Hypothetical allocation for SP
 	 */
 	function _rebalance(uint64 _ownerId, uint256 _allocated) internal {
-		(uint256 allocationLimit, , uint256 usedAllocation, , uint256 accruedRewards, uint256 repaidPledge) = registry
-			.allocations(_ownerId);
+		(uint256 allocationLimit, , uint256 usedAllocation, , , uint256 repaidPledge) = registry.allocations(_ownerId);
 
 		if (_allocated > 0) {
 			require(usedAllocation + _allocated <= allocationLimit, "ALLOCATION_OVERFLOW");
@@ -251,7 +244,6 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 		uint256 _collateralRequirements = collateralRequirements[_ownerId];
 		uint256 totalRequirements = calcCollateralRequirements(
 			usedAllocation,
-			accruedRewards,
 			repaidPledge,
 			_allocated,
 			_collateralRequirements
@@ -284,20 +276,18 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	 * @notice Calculates total collateral requirements for SP depending on the
 	 * total used FIL allocation and locked rewards.
 	 * @param _usedAllocation Already used FIL allocation by Storage Provider
-	 * @param _accruedRewards Accured rewards by SP
 	 * @param _repaidPledge Repaid pledge by SP
 	 * @param _allocationToUse Allocation to be used by SP
 	 * @param _collateralRequirements Percentage of collateral coverage
 	 */
 	function calcCollateralRequirements(
 		uint256 _usedAllocation,
-		uint256 _accruedRewards,
 		uint256 _repaidPledge,
 		uint256 _allocationToUse,
 		uint256 _collateralRequirements
 	) internal pure returns (uint256) {
 		uint256 usedAllocation = _allocationToUse > 0 ? _usedAllocation + _allocationToUse : _usedAllocation;
-		uint256 req = (usedAllocation - _accruedRewards) - _repaidPledge;
+		uint256 req = usedAllocation - _repaidPledge;
 
 		if (req > 0) {
 			return req.mulDivDown(_collateralRequirements, BASIS_POINTS);

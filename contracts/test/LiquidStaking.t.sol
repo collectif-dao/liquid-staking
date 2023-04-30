@@ -45,7 +45,7 @@ contract LiquidStakingTest is DSTestPlus {
 	uint256 private constant MAX_TIME_PERIOD = 360 days;
 	uint256 private constant SAMPLE_DAILY_ALLOCATION = MAX_ALLOCATION / 30;
 
-	uint256 public collateralRequirements = 1500;
+	uint256 public baseCollateralRequirements = 1500;
 	uint256 public constant BASIS_POINTS = 10000;
 	uint256 private constant genesisEpoch = 56576;
 	uint256 private constant preCommitDeposit = 95700000000000000;
@@ -80,7 +80,7 @@ contract LiquidStakingTest is DSTestPlus {
 			MAX_TIME_PERIOD
 		);
 
-		collateral = new StorageProviderCollateralMock(wfil, address(registry));
+		collateral = new StorageProviderCollateralMock(wfil, address(registry), baseCollateralRequirements);
 
 		router = new StakingRouter("Collective DAO Router", wfil);
 
@@ -258,7 +258,7 @@ contract LiquidStakingTest is DSTestPlus {
 
 	function testPledge(uint128 amount) public {
 		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
-		uint256 collateralAmount = (amount * collateralRequirements) / BASIS_POINTS;
+		uint256 collateralAmount = (amount * baseCollateralRequirements) / BASIS_POINTS;
 
 		hevm.deal(address(this), amount);
 		hevm.deal(alice, collateralAmount);
@@ -285,7 +285,7 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.deal(address(minerActor), withdrawAmount);
 
 		uint256 dailyAllocation = amount / 30;
-		uint256 collateralAmount = (dailyAllocation * collateralRequirements) / BASIS_POINTS;
+		uint256 collateralAmount = (dailyAllocation * baseCollateralRequirements) / BASIS_POINTS;
 		hevm.deal(alice, collateralAmount);
 
 		hevm.prank(alice);
@@ -315,7 +315,7 @@ contract LiquidStakingTest is DSTestPlus {
 		require(wfil.balanceOf(rewardCollector) == protocolFees, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount + stakingShare, "INVALID_BALANCE");
 
-		collateralAmount = ((dailyAllocation - stakingShare) * collateralRequirements) / BASIS_POINTS;
+		collateralAmount = (dailyAllocation * baseCollateralRequirements) / BASIS_POINTS;
 		require(collateral.getLockedCollateral(aliceOwnerId) == collateralAmount, "INVALID_LOCKED_COLLATERAL");
 	}
 
@@ -324,7 +324,7 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.deal(address(this), amount);
 
 		uint256 dailyAllocation = amount / 30;
-		uint256 collateralAmount = (dailyAllocation * collateralRequirements) / BASIS_POINTS;
+		uint256 collateralAmount = (dailyAllocation * baseCollateralRequirements) / BASIS_POINTS;
 		hevm.deal(address(minerActor), collateralAmount);
 
 		hevm.prank(alice);
@@ -355,7 +355,7 @@ contract LiquidStakingTest is DSTestPlus {
 
 	function testWithdrawPledgeReverts(uint256 amount) public {
 		hevm.assume(amount < MAX_ALLOCATION && amount > 1 ether);
-		uint256 collateralAmount = (amount * collateralRequirements) / BASIS_POINTS;
+		uint256 collateralAmount = (amount * baseCollateralRequirements) / BASIS_POINTS;
 		hevm.deal(address(this), amount);
 		hevm.deal(address(minerActor), collateralAmount + 1);
 
@@ -379,7 +379,7 @@ contract LiquidStakingTest is DSTestPlus {
 
 	function testWithdrawRewardsWithRestaking(uint256 amount) public {
 		hevm.assume(amount != 0 && amount < MAX_ALLOCATION && amount > 1 ether);
-		uint256 collateralAmount = (amount * collateralRequirements) / BASIS_POINTS;
+		uint256 collateralAmount = (amount * baseCollateralRequirements) / BASIS_POINTS;
 		hevm.deal(address(this), amount);
 		hevm.deal(alice, collateralAmount);
 
@@ -427,7 +427,7 @@ contract LiquidStakingTest is DSTestPlus {
 
 	function testReportSlashing(uint128 amount) public {
 		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
-		uint256 collateralAmount = (amount * collateralRequirements) / BASIS_POINTS;
+		uint256 collateralAmount = (amount * baseCollateralRequirements) / BASIS_POINTS;
 
 		hevm.deal(address(this), amount);
 		hevm.deal(alice, collateralAmount);
@@ -458,7 +458,7 @@ contract LiquidStakingTest is DSTestPlus {
 
 	function testReportSlashingReverts(uint128 amount) public {
 		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
-		uint256 collateralAmount = (amount * collateralRequirements) / BASIS_POINTS;
+		uint256 collateralAmount = (amount * baseCollateralRequirements) / BASIS_POINTS;
 
 		hevm.deal(address(this), amount);
 		hevm.deal(alice, collateralAmount);
@@ -477,7 +477,7 @@ contract LiquidStakingTest is DSTestPlus {
 
 	function testReportSlashingRevertsInvalidAccess(uint128 amount) public {
 		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
-		uint256 collateralAmount = (amount * collateralRequirements) / BASIS_POINTS;
+		uint256 collateralAmount = (amount * baseCollateralRequirements) / BASIS_POINTS;
 
 		hevm.deal(address(this), amount);
 		hevm.deal(alice, collateralAmount);
@@ -558,7 +558,7 @@ contract LiquidStakingTest is DSTestPlus {
 
 	function testReportRecovery(uint128 amount) public {
 		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
-		uint256 collateralAmount = (amount * collateralRequirements) / BASIS_POINTS;
+		uint256 collateralAmount = (amount * baseCollateralRequirements) / BASIS_POINTS;
 
 		hevm.deal(address(this), amount);
 		hevm.deal(alice, collateralAmount);
