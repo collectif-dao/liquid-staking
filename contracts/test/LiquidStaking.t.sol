@@ -555,4 +555,45 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.expectRevert("ACTIVE_SLASHING");
 		staking.pledge(pledgeAmt);
 	}
+
+	function testReportRecovery(uint128 amount) public {
+		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
+		uint256 collateralAmount = (amount * collateralRequirements) / BASIS_POINTS;
+
+		hevm.deal(address(this), amount);
+		hevm.deal(alice, collateralAmount);
+
+		hevm.prank(alice);
+		collateral.deposit{value: collateralAmount}(aliceOwnerId);
+
+		staking.stake{value: amount}();
+
+		hevm.prank(alice);
+		staking.pledge(amount);
+
+		uint256 slashingAmt = (collateralAmount * 5000) / BASIS_POINTS;
+		staking.reportSlashing(aliceOwnerId, slashingAmt);
+
+		assertEq(collateral.getLockedCollateral(aliceOwnerId), collateralAmount - slashingAmt);
+		assertEq(collateral.slashings(aliceOwnerId), slashingAmt);
+		assertBoolEq(staking.activeSlashings(aliceOwnerId), true);
+
+		staking.reportRecovery(aliceOwnerId);
+		assertBoolEq(staking.activeSlashings(aliceOwnerId), false);
+	}
+
+	function testReportRecoveryReverts(uint128 amount) public {
+		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
+
+		hevm.expectRevert("NO_ACTIVE_SLASHINGS");
+		staking.reportRecovery(aliceOwnerId);
+	}
+
+	function testReportRecoveryRevertsWithInvalidAccess(uint128 amount) public {
+		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
+
+		hevm.prank(alice);
+		hevm.expectRevert("INVALID_ACCESS");
+		staking.reportRecovery(aliceOwnerId);
+	}
 }

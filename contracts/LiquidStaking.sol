@@ -220,7 +220,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 	 */
 	function reportRecovery(uint64 _ownerId) external virtual nonReentrant {
 		require(hasRole(SLASHING_AGENT, msg.sender), "INVALID_ACCESS");
-		require(activeSlashings[_ownerId], "INACTIVE_SLASHINGS");
+		require(activeSlashings[_ownerId], "NO_ACTIVE_SLASHINGS");
 		(, , uint64 minerId, ) = registry.getStorageProvider(_ownerId);
 
 		activeSlashings[_ownerId] = false;
