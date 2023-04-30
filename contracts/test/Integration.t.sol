@@ -158,11 +158,7 @@ contract IntegrationTest is DSTestPlus {
 		vars.totalRewardsPerDay = calculateRewardsForSectors(vars.newSectors);
 		vars.availableRewardsPerDay = (vars.totalRewardsPerDay * 2500) / BASIS_POINTS;
 		vars.revenuePerDay = (vars.availableRewardsPerDay * profitShare) / BASIS_POINTS;
-		// vars.lockedRewardsPerDay = vars.totalRewardsPerDay - vars.availableRewardsPerDay;
-
 		vars.totalSectors = vars.newSectors * ALICE_ALLOCATION_PERIOD;
-
-		// vars.totalRewards = vars.totalRewardsPerDay * ALICE_ALLOCATION_PERIOD;
 		vars.totalAvailableRewards = vars.availableRewardsPerDay * ALICE_ALLOCATION_PERIOD;
 
 		hevm.deal(address(minerActor), vars.totalAvailableRewards);
@@ -189,7 +185,7 @@ contract IntegrationTest is DSTestPlus {
 				uint256 rewardsDelta = vars.totalAvailableRewards - (vars.availableRewardsPerDay * (i));
 
 				require(address(minerActor).balance == rewardsDelta, "INVALID_MINER_ACTOR_BALANCE_AFTER_WITHDRAWAL");
-				require(staking.totalAssets() == totalAllocation + (vars.revenuePerDay * (i)), "INVALID_LSP_ASSETS_2");
+				require(staking.totalAssets() == totalAllocation + (vars.revenuePerDay * (i)), "INVALID_LSP_ASSETS");
 				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
 				require(
 					collateral.getLockedCollateral(aliceOwnerId) == collateralRequirements,
@@ -287,7 +283,7 @@ contract IntegrationTest is DSTestPlus {
 				uint256 rewardsDelta = vars.totalAvailableRewards - (vars.availableRewardsPerDay * (i));
 
 				require(address(minerActor).balance == rewardsDelta, "INVALID_MINER_ACTOR_BALANCE_AFTER_WITHDRAWAL");
-				require(staking.totalAssets() == totalAllocation + (vars.revenuePerDay * (i)), "INVALID_LSP_ASSETS_2");
+				require(staking.totalAssets() == totalAllocation + (vars.revenuePerDay * (i)), "INVALID_LSP_ASSETS");
 				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
 				require(
 					collateral.getLockedCollateral(aliceOwnerId) == collateralRequirements,
@@ -374,11 +370,6 @@ contract IntegrationTest is DSTestPlus {
 			);
 
 			if (i == slashingDay) {
-				emit log_named_uint(
-					"collateral.getLockedCollateral before:",
-					collateral.getLockedCollateral(aliceOwnerId)
-				);
-
 				staking.reportSlashing(aliceOwnerId, slashingAmt);
 
 				uint256 lockedCol = collateralRequirements > slashingAmt
@@ -432,6 +423,119 @@ contract IntegrationTest is DSTestPlus {
 					"INVALID_LOCKED_COLLATERAL"
 				);
 			} else if (i == 0) {
+				require(staking.totalAssets() == totalAllocation, "INVALID_LSP_ASSETS");
+				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
+			}
+		}
+	}
+
+	function testIncreaseProfitShareAndCollateralRequirements(uint256 totalAllocation) public {
+		hevm.assume(totalAllocation > ALICE_TOTAL_ALLOCATION && totalAllocation <= MAX_ALLOCATION);
+		hevm.deal(staker, totalAllocation);
+
+		TestExecutionLocalVars memory vars;
+
+		vars.dailyAllocation = totalAllocation / ALICE_ALLOCATION_PERIOD;
+		vars.hypotheticalRepayment = (totalAllocation * 15000) / BASIS_POINTS;
+
+		hevm.prank(alice);
+		registry.requestAllocationLimitUpdate(totalAllocation, vars.dailyAllocation);
+		registry.updateAllocationLimit(aliceOwnerId, totalAllocation, vars.dailyAllocation, vars.hypotheticalRepayment);
+
+		hevm.prank(staker);
+		staking.stake{value: totalAllocation}();
+
+		require(staking.balanceOf(address(staker)) == totalAllocation, "INVALID_STAKER_CLFIL_BALANCE");
+		require(wfil.balanceOf(address(staker)) == 0, "INVALID_STAKER_WFIL_BALANCE");
+		require(staker.balance == 0, "INVALID_STAKER_FIL_BALANCE");
+		require(wfil.balanceOf(address(staking)) == totalAllocation, "INVALID_LSP_WFIL_BALANCE");
+		require(staking.totalAssets() == totalAllocation, "INVALID_LSP_ASSETS");
+
+		vars.targetCollateral = (totalAllocation * collateral.collateralRequirements(aliceOwnerId)) / BASIS_POINTS;
+		hevm.deal(alice, vars.targetCollateral);
+
+		hevm.prank(alice);
+		collateral.deposit{value: vars.targetCollateral}(aliceOwnerId);
+
+		require(alice.balance == 0, "INVALID_ALICE_BALANCE_AFTER_cDEPOSIT");
+
+		vars.newSectors = calculateNumSectors(vars.dailyAllocation);
+
+		vars.totalRewardsPerDay = calculateRewardsForSectors(vars.newSectors);
+		vars.availableRewardsPerDay = (vars.totalRewardsPerDay * 2500) / BASIS_POINTS;
+		vars.revenuePerDay = (vars.availableRewardsPerDay * profitShare) / BASIS_POINTS;
+		vars.totalSectors = vars.newSectors * ALICE_ALLOCATION_PERIOD;
+		vars.totalAvailableRewards = vars.availableRewardsPerDay * ALICE_ALLOCATION_PERIOD;
+
+		hevm.deal(address(minerActor), vars.totalAvailableRewards);
+
+		uint256 profitShareUpdate = 4000;
+		uint256 collateralRequirementsUpdate = 2500;
+		uint256 updatedRevenue = (vars.availableRewardsPerDay * profitShareUpdate) / BASIS_POINTS;
+
+		for (uint256 i = 0; i < ALICE_ALLOCATION_PERIOD; i++) {
+			uint256 timeDelta = ONE_DAY * i;
+
+			hevm.warp(genesisTimestamp + timeDelta);
+
+			hevm.prank(alice);
+			staking.pledge(vars.dailyAllocation);
+			vars.totalAllocated = vars.totalAllocated + vars.dailyAllocation;
+
+			uint256 collateralRequirements = (vars.totalAllocated * collateral.collateralRequirements(aliceOwnerId)) /
+				BASIS_POINTS;
+
+			require(alice.balance == vars.totalAllocated, "INVALID_ALICE_BALANCE_AFTER_PLEDGE");
+			require(
+				collateral.getLockedCollateral(aliceOwnerId) == collateralRequirements,
+				"INVALID_LOCKED_COLLATERAL"
+			);
+
+			if (i == 70) {
+				staking.updateProfitShare(aliceOwnerId, profitShareUpdate);
+				collateral.updateCollateralRequirements(aliceOwnerId, collateralRequirementsUpdate);
+			}
+
+			if (i > 0) {
+				staking.withdrawRewards(aliceOwnerId, vars.availableRewardsPerDay);
+				uint256 rewardsDelta = vars.totalAvailableRewards - (vars.availableRewardsPerDay * (i));
+
+				if (i >= 70) {
+					uint256 accuredRevenue = vars.revenuePerDay * 69;
+					collateralRequirements = (vars.totalAllocated * collateralRequirementsUpdate) / BASIS_POINTS;
+
+					require(
+						staking.totalAssets() == totalAllocation + accuredRevenue + (updatedRevenue * (i - 69)),
+						"INVALID_LSP_ASSETS"
+					);
+					require(
+						collateral.getLockedCollateral(aliceOwnerId) == collateralRequirements,
+						"INVALID_LOCKED_COLLATERAL"
+					);
+					require(
+						wfil.balanceOf(address(staking)) ==
+							totalAllocation - vars.totalAllocated + accuredRevenue + (updatedRevenue * (i - 69)),
+						"INVALID_LSP_WFIL_BALANCE"
+					);
+				} else {
+					require(
+						staking.totalAssets() == totalAllocation + (vars.revenuePerDay * (i)),
+						"INVALID_LSP_ASSETS"
+					);
+					require(
+						collateral.getLockedCollateral(aliceOwnerId) == collateralRequirements,
+						"INVALID_LOCKED_COLLATERAL"
+					);
+					require(
+						wfil.balanceOf(address(staking)) ==
+							totalAllocation - vars.totalAllocated + (vars.revenuePerDay * (i)),
+						"INVALID_LSP_WFIL_BALANCE"
+					);
+				}
+
+				require(address(minerActor).balance == rewardsDelta, "INVALID_MINER_ACTOR_BALANCE_AFTER_WITHDRAWAL");
+				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
+			} else {
 				require(staking.totalAssets() == totalAllocation, "INVALID_LSP_ASSETS");
 				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
 			}
