@@ -7,6 +7,7 @@ import {MinerTypes} from "filecoin-solidity/contracts/v0.8/types/MinerTypes.sol"
 import {CommonTypes} from "filecoin-solidity/contracts/v0.8/types/CommonTypes.sol";
 import {FilAddresses} from "filecoin-solidity/contracts/v0.8/utils/FilAddresses.sol";
 import {BigInts} from "filecoin-solidity/contracts/v0.8/utils/BigInts.sol";
+import {FilAddress} from "fevmate/utils/FilAddress.sol";
 
 contract MinerAPICallerMock {
 	bytes public owner;
@@ -82,5 +83,11 @@ contract MinerAPICallerMock {
 		CommonTypes.FilAddress memory fAddr = FilAddresses.fromBytes(addrBytes);
 
 		return PrecompilesAPI.resolveAddress(fAddr);
+	}
+
+	function normalizeAddress() public returns (address) {
+		lastMsgSender = msg.sender;
+
+		return FilAddress.normalize(msg.sender);
 	}
 }
