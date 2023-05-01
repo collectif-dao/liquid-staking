@@ -388,6 +388,8 @@ contract IntegrationTest is DSTestPlus {
 				assertEq(collateral.slashings(aliceOwnerId), slashingAmt);
 				assertBoolEq(staking.activeSlashings(aliceOwnerId), true);
 
+				uint256 debt = collateral.getDebt(aliceOwnerId);
+
 				// Try to pledge daily allocation after slashing
 				hevm.prank(alice);
 				hevm.expectRevert("ACTIVE_SLASHING");
@@ -595,13 +597,11 @@ contract IntegrationTest is DSTestPlus {
 		uint256 restakingAmt = (vars.availableRewardsPerDay * restakingRatio) / BASIS_POINTS;
 		uint256 clFILShares;
 		uint256 totalclFILShares;
-		emit log_named_uint("restakingAmt:", restakingAmt);
 
 		hevm.prank(alice);
 		registry.setRestaking(restakingRatio, restakingAddr);
 
 		for (uint256 i = 0; i < ALICE_ALLOCATION_PERIOD; i++) {
-			emit log_named_uint("day:", i);
 			uint256 timeDelta = ONE_DAY * i;
 			hevm.warp(genesisTimestamp + timeDelta);
 

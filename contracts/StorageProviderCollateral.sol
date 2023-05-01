@@ -203,12 +203,28 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 		return collaterals[_ownerId].lockedCollateral;
 	}
 
+	function getDebt(uint64 _ownerId) public view returns (uint256) {
+		(, , uint256 usedAllocation, , , uint256 repaidPledge) = registry.allocations(_ownerId);
+
+		uint256 _collateralRequirements = collateralRequirements[_ownerId];
+		uint256 requirements = calcCollateralRequirements(usedAllocation, repaidPledge, 0, _collateralRequirements);
+		SPCollateral memory collateral = collaterals[_ownerId];
+
+		(uint256 adjAmt, bool isUnlock) = calcCollateralAdjustment(collateral.lockedCollateral, requirements);
+
+		if (!isUnlock) {
+			return adjAmt;
+		}
+
+		return 0;
+	}
+
 	/**
 	 * @notice Calculates max collateral withdrawal amount for SP depending on the
 	 * total used FIL allocation and locked rewards.
 	 * @param _ownerId Storage Provider owner address
 	 */
-	function calcMaximumWithdraw(uint64 _ownerId) internal returns (uint256, uint256, bool) {
+	function calcMaximumWithdraw(uint64 _ownerId) internal view returns (uint256, uint256, bool) {
 		(, , uint256 usedAllocation, , , uint256 repaidPledge) = registry.allocations(_ownerId);
 
 		uint256 _collateralRequirements = collateralRequirements[_ownerId];
