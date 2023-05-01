@@ -103,17 +103,25 @@ contract MinerAPICallerMock {
 	}
 
 	function checkOwnership2(uint64 _minerId) public {
-		address ownerAddr = FilAddress.normalize(msg.sender);
-		bytes memory ownerAddrBytes = abi.encodePacked(ownerAddr);
-		CommonTypes.FilAddress memory ownerFilAddr = FilAddresses.fromBytes(ownerAddrBytes);
+		address ownerAddr = FilAddress.normalize(msg.sender); // 0xFf00000000000000000000009bd
+		bytes memory ownerAddrBytes = abi.encodePacked(ownerAddr); // 0xFf00000000000000000000009bd
+		CommonTypes.FilAddress memory ownerFilAddr = FilAddresses.fromBytes(ownerAddrBytes); // CommonTypes.FilAddress <- 0xFf00000000000000000000009bd
 
 		CommonTypes.FilActorId actorId = CommonTypes.FilActorId.wrap(_minerId);
 
-		MinerTypes.GetOwnerReturn memory ownerReturn = MinerAPI.getOwner(actorId);
+		MinerTypes.GetOwnerReturn memory ownerReturn = MinerAPI.getOwner(actorId); // 0x009bd
 		require(keccak256(ownerReturn.proposed.data) == keccak256(bytes("0x")), "PROPOSED_NEW_OWNER");
 
-		uint64 ownerId = PrecompilesAPI.resolveAddress(ownerReturn.owner);
-		uint64 msgSenderId = PrecompilesAPI.resolveAddress(ownerFilAddr);
+		uint64 ownerId = PrecompilesAPI.resolveAddress(ownerReturn.owner); //2045
+		uint64 msgSenderId = PrecompilesAPI.resolveAddress(ownerFilAddr); // 2045
 		require(ownerId == msgSenderId, "INVALID_MINER_OWNERSHIP");
+	}
+
+	function isIDAddress() public view returns (bool isID, uint64 idAddr) {
+		(isID, idAddr) = FilAddress.isIDAddress(msg.sender);
+	}
+
+	function getActorID() public view returns (bool isID, uint64 idAddr) {
+		(isID, idAddr) = FilAddress.getActorID(msg.sender);
 	}
 }
