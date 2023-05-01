@@ -109,10 +109,10 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 		CommonTypes.FilActorId actorId = CommonTypes.FilActorId.wrap(_minerId);
 
 		MinerTypes.GetOwnerReturn memory ownerReturn = MinerAPI.getOwner(actorId);
-		require(keccak256(ownerReturn.proposed.data) == keccak256(bytes("0x00")), "PROPOSED_NEW_OWNER");
+		require(keccak256(ownerReturn.proposed.data) == keccak256(bytes("0x")), "PROPOSED_NEW_OWNER");
 
 		uint64 ownerId = PrecompilesAPI.resolveAddress(ownerReturn.owner);
-		uint64 msgSenderId = PrecompilesAPI.resolveEthAddress(msg.sender);
+		uint64 msgSenderId = PrecompilesAPI.resolveEthAddress(msg.sender); // f4 eth address
 		require(ownerId == msgSenderId, "INVALID_MINER_OWNERSHIP");
 		require(!storageProviders[ownerId].onboarded, "ALREADY_REGISTERED");
 
@@ -165,9 +165,9 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 		CommonTypes.FilActorId actorId = CommonTypes.FilActorId.wrap(_minerId);
 
 		MinerTypes.GetOwnerReturn memory ownerReturn = MinerAPI.getOwner(actorId);
-		require(keccak256(bytes("")) == keccak256(ownerReturn.proposed.data), "PROPOSED_NEW_OWNER");
+		require(keccak256(bytes("0x")) == keccak256(ownerReturn.proposed.data), "PROPOSED_NEW_OWNER");
 
-		uint64 ownerId = PrecompilesAPI.resolveAddress(ownerReturn.owner);
+		uint64 ownerId = PrecompilesAPI.resolveAddress(ownerReturn.owner); // decimal uint64
 
 		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[ownerId];
 		StorageProviderTypes.SPAllocation storage spAllocation = allocations[ownerId];

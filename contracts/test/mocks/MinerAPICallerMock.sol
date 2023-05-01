@@ -13,6 +13,9 @@ contract MinerAPICallerMock {
 	bytes public proposed;
 	uint64 public sectorSize;
 
+	address public lastMsgSender;
+	bytes public lastMsgSenderBytes;
+
 	function getOwner(uint64 target) public {
 		CommonTypes.FilActorId actorId = CommonTypes.FilActorId.wrap(target);
 
@@ -68,5 +71,12 @@ contract MinerAPICallerMock {
 
 	function resolveEthAddress2(address target) public view returns (uint64) {
 		return PrecompilesAPI.resolveEthAddress(target);
+	}
+
+	function resolveBLSAddress() public view returns (uint64) {
+		bytes memory addrBytes = abi.encodePacked(msg.sender);
+		CommonTypes.FilAddress memory fAddr = FilAddresses.fromBytes(addrBytes);
+
+		return PrecompilesAPI.resolveAddress(fAddr);
 	}
 }
