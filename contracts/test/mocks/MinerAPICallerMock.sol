@@ -101,4 +101,19 @@ contract MinerAPICallerMock {
 		uint64 msgSenderId = PrecompilesAPI.resolveEthAddress(msg.sender); // f4 eth address
 		require(ownerId == msgSenderId, "INVALID_MINER_OWNERSHIP");
 	}
+
+	function checkOwnership2(uint64 _minerId) public {
+		address ownerAddr = FilAddress.normalize(msg.sender);
+		bytes memory ownerAddrBytes = abi.encodePacked(ownerAddr);
+		CommonTypes.FilAddress memory ownerFilAddr = FilAddresses.fromBytes(ownerAddrBytes);
+
+		CommonTypes.FilActorId actorId = CommonTypes.FilActorId.wrap(_minerId);
+
+		MinerTypes.GetOwnerReturn memory ownerReturn = MinerAPI.getOwner(actorId);
+		require(keccak256(ownerReturn.proposed.data) == keccak256(bytes("0x")), "PROPOSED_NEW_OWNER");
+
+		uint64 ownerId = PrecompilesAPI.resolveAddress(ownerReturn.owner);
+		uint64 msgSenderId = PrecompilesAPI.resolveAddress(ownerFilAddr);
+		require(ownerId == msgSenderId, "INVALID_MINER_OWNERSHIP");
+	}
 }
