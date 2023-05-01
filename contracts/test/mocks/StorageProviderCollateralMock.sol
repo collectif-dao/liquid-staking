@@ -56,16 +56,12 @@ contract StorageProviderCollateralMock is StorageProviderCollateral {
 
 		(uint256 lockedWithdraw, uint256 availableWithdraw, bool isUnlock) = calcMaximumWithdraw(ownerId);
 		uint256 maxWithdraw = lockedWithdraw + availableWithdraw;
-		emit log_named_uint("maxWithdraw:", maxWithdraw);
-
 		uint256 finalAmount = _amount > maxWithdraw ? maxWithdraw : _amount;
-		emit log_named_uint("finalAmount:", finalAmount);
-
 		uint256 delta;
 
 		if (isUnlock) {
 			delta = finalAmount - lockedWithdraw;
-			emit log_named_uint("delta:", delta);
+
 			collaterals[ownerId].lockedCollateral = collaterals[ownerId].lockedCollateral - lockedWithdraw; // 10 - 2 == 8
 			collaterals[ownerId].availableCollateral = collaterals[ownerId].availableCollateral - delta; // 5 + 1 == 6
 

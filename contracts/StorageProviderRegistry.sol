@@ -8,6 +8,7 @@ import {FilAddresses} from "filecoin-solidity/contracts/v0.8/utils/FilAddresses.
 import {PrecompilesAPI} from "filecoin-solidity/contracts/v0.8/PrecompilesAPI.sol";
 import {BigInts} from "filecoin-solidity/contracts/v0.8/utils/BigInts.sol";
 import {StorageProviderTypes} from "./types/StorageProviderTypes.sol";
+import {FilAddress} from "fevmate/utils/FilAddress.sol";
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
@@ -89,6 +90,14 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 		maxTimePeriod = _maxTimePeriod;
 	}
 
+	struct RegisterLocalVars {
+		address ownerAddr;
+		bool isID;
+		uint64 msgSenderId;
+		uint64 ownerId;
+		uint64 sectorSize;
+	}
+
 	/**
 	 * @notice Register storage provider with `_minerId`, desired `_allocationLimit` and `_targetPool`
 	 * @param _minerId Storage Provider miner ID in Filecoin network
@@ -106,36 +115,41 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 		require(_allocationLimit <= maxAllocation, "INVALID_ALLOCATION");
 		require(pools[_targetPool], "INVALID_TARGET_POOL");
 
+		RegisterLocalVars memory vars;
+
+		vars.ownerAddr = FilAddress.normalize(msg.sender);
+		(vars.isID, vars.msgSenderId) = FilAddress.getActorID(vars.ownerAddr);
+		require(vars.isID, "INACTIVE_ACTOR_ID");
+
 		CommonTypes.FilActorId actorId = CommonTypes.FilActorId.wrap(_minerId);
 
-		MinerTypes.GetOwnerReturn memory ownerReturn = MinerAPI.getOwner(actorId);
-		require(keccak256(ownerReturn.proposed.data) == keccak256(bytes("0x")), "PROPOSED_NEW_OWNER");
+		MinerTypes.GetOwnerReturn memory ownerReturn = MinerAPI.getOwner(actorId); // 0x009bd
+		require(keccak256(ownerReturn.proposed.data) == keccak256(bytes("")), "PROPOSED_NEW_OWNER");
 
-		uint64 ownerId = PrecompilesAPI.resolveAddress(ownerReturn.owner);
-		uint64 msgSenderId = PrecompilesAPI.resolveEthAddress(msg.sender); // f4 eth address
-		require(ownerId == msgSenderId, "INVALID_MINER_OWNERSHIP");
-		require(!storageProviders[ownerId].onboarded, "ALREADY_REGISTERED");
+		vars.ownerId = PrecompilesAPI.resolveAddress(ownerReturn.owner); //2045
+		require(vars.ownerId == vars.msgSenderId, "INVALID_MINER_OWNERSHIP");
+		require(!storageProviders[vars.ownerId].onboarded, "ALREADY_REGISTERED");
 
-		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[ownerId];
+		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[vars.ownerId];
 		storageProvider.minerId = _minerId;
 		storageProvider.targetPool = _targetPool;
 
-		StorageProviderTypes.SPAllocation storage spAllocation = allocations[ownerId];
+		StorageProviderTypes.SPAllocation storage spAllocation = allocations[vars.ownerId];
 		spAllocation.allocationLimit = _allocationLimit;
 		spAllocation.dailyAllocation = _dailyAllocation;
 
-		uint64 sectorSize = MinerAPI.getSectorSize(actorId);
-		sectorSizes[ownerId] = sectorSize;
+		vars.sectorSize = MinerAPI.getSectorSize(actorId);
+		sectorSizes[vars.ownerId] = vars.sectorSize;
 
 		totalStorageProviders.increment();
 		totalInactiveStorageProviders.increment();
 
-		collateral.updateCollateralRequirements(ownerId, 0);
-		ILiquidStakingClient(_targetPool).updateProfitShare(ownerId, 0);
+		collateral.updateCollateralRequirements(vars.ownerId, 0);
+		ILiquidStakingClient(_targetPool).updateProfitShare(vars.ownerId, 0);
 
 		emit StorageProviderRegistered(
 			ownerReturn.owner.data,
-			ownerId,
+			vars.ownerId,
 			_minerId,
 			_targetPool,
 			_allocationLimit,
@@ -165,9 +179,9 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 		CommonTypes.FilActorId actorId = CommonTypes.FilActorId.wrap(_minerId);
 
 		MinerTypes.GetOwnerReturn memory ownerReturn = MinerAPI.getOwner(actorId);
-		require(keccak256(bytes("0x")) == keccak256(ownerReturn.proposed.data), "PROPOSED_NEW_OWNER");
+		require(keccak256(bytes("")) == keccak256(ownerReturn.proposed.data), "PROPOSED_NEW_OWNER");
 
-		uint64 ownerId = PrecompilesAPI.resolveAddress(ownerReturn.owner); // decimal uint64
+		uint64 ownerId = PrecompilesAPI.resolveAddress(ownerReturn.owner);
 
 		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[ownerId];
 		StorageProviderTypes.SPAllocation storage spAllocation = allocations[ownerId];
@@ -187,7 +201,9 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 	 * @notice Transfer beneficiary address of a miner to the target pool
 	 */
 	function changeBeneficiaryAddress() public virtual override {
-		uint64 ownerId = PrecompilesAPI.resolveEthAddress(msg.sender);
+		address ownerAddr = FilAddress.normalize(msg.sender);
+		(bool isID, uint64 ownerId) = FilAddress.getActorID(ownerAddr);
+		require(isID, "INACTIVE_ACTOR_ID");
 
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[ownerId];
 		require(storageProvider.onboarded, "NON_ONBOARDED_SP");
@@ -272,7 +288,10 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 	 * @dev Only triggered by Storage Provider owner
 	 */
 	function requestAllocationLimitUpdate(uint256 _allocationLimit, uint256 _dailyAllocation) public virtual override {
-		uint64 ownerId = PrecompilesAPI.resolveEthAddress(msg.sender);
+		address ownerAddr = FilAddress.normalize(msg.sender);
+		(bool isID, uint64 ownerId) = FilAddress.getActorID(ownerAddr);
+		require(isID, "INACTIVE_ACTOR_ID");
+
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[ownerId];
 		require(storageProvider.active, "INACTIVE_STORAGE_PROVIDER");
 

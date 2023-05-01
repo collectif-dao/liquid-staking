@@ -8,7 +8,7 @@ import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {MinerAPI} from "filecoin-solidity/contracts/v0.8/MinerAPI.sol";
 import {CommonTypes} from "filecoin-solidity/contracts/v0.8/types/CommonTypes.sol";
 import {BigInts} from "filecoin-solidity/contracts/v0.8/utils/BigInts.sol";
-import {PrecompilesAPI} from "filecoin-solidity/contracts/v0.8/PrecompilesAPI.sol";
+import {FilAddress} from "fevmate/utils/FilAddress.sol";
 import {SendAPI} from "filecoin-solidity/contracts/v0.8/SendAPI.sol";
 
 import "./interfaces/ILiquidStaking.sol";
@@ -146,7 +146,9 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 	function pledge(uint256 amount) external virtual nonReentrant {
 		require(amount <= totalAssets(), "PLEDGE_WITHDRAWAL_OVERFLOW");
 
-		uint64 ownerId = PrecompilesAPI.resolveEthAddress(msg.sender);
+		address ownerAddr = FilAddress.normalize(msg.sender);
+		(bool isID, uint64 ownerId) = FilAddress.getActorID(ownerAddr);
+		require(isID, "INACTIVE_ACTOR_ID");
 		require(!activeSlashings[ownerId], "ACTIVE_SLASHING");
 
 		collateral.lock(ownerId, amount);

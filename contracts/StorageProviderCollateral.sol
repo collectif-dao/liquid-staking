@@ -8,7 +8,7 @@ import {StorageProviderTypes} from "./types/StorageProviderTypes.sol";
 import {IWETH9} from "fei-protocol/erc4626/external/PeripheryPayments.sol";
 import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
 import {PrecompilesAPI} from "filecoin-solidity/contracts/v0.8/PrecompilesAPI.sol";
-import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
+import {FilAddress} from "fevmate/utils/FilAddress.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
@@ -24,7 +24,7 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
  * making it a good option for collateralization in the system.
  *
  */
-contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl, ReentrancyGuard, DSTestPlus {
+contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl, ReentrancyGuard {
 	using SafeTransferLib for address;
 	using FixedPointMathLib for uint256;
 
@@ -83,7 +83,9 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 		uint256 amount = msg.value;
 		require(amount > 0, "INVALID_AMOUNT");
 
-		uint64 ownerId = PrecompilesAPI.resolveEthAddress(msg.sender);
+		address ownerAddr = FilAddress.normalize(msg.sender);
+		(bool isID, uint64 ownerId) = FilAddress.getActorID(ownerAddr);
+		require(isID, "INACTIVE_ACTOR_ID");
 		require(registry.isActiveProvider(ownerId), "INACTIVE_STORAGE_PROVIDER");
 
 		SPCollateral storage collateral = collaterals[ownerId];
@@ -102,7 +104,9 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	function withdraw(uint256 _amount) public {
 		require(_amount > 0, "ZERO_AMOUNT");
 
-		uint64 ownerId = PrecompilesAPI.resolveEthAddress(msg.sender);
+		address ownerAddr = FilAddress.normalize(msg.sender);
+		(bool isID, uint64 ownerId) = FilAddress.getActorID(ownerAddr);
+		require(isID, "INACTIVE_ACTOR_ID");
 		require(registry.isActiveProvider(ownerId), "INACTIVE_STORAGE_PROVIDER");
 
 		(uint256 lockedWithdraw, uint256 availableWithdraw, bool isUnlock) = calcMaximumWithdraw(ownerId);
@@ -211,18 +215,10 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 		uint256 requirements = calcCollateralRequirements(usedAllocation, repaidPledge, 0, _collateralRequirements);
 		SPCollateral memory collateral = collaterals[_ownerId];
 
-		emit log_named_uint("collateral.lockedCollateral:", collateral.lockedCollateral);
-		emit log_named_uint("collateral.availableCollateral:", collateral.availableCollateral);
-		emit log_named_uint("requirements:", requirements);
-
 		(uint256 adjAmt, bool isUnlock) = calcCollateralAdjustment(collateral.lockedCollateral, requirements);
-
-		emit log_named_uint("isUnlock:", isUnlock ? 1 : 0);
-		emit log_named_uint("adjAmt before:", adjAmt);
 
 		if (!isUnlock) {
 			adjAmt = collateral.availableCollateral - adjAmt;
-			emit log_named_uint("adjAmt:", collateral.availableCollateral - adjAmt);
 
 			return (0, adjAmt, isUnlock);
 		} else {

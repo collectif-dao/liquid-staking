@@ -92,28 +92,15 @@ contract MinerAPICallerMock {
 	}
 
 	function checkOwnership(uint64 _minerId) public {
+		address ownerAddr = FilAddress.normalize(msg.sender);
+		(, uint64 msgSenderId) = FilAddress.getActorID(ownerAddr);
+
 		CommonTypes.FilActorId actorId = CommonTypes.FilActorId.wrap(_minerId);
 
 		MinerTypes.GetOwnerReturn memory ownerReturn = MinerAPI.getOwner(actorId);
-		require(keccak256(ownerReturn.proposed.data) == keccak256(bytes("0x")), "PROPOSED_NEW_OWNER");
+		require(keccak256(ownerReturn.proposed.data) == keccak256(bytes("")), "PROPOSED_NEW_OWNER");
 
 		uint64 ownerId = PrecompilesAPI.resolveAddress(ownerReturn.owner);
-		uint64 msgSenderId = PrecompilesAPI.resolveEthAddress(msg.sender); // f4 eth address
-		require(ownerId == msgSenderId, "INVALID_MINER_OWNERSHIP");
-	}
-
-	function checkOwnership2(uint64 _minerId) public {
-		address ownerAddr = FilAddress.normalize(msg.sender); // 0xFf00000000000000000000009bd
-		bytes memory ownerAddrBytes = abi.encodePacked(ownerAddr); // 0xFf00000000000000000000009bd
-		CommonTypes.FilAddress memory ownerFilAddr = FilAddresses.fromBytes(ownerAddrBytes); // CommonTypes.FilAddress <- 0xFf00000000000000000000009bd
-
-		CommonTypes.FilActorId actorId = CommonTypes.FilActorId.wrap(_minerId);
-
-		MinerTypes.GetOwnerReturn memory ownerReturn = MinerAPI.getOwner(actorId); // 0x009bd
-		require(keccak256(ownerReturn.proposed.data) == keccak256(bytes("0x")), "PROPOSED_NEW_OWNER");
-
-		uint64 ownerId = PrecompilesAPI.resolveAddress(ownerReturn.owner); //2045
-		uint64 msgSenderId = PrecompilesAPI.resolveAddress(ownerFilAddr); // 2045
 		require(ownerId == msgSenderId, "INVALID_MINER_OWNERSHIP");
 	}
 
