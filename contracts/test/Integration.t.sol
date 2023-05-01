@@ -644,6 +644,105 @@ contract IntegrationTest is DSTestPlus {
 		}
 	}
 
+	function testUnUsedPledge(uint256 totalAllocation) public {
+		hevm.assume(totalAllocation > ALICE_TOTAL_ALLOCATION && totalAllocation <= MAX_ALLOCATION);
+		hevm.deal(staker, totalAllocation);
+
+		TestExecutionLocalVars memory vars;
+
+		vars.dailyAllocation = totalAllocation / ALICE_ALLOCATION_PERIOD;
+		vars.hypotheticalRepayment = (totalAllocation * 15000) / BASIS_POINTS;
+
+		hevm.prank(alice);
+		registry.requestAllocationLimitUpdate(totalAllocation, vars.dailyAllocation);
+		registry.updateAllocationLimit(aliceOwnerId, totalAllocation, vars.dailyAllocation, vars.hypotheticalRepayment);
+
+		hevm.prank(staker);
+		staking.stake{value: totalAllocation}();
+
+		require(staking.balanceOf(address(staker)) == totalAllocation, "INVALID_STAKER_CLFIL_BALANCE");
+		require(wfil.balanceOf(address(staker)) == 0, "INVALID_STAKER_WFIL_BALANCE");
+		require(staker.balance == 0, "INVALID_STAKER_FIL_BALANCE");
+		require(wfil.balanceOf(address(staking)) == totalAllocation, "INVALID_LSP_WFIL_BALANCE");
+		require(staking.totalAssets() == totalAllocation, "INVALID_LSP_ASSETS");
+
+		vars.targetCollateral = (totalAllocation * collateral.collateralRequirements(aliceOwnerId)) / BASIS_POINTS;
+		hevm.deal(alice, vars.targetCollateral);
+
+		hevm.prank(alice);
+		collateral.deposit{value: vars.targetCollateral}(aliceOwnerId);
+
+		require(alice.balance == 0, "INVALID_ALICE_BALANCE_AFTER_cDEPOSIT");
+
+		vars.newSectors = calculateNumSectors(vars.dailyAllocation) / 2;
+
+		vars.totalRewardsPerDay = calculateRewardsForSectors(vars.newSectors);
+		vars.availableRewardsPerDay = (vars.totalRewardsPerDay * 2500) / BASIS_POINTS;
+		vars.revenuePerDay = (vars.availableRewardsPerDay * profitShare) / BASIS_POINTS;
+		// vars.lockedRewardsPerDay = vars.totalRewardsPerDay - vars.availableRewardsPerDay;
+
+		vars.totalSectors = vars.newSectors * ALICE_ALLOCATION_PERIOD;
+
+		// vars.totalRewards = vars.totalRewardsPerDay * ALICE_ALLOCATION_PERIOD;
+		vars.totalAvailableRewards = vars.availableRewardsPerDay * ALICE_ALLOCATION_PERIOD;
+
+		hevm.deal(address(minerActor), totalAllocation/2 + vars.totalAvailableRewards);
+
+		uint256 unPledged = vars.dailyAllocation / 2;
+
+		for (uint256 i = 0; i < ALICE_ALLOCATION_PERIOD; i++) {
+			uint256 timeDelta = ONE_DAY * i;
+			hevm.warp(genesisTimestamp + timeDelta);
+
+			hevm.prank(alice);
+			staking.pledge(vars.dailyAllocation);
+			vars.totalAllocated = vars.totalAllocated + vars.dailyAllocation;
+
+
+			uint256 collateralRequirements;
+
+			if (i == 0) {
+				collateralRequirements = ((vars.totalAllocated) * collateral.collateralRequirements(aliceOwnerId)) / BASIS_POINTS;
+			} else {
+				collateralRequirements = ((vars.totalAllocated - (unPledged * (i-1))) * collateral.collateralRequirements(aliceOwnerId)) / BASIS_POINTS;
+			}
+
+			require(alice.balance == vars.totalAllocated, "INVALID_ALICE_BALANCE_AFTER_PLEDGE");
+			require(
+				collateral.getLockedCollateral(aliceOwnerId) == collateralRequirements,
+				"INVALID_LOCKED_COLLATERAL"
+			);
+
+			if (i > 0) {
+				staking.withdrawRewards(aliceOwnerId, vars.availableRewardsPerDay);
+				uint256 rewardsDelta = vars.totalAvailableRewards - (vars.availableRewardsPerDay * (i));
+
+				staking.withdrawPledge(aliceOwnerId, unPledged);
+				
+				uint256 pledgeDelta = (totalAllocation / 2) - (unPledged * (i));
+
+				collateralRequirements = ((vars.totalAllocated - (unPledged * (i))) * collateral.collateralRequirements(aliceOwnerId)) / BASIS_POINTS;
+
+				require(address(minerActor).balance == rewardsDelta + pledgeDelta, "INVALID_MINER_ACTOR_BALANCE_AFTER_WITHDRAWAL");
+				require(staking.totalAssets() == totalAllocation + (vars.revenuePerDay * (i)), "INVALID_LSP_ASSETS_2");
+				require(staking.totalFilPledged() == vars.totalAllocated - unPledged * (i), "INVALID_LSP_PLEDGED_ASSETS");
+
+				require(
+					collateral.getLockedCollateral(aliceOwnerId) == collateralRequirements,
+					"INVALID_LOCKED_COLLATERAL"
+				);
+				require(
+					wfil.balanceOf(address(staking)) ==
+						totalAllocation - vars.totalAllocated + (vars.revenuePerDay * (i)) + (unPledged * (i)),
+					"INVALID_LSP_WFIL_BALANCE"
+				);
+			} else {
+				require(staking.totalAssets() == totalAllocation, "INVALID_LSP_ASSETS");
+				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
+			}
+		}
+	}
+
 	function calculateNumSectors(uint256 allocation) internal pure returns (uint256) {
 		return allocation / initialPledge;
 	}
