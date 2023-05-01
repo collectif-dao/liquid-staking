@@ -73,8 +73,12 @@ contract MinerAPICallerMock {
 		return PrecompilesAPI.resolveEthAddress(target);
 	}
 
-	function resolveBLSAddress() public view returns (uint64) {
+	function resolveBLSAddress() public returns (uint64) {
 		bytes memory addrBytes = abi.encodePacked(msg.sender);
+
+		lastMsgSender = msg.sender;
+		lastMsgSenderBytes = addrBytes;
+
 		CommonTypes.FilAddress memory fAddr = FilAddresses.fromBytes(addrBytes);
 
 		return PrecompilesAPI.resolveAddress(fAddr);
