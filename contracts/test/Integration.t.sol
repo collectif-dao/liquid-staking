@@ -13,6 +13,7 @@ import {StorageProviderRegistryMock} from "./mocks/StorageProviderRegistryMock.s
 import {IWETH9} from "fei-protocol/erc4626/ERC4626RouterBase.sol";
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
 import {MinerActorMock} from "./mocks/MinerActorMock.sol";
+import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 
@@ -24,6 +25,7 @@ contract IntegrationTest is DSTestPlus {
 	StorageProviderCollateralMock public collateral;
 	StorageProviderRegistryMock public registry;
 	MinerActorMock public minerActor;
+	MinerMockAPI private minerMockAPI;
 
 	bytes public owner;
 	uint64 public aliceOwnerId = 1508;
@@ -66,6 +68,8 @@ contract IntegrationTest is DSTestPlus {
 
 		wfil = IWETH9(address(new WFIL(msg.sender)));
 		minerActor = new MinerActorMock();
+		minerMockAPI = new MinerMockAPI(owner);
+
 		staking = new LiquidStakingMock(
 			address(wfil),
 			address(minerActor),
@@ -73,11 +77,12 @@ contract IntegrationTest is DSTestPlus {
 			adminFee,
 			profitShare,
 			rewardCollector,
-			aliceOwnerAddr
+			aliceOwnerAddr,
+			address(minerMockAPI)
 		);
 
 		registry = new StorageProviderRegistryMock(
-			owner,
+			address(minerMockAPI),
 			aliceOwnerId,
 			MAX_STORAGE_PROVIDERS,
 			MAX_ALLOCATION,
@@ -686,7 +691,7 @@ contract IntegrationTest is DSTestPlus {
 		// vars.totalRewards = vars.totalRewardsPerDay * ALICE_ALLOCATION_PERIOD;
 		vars.totalAvailableRewards = vars.availableRewardsPerDay * ALICE_ALLOCATION_PERIOD;
 
-		hevm.deal(address(minerActor), totalAllocation/2 + vars.totalAvailableRewards);
+		hevm.deal(address(minerActor), totalAllocation / 2 + vars.totalAvailableRewards);
 
 		uint256 unPledged = vars.dailyAllocation / 2;
 
@@ -698,13 +703,16 @@ contract IntegrationTest is DSTestPlus {
 			staking.pledge(vars.dailyAllocation);
 			vars.totalAllocated = vars.totalAllocated + vars.dailyAllocation;
 
-
 			uint256 collateralRequirements;
 
 			if (i == 0) {
-				collateralRequirements = ((vars.totalAllocated) * collateral.collateralRequirements(aliceOwnerId)) / BASIS_POINTS;
+				collateralRequirements =
+					((vars.totalAllocated) * collateral.collateralRequirements(aliceOwnerId)) /
+					BASIS_POINTS;
 			} else {
-				collateralRequirements = ((vars.totalAllocated - (unPledged * (i-1))) * collateral.collateralRequirements(aliceOwnerId)) / BASIS_POINTS;
+				collateralRequirements =
+					((vars.totalAllocated - (unPledged * (i - 1))) * collateral.collateralRequirements(aliceOwnerId)) /
+					BASIS_POINTS;
 			}
 
 			require(alice.balance == vars.totalAllocated, "INVALID_ALICE_BALANCE_AFTER_PLEDGE");
@@ -718,14 +726,22 @@ contract IntegrationTest is DSTestPlus {
 				uint256 rewardsDelta = vars.totalAvailableRewards - (vars.availableRewardsPerDay * (i));
 
 				staking.withdrawPledge(aliceOwnerId, unPledged);
-				
+
 				uint256 pledgeDelta = (totalAllocation / 2) - (unPledged * (i));
 
-				collateralRequirements = ((vars.totalAllocated - (unPledged * (i))) * collateral.collateralRequirements(aliceOwnerId)) / BASIS_POINTS;
+				collateralRequirements =
+					((vars.totalAllocated - (unPledged * (i))) * collateral.collateralRequirements(aliceOwnerId)) /
+					BASIS_POINTS;
 
-				require(address(minerActor).balance == rewardsDelta + pledgeDelta, "INVALID_MINER_ACTOR_BALANCE_AFTER_WITHDRAWAL");
+				require(
+					address(minerActor).balance == rewardsDelta + pledgeDelta,
+					"INVALID_MINER_ACTOR_BALANCE_AFTER_WITHDRAWAL"
+				);
 				require(staking.totalAssets() == totalAllocation + (vars.revenuePerDay * (i)), "INVALID_LSP_ASSETS_2");
-				require(staking.totalFilPledged() == vars.totalAllocated - unPledged * (i), "INVALID_LSP_PLEDGED_ASSETS");
+				require(
+					staking.totalFilPledged() == vars.totalAllocated - unPledged * (i),
+					"INVALID_LSP_PLEDGED_ASSETS"
+				);
 
 				require(
 					collateral.getLockedCollateral(aliceOwnerId) == collateralRequirements,

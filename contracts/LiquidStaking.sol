@@ -7,7 +7,9 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {MinerAPI} from "filecoin-solidity/contracts/v0.8/MinerAPI.sol";
 import {CommonTypes} from "filecoin-solidity/contracts/v0.8/types/CommonTypes.sol";
+import {MinerTypes} from "filecoin-solidity/contracts/v0.8/types/MinerTypes.sol";
 import {BigInts} from "filecoin-solidity/contracts/v0.8/utils/BigInts.sol";
+import {FilAddresses} from "filecoin-solidity/contracts/v0.8/utils/FilAddresses.sol";
 import {FilAddress} from "fevmate/utils/FilAddress.sol";
 import {SendAPI} from "filecoin-solidity/contracts/v0.8/SendAPI.sol";
 
@@ -146,7 +148,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 	function pledge(uint256 amount) external virtual nonReentrant {
 		require(amount <= totalAssets(), "PLEDGE_WITHDRAWAL_OVERFLOW");
 
-		address ownerAddr = FilAddress.normalize(msg.sender);
+		address ownerAddr = FilAddress.normalize(msg.sender); // 0xFf0000000009b4 || 0xEthAddress
 		(bool isID, uint64 ownerId) = FilAddress.getActorID(ownerAddr);
 		require(isID, "INACTIVE_ACTOR_ID");
 		require(!activeSlashings[ownerId], "ACTIVE_SLASHING");
@@ -382,6 +384,33 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 		registry = IStorageProviderRegistryClient(newAddr);
 
 		emit SetRegistryAddress(newAddr);
+	}
+
+	/**
+	 * @notice Triggers changeBeneficiary Miner actor call
+	 * @param minerId Miner actor ID
+	 * @param targetPool LSP smart contract address
+	 * @param quota Total beneficiary quota
+	 * @param expiration Expiration epoch
+	 */
+	function forwardChangeBeneficiary(
+		uint64 minerId,
+		address targetPool,
+		uint256 quota,
+		int64 expiration
+	) external virtual {
+		require(msg.sender == address(registry), "INVALID_ACCESS");
+		require(targetPool == address(this), "INCORRECT_ADDRESS");
+
+		CommonTypes.FilActorId filMinerId = CommonTypes.FilActorId.wrap(minerId);
+
+		MinerTypes.ChangeBeneficiaryParams memory params;
+
+		params.new_beneficiary = FilAddresses.fromEthAddress(targetPool);
+		params.new_quota = BigInts.fromUint256(quota);
+		params.new_expiration = CommonTypes.ChainEpoch.wrap(expiration);
+
+		MinerAPI.changeBeneficiary(filMinerId, params);
 	}
 
 	/**

@@ -6,7 +6,6 @@ import {MinerTypes} from "filecoin-solidity/contracts/v0.8/types/MinerTypes.sol"
 import {CommonTypes} from "filecoin-solidity/contracts/v0.8/types/CommonTypes.sol";
 import {FilAddresses} from "filecoin-solidity/contracts/v0.8/utils/FilAddresses.sol";
 import {PrecompilesAPI} from "filecoin-solidity/contracts/v0.8/PrecompilesAPI.sol";
-import {BigInts} from "filecoin-solidity/contracts/v0.8/utils/BigInts.sol";
 import {StorageProviderTypes} from "./types/StorageProviderTypes.sol";
 import {FilAddress} from "fevmate/utils/FilAddress.sol";
 
@@ -123,7 +122,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 
 		CommonTypes.FilActorId actorId = CommonTypes.FilActorId.wrap(_minerId);
 
-		MinerTypes.GetOwnerReturn memory ownerReturn = MinerAPI.getOwner(actorId); // 0x009bd
+		MinerTypes.GetOwnerReturn memory ownerReturn = MinerAPI.getOwner(actorId); // 0x009b4
 		require(keccak256(ownerReturn.proposed.data) == keccak256(bytes("")), "PROPOSED_NEW_OWNER");
 
 		vars.ownerId = PrecompilesAPI.resolveAddress(ownerReturn.owner); //2045
@@ -208,15 +207,12 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[ownerId];
 		require(storageProvider.onboarded, "NON_ONBOARDED_SP");
 
-		CommonTypes.FilActorId minerId = CommonTypes.FilActorId.wrap(storageProvider.minerId);
-
-		MinerTypes.ChangeBeneficiaryParams memory params;
-
-		params.new_beneficiary = FilAddresses.fromEthAddress(storageProvider.targetPool);
-		params.new_quota = BigInts.fromUint256(allocations[ownerId].repayment);
-		params.new_expiration = CommonTypes.ChainEpoch.wrap(storageProvider.lastEpoch);
-
-		MinerAPI.changeBeneficiary(minerId, params);
+		ILiquidStakingClient(storageProviders[ownerId].targetPool).forwardChangeBeneficiary(
+			storageProvider.minerId,
+			storageProvider.targetPool,
+			allocations[ownerId].repayment,
+			storageProvider.lastEpoch
+		);
 
 		emit StorageProviderBeneficiaryAddressUpdated(storageProvider.targetPool);
 	}
@@ -232,17 +228,15 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_ownerId];
 		require(storageProvider.onboarded, "NON_ONBOARDED_SP");
 
-		CommonTypes.FilActorId minerId = CommonTypes.FilActorId.wrap(storageProvider.minerId);
-
-		MinerTypes.ChangeBeneficiaryParams memory params;
-		params.new_beneficiary = FilAddresses.fromEthAddress(storageProvider.targetPool);
-		params.new_quota = BigInts.fromUint256(allocations[_ownerId].repayment);
-		params.new_expiration = CommonTypes.ChainEpoch.wrap(storageProvider.lastEpoch);
+		ILiquidStakingClient(storageProviders[_ownerId].targetPool).forwardChangeBeneficiary(
+			storageProvider.minerId,
+			storageProvider.targetPool,
+			allocations[_ownerId].repayment,
+			storageProvider.lastEpoch
+		);
 
 		storageProviders[_ownerId].active = true;
 		totalInactiveStorageProviders.decrement();
-
-		MinerAPI.changeBeneficiary(minerId, params);
 
 		emit StorageProviderBeneficiaryAddressAccepted(_ownerId);
 	}
@@ -323,22 +317,20 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 		uint256 _dailyAllocation,
 		uint256 _repaymentAmount
 	) public virtual override activeStorageProvider(_ownerId) {
-		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
+		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS"); // 0xFf0000000000000000009bd -> ID: 2455 -> t02455
 
 		StorageProviderTypes.AllocationRequest memory allocationRequest = allocationRequests[_ownerId];
 		require(allocationRequest.allocationLimit == _allocationLimit, "INVALID_ALLOCATION");
 		require(allocationRequest.dailyAllocation == _dailyAllocation, "INVALID_DAILY_ALLOCATION");
 
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_ownerId];
-		CommonTypes.FilActorId minerId = CommonTypes.FilActorId.wrap(storageProvider.minerId);
 
-		MinerTypes.ChangeBeneficiaryParams memory params;
-
-		params.new_beneficiary = FilAddresses.fromEthAddress(storageProvider.targetPool);
-		params.new_quota = BigInts.fromUint256(_repaymentAmount);
-		params.new_expiration = CommonTypes.ChainEpoch.wrap(storageProvider.lastEpoch);
-
-		MinerAPI.changeBeneficiary(minerId, params);
+		ILiquidStakingClient(storageProviders[_ownerId].targetPool).forwardChangeBeneficiary(
+			storageProvider.minerId,
+			storageProvider.targetPool,
+			_repaymentAmount,
+			storageProvider.lastEpoch
+		);
 
 		StorageProviderTypes.SPAllocation storage spAllocation = allocations[_ownerId];
 		spAllocation.allocationLimit = _allocationLimit;

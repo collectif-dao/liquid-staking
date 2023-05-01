@@ -14,13 +14,15 @@ import "@openzeppelin/contracts/utils/Address.sol";
  * @title Storage Provider Registry Mock contract that works with mock Filecoin Miner API
  * @author Collective DAO
  */
-contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI, DSTestPlus {
+contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 	using Counters for Counters.Counter;
 	using Address for address;
 
 	bytes32 private constant REGISTRY_ADMIN = keccak256("REGISTRY_ADMIN");
 	uint64 public ownerId;
 	uint64 public sampleSectorSize = 32 << 30;
+
+	MockAPI private mockAPI;
 
 	/**
 	 * @dev Contract constructor function.
@@ -31,19 +33,18 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI, DSTest
 	 *
 	 */
 	constructor(
-		bytes memory _minerOwner,
+		address _minerApiMock,
 		uint64 _ownerId,
 		uint256 _maxStorageProviders,
 		uint256 _maxAllocation,
 		uint256 _minTimePeriod,
 		uint256 _maxTimePeriod
-	)
-		StorageProviderRegistry(_maxStorageProviders, _maxAllocation, _minTimePeriod, _maxTimePeriod)
-		MockAPI(_minerOwner)
-	{
+	) StorageProviderRegistry(_maxStorageProviders, _maxAllocation, _minTimePeriod, _maxTimePeriod) {
 		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 		grantRole(REGISTRY_ADMIN, msg.sender);
 		ownerId = _ownerId;
+
+		mockAPI = MockAPI(_minerApiMock);
 	}
 
 	/**
@@ -63,7 +64,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI, DSTest
 		require(_allocationLimit <= maxAllocation, "INVALID_ALLOCATION");
 		require(pools[_targetPool], "INVALID_TARGET_POOL");
 
-		MinerTypes.GetOwnerReturn memory ownerReturn = MockAPI.getOwner();
+		MinerTypes.GetOwnerReturn memory ownerReturn = mockAPI.getOwner();
 		require(keccak256(ownerReturn.proposed.data) == keccak256(bytes("0x00")), "PROPOSED_NEW_OWNER");
 
 		bytes memory senderBytes = Leb128.encodeUnsignedLeb128FromUInt64(ownerId).buf;
@@ -116,7 +117,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI, DSTest
 		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
 		require(_repayment > _allocationLimit, "INCORRECT_REPAYMENT");
 		require(_allocationLimit <= maxAllocation, "INCORRECT_ALLOCATION");
-		MinerTypes.GetOwnerReturn memory ownerReturn = MockAPI.getOwner();
+		MinerTypes.GetOwnerReturn memory ownerReturn = mockAPI.getOwner();
 		require(keccak256(ownerReturn.proposed.data) == keccak256(bytes("0x00")), "PROPOSED_NEW_OWNER");
 
 		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[ownerId];
@@ -141,13 +142,12 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI, DSTest
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[ownerId];
 		require(storageProvider.onboarded, "NON_ONBOARDED_SP");
 
-		MinerTypes.ChangeBeneficiaryParams memory params;
-
-		params.new_beneficiary = FilAddresses.fromEthAddress(storageProvider.targetPool);
-		params.new_quota = BigInts.fromUint256(allocations[ownerId].repayment);
-		params.new_expiration = CommonTypes.ChainEpoch.wrap(storageProvider.lastEpoch);
-
-		MockAPI.changeBeneficiary(params);
+		ILiquidStakingClient(storageProviders[ownerId].targetPool).forwardChangeBeneficiary(
+			storageProvider.minerId,
+			storageProvider.targetPool,
+			allocations[ownerId].repayment,
+			storageProvider.lastEpoch
+		);
 
 		emit StorageProviderBeneficiaryAddressUpdated(storageProvider.targetPool);
 	}
@@ -163,15 +163,17 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI, DSTest
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_ownerId];
 		require(storageProvider.onboarded, "NON_ONBOARDED_SP");
 
-		MinerTypes.ChangeBeneficiaryParams memory params;
-		params.new_beneficiary = FilAddresses.fromEthAddress(storageProvider.targetPool);
-		params.new_quota = BigInts.fromUint256(allocations[_ownerId].repayment);
-		params.new_expiration = CommonTypes.ChainEpoch.wrap(storageProvider.lastEpoch);
+		ILiquidStakingClient(storageProviders[ownerId].targetPool).forwardChangeBeneficiary(
+			storageProvider.minerId,
+			storageProvider.targetPool,
+			allocations[ownerId].repayment,
+			storageProvider.lastEpoch
+		);
 
 		storageProviders[_ownerId].active = true;
 		totalInactiveStorageProviders.decrement();
 
-		MockAPI.changeBeneficiary(params);
+		// MockAPI.changeBeneficiary(params);
 
 		emit StorageProviderBeneficiaryAddressAccepted(_ownerId);
 	}
@@ -221,13 +223,13 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, MockAPI, DSTest
 		require(allocationRequest.dailyAllocation == _dailyAllocation, "INVALID_DAILY_ALLOCATION");
 
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_ownerId];
-		MinerTypes.ChangeBeneficiaryParams memory params;
 
-		params.new_beneficiary = FilAddresses.fromEthAddress(storageProvider.targetPool);
-		params.new_quota = BigInts.fromUint256(_repaymentAmount);
-		params.new_expiration = CommonTypes.ChainEpoch.wrap(storageProvider.lastEpoch);
-
-		MockAPI.changeBeneficiary(params);
+		ILiquidStakingClient(storageProviders[_ownerId].targetPool).forwardChangeBeneficiary(
+			storageProvider.minerId,
+			storageProvider.targetPool,
+			_repaymentAmount,
+			storageProvider.lastEpoch
+		);
 
 		StorageProviderTypes.SPAllocation storage spAllocation = allocations[_ownerId];
 		spAllocation.allocationLimit = _allocationLimit;

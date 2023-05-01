@@ -12,6 +12,7 @@ import {StorageProviderRegistryMock} from "./mocks/StorageProviderRegistryMock.s
 import {IStakingRouter, StakingRouter} from "../StakingRouter.sol";
 import {IERC4626RouterBase, ERC4626RouterBase, IWETH9, IERC4626, SelfPermit, PeripheryPayments} from "fei-protocol/erc4626/ERC4626RouterBase.sol";
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
+import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {LiquidStaking} from "../LiquidStaking.sol";
 import {MinerActorMock} from "./mocks/MinerActorMock.sol";
 
@@ -24,6 +25,7 @@ contract LiquidStakingTest is DSTestPlus {
 	StorageProviderCollateralMock public collateral;
 	StorageProviderRegistryMock public registry;
 	MinerActorMock public minerActor;
+	MinerMockAPI private minerMockAPI;
 
 	bytes public owner;
 	uint64 public aliceOwnerId = 1508;
@@ -61,6 +63,8 @@ contract LiquidStakingTest is DSTestPlus {
 
 		wfil = IWETH9(address(new WFIL(msg.sender)));
 		minerActor = new MinerActorMock();
+		minerMockAPI = new MinerMockAPI(owner);
+
 		staking = new LiquidStakingMock(
 			address(wfil),
 			address(minerActor),
@@ -68,11 +72,12 @@ contract LiquidStakingTest is DSTestPlus {
 			adminFee,
 			profitShare,
 			rewardCollector,
-			aliceOwnerAddr
+			aliceOwnerAddr,
+			address(minerMockAPI)
 		);
 
 		registry = new StorageProviderRegistryMock(
-			owner,
+			address(minerMockAPI),
 			aliceOwnerId,
 			MAX_STORAGE_PROVIDERS,
 			MAX_ALLOCATION,

@@ -5,6 +5,7 @@ import "../../LiquidStaking.sol";
 import {IMinerActorMock} from "./MinerActorMock.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {BigInts} from "filecoin-solidity/contracts/v0.8/utils/BigInts.sol";
+import {MinerMockAPI as MockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 
 /**
  * @title Liquid Staking Mock contract
@@ -14,6 +15,7 @@ contract LiquidStakingMock is LiquidStaking {
 	using SafeTransferLib for *;
 
 	IMinerActorMock private minerActorMock;
+	MockAPI private mockAPI;
 
 	uint64 public ownerId;
 	address private ownerAddr;
@@ -27,11 +29,14 @@ contract LiquidStakingMock is LiquidStaking {
 		uint256 _adminFee,
 		uint256 _profitShare,
 		address _rewardCollector,
-		address _ownerAddr
+		address _ownerAddr,
+		address _minerApiMock
 	) LiquidStaking(_wFIL, _adminFee, _profitShare, _rewardCollector) {
 		minerActorMock = IMinerActorMock(minerActor);
 		ownerId = _ownerId;
 		ownerAddr = _ownerAddr;
+
+		mockAPI = MockAPI(_minerApiMock);
 	}
 
 	/**
@@ -52,7 +57,7 @@ contract LiquidStakingMock is LiquidStaking {
 
 		totalFilPledged += amount;
 
-		msg.sender.safeTransferETH(amount);
+		msg.sender.safeTransferETH(amount); // TODO: misleading transfer
 	}
 
 	/**
@@ -129,5 +134,32 @@ contract LiquidStakingMock is LiquidStaking {
 		if (vars.isRestaking) {
 			_restake(vars.restakingAmt, vars.restakingAddress);
 		}
+	}
+
+	/**
+	 * @notice Triggers changeBeneficiary Miner actor call
+	 * @param minerId Miner actor ID
+	 * @param targetPool LSP smart contract address
+	 * @param quota Total beneficiary quota
+	 * @param expiration Expiration epoch
+	 */
+	function forwardChangeBeneficiary(
+		uint64 minerId,
+		address targetPool,
+		uint256 quota,
+		int64 expiration
+	) external override {
+		require(msg.sender == address(registry), "INVALID_ACCESS");
+		require(targetPool == address(this), "INCORRECT_ADDRESS");
+
+		CommonTypes.FilActorId filMinerId = CommonTypes.FilActorId.wrap(minerId);
+
+		MinerTypes.ChangeBeneficiaryParams memory params;
+
+		params.new_beneficiary = FilAddresses.fromEthAddress(targetPool);
+		params.new_quota = BigInts.fromUint256(quota);
+		params.new_expiration = CommonTypes.ChainEpoch.wrap(expiration);
+
+		mockAPI.changeBeneficiary(params);
 	}
 }

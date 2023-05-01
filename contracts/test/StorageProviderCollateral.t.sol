@@ -12,8 +12,8 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {StorageProviderCollateralMock, IStorageProviderCollateral, StorageProviderCollateralCallerMock} from "./mocks/StorageProviderCollateralMock.sol";
 import {StorageProviderRegistryMock, StorageProviderRegistryCallerMock} from "./mocks/StorageProviderRegistryMock.sol";
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
+import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
-import {Bytes32AddressLib} from "solmate/utils/Bytes32AddressLib.sol";
 
 contract StorageProviderCollateralTest is DSTestPlus {
 	StorageProviderCollateralMock public collateral;
@@ -23,6 +23,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	StorageProviderRegistryMock public registry;
 	LiquidStakingMock public staking;
 	IWETH9 public wfil;
+	MinerMockAPI private minerMockAPI;
 
 	bytes public owner;
 	uint64 public aliceOwnerId = 1508;
@@ -51,6 +52,8 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		owner = ownerBytes.buf;
 
 		wfil = IWETH9(address(new WFIL(msg.sender)));
+		minerMockAPI = new MinerMockAPI(owner);
+
 		staking = new LiquidStakingMock(
 			address(wfil),
 			address(0x21421),
@@ -58,11 +61,12 @@ contract StorageProviderCollateralTest is DSTestPlus {
 			1000,
 			3000,
 			rewardCollector,
-			aliceOwnerAddr
+			aliceOwnerAddr,
+			address(minerMockAPI)
 		);
 
 		registry = new StorageProviderRegistryMock(
-			owner,
+			address(minerMockAPI),
 			aliceOwnerId,
 			MAX_STORAGE_PROVIDERS,
 			MAX_ALLOCATION,

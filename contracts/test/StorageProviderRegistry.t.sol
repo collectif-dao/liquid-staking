@@ -7,10 +7,13 @@ import {IWETH9, IERC4626} from "fei-protocol/erc4626/ERC4626RouterBase.sol";
 
 import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
 import {Buffer} from "@ensdomains/buffer/contracts/Buffer.sol";
+import {MinerTypes} from "filecoin-solidity/contracts/v0.8/types/MinerTypes.sol";
+import {BigInts} from "filecoin-solidity/contracts/v0.8/utils/BigInts.sol";
 import {PrecompilesAPI} from "filecoin-solidity/contracts/v0.8/PrecompilesAPI.sol";
 
 import {StorageProviderRegistryMock, StorageProviderRegistryCallerMock} from "./mocks/StorageProviderRegistryMock.sol";
 import {StorageProviderCollateralMock} from "./mocks/StorageProviderCollateralMock.sol";
+import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 
@@ -18,6 +21,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	StorageProviderRegistryMock public registry;
 	StorageProviderRegistryCallerMock public callerMock;
 	StorageProviderCollateralMock public collateral;
+	MinerMockAPI private minerMockAPI;
 
 	LiquidStakingMock public staking;
 	IWETH9 public wfil;
@@ -44,6 +48,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		owner = ownerBytes.buf;
 
 		wfil = IWETH9(address(new WFIL(msg.sender)));
+		minerMockAPI = new MinerMockAPI(owner);
+
 		staking = new LiquidStakingMock(
 			address(wfil),
 			address(0x21421),
@@ -51,11 +57,12 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			adminFee,
 			profitShare,
 			rewardCollector,
-			aliceOwnerAddr
+			aliceOwnerAddr,
+			address(minerMockAPI)
 		);
 
 		registry = new StorageProviderRegistryMock(
-			owner,
+			address(minerMockAPI),
 			ownerId,
 			MAX_STORAGE_PROVIDERS,
 			MAX_ALLOCATION,
@@ -194,20 +201,19 @@ contract StorageProviderRegistryTest is DSTestPlus {
 
 	function testChangeBeneficiaryAddress(uint64 minerId, int64 lastEpoch) public {
 		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
+		uint256 repayment = MAX_ALLOCATION + 10;
 
 		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
-		registry.onboardStorageProvider(
-			minerId,
-			MAX_ALLOCATION,
-			SAMPLE_DAILY_ALLOCATION,
-			MAX_ALLOCATION + 10,
-			lastEpoch
-		);
+		registry.onboardStorageProvider(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION, repayment, lastEpoch);
 		registry.changeBeneficiaryAddress();
 
 		(, address targetPool, , ) = registry.getStorageProvider(ownerId);
-
 		assertEq(targetPool, address(staking));
+
+		MinerTypes.GetBeneficiaryReturn memory beneficiary = minerMockAPI.getBeneficiary();
+		(uint256 quota, bool err) = BigInts.toUint256(beneficiary.active.term.quota);
+		require(!err, "INVALID_BIG_INT");
+		require(quota == repayment, "INVALID_BENEFICIARY_QUOTA");
 	}
 
 	function testChangeBeneficiaryAddressReverts(uint64 minerId, int64 lastEpoch) public {
@@ -220,15 +226,10 @@ contract StorageProviderRegistryTest is DSTestPlus {
 
 	function testAcceptBeneficiaryAddress(uint64 minerId, int64 lastEpoch) public {
 		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
+		uint256 repayment = MAX_ALLOCATION + 10;
 
 		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
-		registry.onboardStorageProvider(
-			minerId,
-			MAX_ALLOCATION,
-			SAMPLE_DAILY_ALLOCATION,
-			MAX_ALLOCATION + 10,
-			lastEpoch
-		);
+		registry.onboardStorageProvider(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION, repayment, lastEpoch);
 		assertBoolEq(registry.isActiveProvider(ownerId), false);
 
 		registry.changeBeneficiaryAddress();
@@ -236,6 +237,11 @@ contract StorageProviderRegistryTest is DSTestPlus {
 
 		assertBoolEq(registry.isActiveProvider(ownerId), true);
 		assertEq(registry.getTotalActiveStorageProviders(), 1);
+
+		MinerTypes.GetBeneficiaryReturn memory beneficiary = minerMockAPI.getBeneficiary();
+		(uint256 quota, bool err) = BigInts.toUint256(beneficiary.active.term.quota);
+		require(!err, "INVALID_BIG_INT");
+		require(quota == repayment, "INVALID_BENEFICIARY_QUOTA");
 	}
 
 	function testAcceptBeneficiaryAddressReverts(uint64 minerId, address provider, int64 lastEpoch) public {
