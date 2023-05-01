@@ -278,7 +278,7 @@ contract LiquidStakingTest is DSTestPlus {
 		staking.pledge(amount);
 
 		require(wfil.balanceOf(address(this)) == 0, "INVALID_BALANCE");
-		require(alice.balance == amount, "INVALID_BALANCE");
+		require(address(minerActor).balance == amount, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 	}
 
@@ -305,8 +305,7 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.prank(alice);
 		staking.pledge(dailyAllocation);
 
-		require(alice.balance == dailyAllocation, "INVALID_BALANCE");
-		require(address(minerActor).balance == withdrawAmount, "INVALID_BALANCE");
+		require(address(minerActor).balance == withdrawAmount + dailyAllocation, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 
 		staking.withdrawRewards(aliceOwnerId, withdrawAmount);
@@ -315,7 +314,7 @@ contract LiquidStakingTest is DSTestPlus {
 		uint256 stakingShare = (withdrawAmount * profitShare) / BASIS_POINTS;
 		uint256 spShare = withdrawAmount - (protocolFees + stakingShare);
 
-		require(address(minerActor).balance == 0, "INVALID_BALANCE");
+		require(address(minerActor).balance == dailyAllocation, "INVALID_BALANCE");
 		require(aliceOwnerAddr.balance == spShare, "INVALID_BALANCE");
 		require(wfil.balanceOf(rewardCollector) == protocolFees, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount + stakingShare, "INVALID_BALANCE");
@@ -413,7 +412,7 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.prank(alice);
 		staking.pledge(dailyAllocation);
 
-		require(alice.balance == dailyAllocation, "INVALID_BALANCE");
+		require(address(minerActor).balance == withdrawAmount + dailyAllocation, "INVALID_BALANCE");
 		require(wfil.balanceOf(address(collateral)) == collateralAmount, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 		require(wfil.balanceOf(address(staking)) == amount - dailyAllocation, "INVALID_BALANCE");
@@ -447,7 +446,7 @@ contract LiquidStakingTest is DSTestPlus {
 
 		require(wfil.balanceOf(address(this)) == 0, "INVALID_BALANCE");
 		require(wfil.balanceOf(address(staking)) == 0, "INVALID_BALANCE");
-		require(alice.balance == amount, "INVALID_BALANCE");
+		require(address(minerActor).balance == amount, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 
 		uint256 slashingAmt = (collateralAmount * 5000) / BASIS_POINTS;
@@ -455,7 +454,7 @@ contract LiquidStakingTest is DSTestPlus {
 
 		require(staking.totalAssets() == amount + slashingAmt, "INVALID_BALANCE");
 		require(wfil.balanceOf(address(staking)) == slashingAmt, "INVALID_BALANCE");
-		require(alice.balance == amount, "INVALID_BALANCE");
+		require(address(minerActor).balance == amount, "INVALID_BALANCE");
 
 		assertEq(collateral.getLockedCollateral(aliceOwnerId), collateralAmount - slashingAmt);
 		assertEq(collateral.slashings(aliceOwnerId), slashingAmt);
@@ -541,7 +540,7 @@ contract LiquidStakingTest is DSTestPlus {
 
 		require(wfil.balanceOf(address(this)) == 0, "INVALID_BALANCE");
 		require(wfil.balanceOf(address(staking)) == amount - pledgeAmt, "INVALID_BALANCE");
-		require(alice.balance == pledgeAmt, "INVALID_BALANCE");
+		require(address(minerActor).balance == pledgeAmt, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 
 		uint256 slashingAmt = (collateralAmount * 500000000000000000) / 1000000000000000000;
@@ -551,7 +550,6 @@ contract LiquidStakingTest is DSTestPlus {
 		// emit log_named_uint("wfil.balanceOf(address(staking))", wfil.balanceOf(address(staking)));
 		// emit log_named_uint("pledgeAmt + slashingAmt", pledgeAmt + slashingAmt);
 		// require(wfil.balanceOf(address(staking)) == pledgeAmt + slashingAmt, "INVALID_BALANCE"); // Fails due to rounding error
-		require(alice.balance == pledgeAmt, "INVALID_BALANCE");
 
 		assertEq(collateral.getLockedCollateral(aliceOwnerId), collateralAmount - slashingAmt);
 		assertEq(collateral.slashings(aliceOwnerId), slashingAmt);

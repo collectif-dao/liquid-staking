@@ -57,7 +57,7 @@ contract LiquidStakingMock is LiquidStaking {
 
 		totalFilPledged += amount;
 
-		msg.sender.safeTransferETH(amount); // TODO: misleading transfer
+		address(minerActorMock).safeTransferETH(amount);
 	}
 
 	/**
