@@ -94,14 +94,14 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 	/**
 	 * @notice Unstake FIL from the Liquid Staking pool and burn clFIL tokens
 	 * @param shares Total clFIL amount to burn (unstake)
-	 * @param _owner Original owner of clFIL tokens
+	 * @param owner Original owner of clFIL tokens
 	 * @dev Please note that unstake amount has to be clFIL shares (not FIL assets)
 	 */
-	function unstake(uint256 shares, address _owner) external nonReentrant returns (uint256 assets) {
-		if (msg.sender != _owner) {
-			uint256 allowed = allowances[_owner][msg.sender]; // Saves gas for limited approvals.
+	function unstake(uint256 shares, address owner) external nonReentrant returns (uint256 assets) {
+		if (msg.sender != owner) {
+			uint256 allowed = allowances[owner][msg.sender]; // Saves gas for limited approvals.
 
-			if (allowed != type(uint256).max) allowances[_owner][msg.sender] = allowed - shares;
+			if (allowed != type(uint256).max) allowances[owner][msg.sender] = allowed - shares;
 		}
 
 		// Check for rounding error since we round down in previewRedeem.
@@ -109,9 +109,9 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 
 		beforeWithdraw(assets, shares);
 
-		_burn(_owner, shares);
+		_burn(owner, shares);
 
-		emit Unstaked(msg.sender, _owner, assets, shares);
+		emit Unstaked(msg.sender, owner, assets, shares);
 
 		WFIL.withdraw(assets);
 		msg.sender.safeTransferETH(assets);
@@ -120,22 +120,22 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 	/**
 	 * @notice Unstake FIL from the Liquid Staking pool and burn clFIL tokens
 	 * @param assets Total FIL amount to unstake
-	 * @param _owner Original owner of clFIL tokens
+	 * @param owner Original owner of clFIL tokens
 	 */
-	function unstakeAssets(uint256 assets, address _owner) external nonReentrant returns (uint256 shares) {
+	function unstakeAssets(uint256 assets, address owner) external nonReentrant returns (uint256 shares) {
 		shares = previewWithdraw(assets); // No need to check for rounding error, previewWithdraw rounds up.
 
-		if (msg.sender != _owner) {
-			uint256 allowed = allowances[_owner][msg.sender]; // Saves gas for limited approvals.
+		if (msg.sender != owner) {
+			uint256 allowed = allowances[owner][msg.sender]; // Saves gas for limited approvals.
 
-			if (allowed != type(uint256).max) allowances[_owner][msg.sender] = allowed - shares;
+			if (allowed != type(uint256).max) allowances[owner][msg.sender] = allowed - shares;
 		}
 
 		beforeWithdraw(assets, shares);
 
-		_burn(_owner, shares);
+		_burn(owner, shares);
 
-		emit Unstaked(msg.sender, _owner, assets, shares);
+		emit Unstaked(msg.sender, owner, assets, shares);
 
 		WFIL.withdraw(assets);
 		msg.sender.safeTransferETH(assets);

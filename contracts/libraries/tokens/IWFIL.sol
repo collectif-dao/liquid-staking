@@ -29,5 +29,5 @@ abstract contract IWFIL is ERC20 {
 	 * (Though Multisig actors are not supported, BLS/SECPK/EthAccounts
 	 * and EVM contracts can use this method normally)
 	 */
-	function withdraw(uint256 amount) external payable virtual;
+	function withdraw(uint256 amount) external virtual;
 }

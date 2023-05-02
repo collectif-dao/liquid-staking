@@ -79,7 +79,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	 * @dev Deposit `msg.value` FIL funds by the msg.sender into collateral
 	 * @notice Wrapps of FIL into WFIL token internally
 	 */
-	function deposit() public payable {
+	function deposit() public payable nonReentrant {
 		uint256 amount = msg.value;
 		require(amount > 0, "INVALID_AMOUNT");
 
@@ -101,7 +101,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	 * @notice Unwraps of FIL into WFIL token internally and
 	 * delivers maximum amount of FIL available for withdrawal if `_amount` is bigger.
 	 */
-	function withdraw(uint256 _amount) public {
+	function withdraw(uint256 _amount) public nonReentrant {
 		require(_amount > 0, "ZERO_AMOUNT");
 
 		address ownerAddr = FilAddress.normalize(msg.sender);
@@ -133,7 +133,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	 * @param _ownerId Storage provider owner ID
 	 * @param _allocated FIL amount that is going to be pledged for Storage Provider
 	 */
-	function lock(uint64 _ownerId, uint256 _allocated) external nonReentrant activeStorageProvider(_ownerId) {
+	function lock(uint64 _ownerId, uint256 _allocated) external activeStorageProvider(_ownerId) {
 		require(registry.isActivePool(msg.sender), "INVALID_ACCESS");
 		require(_allocated > 0, "ZERO_ALLOCATION");
 
@@ -158,7 +158,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	 * @param _ownerId Storage provider owner ID
 	 * @param _slashingAmt Slashing amount for SP
 	 */
-	function slash(uint64 _ownerId, uint256 _slashingAmt) external nonReentrant activeStorageProvider(_ownerId) {
+	function slash(uint64 _ownerId, uint256 _slashingAmt) external activeStorageProvider(_ownerId) {
 		require(registry.isActivePool(msg.sender), "INVALID_ACCESS");
 
 		SPCollateral memory collateral = collaterals[_ownerId];

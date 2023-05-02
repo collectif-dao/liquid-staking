@@ -8,6 +8,7 @@ import {FilAddresses} from "filecoin-solidity/contracts/v0.8/utils/FilAddresses.
 import {PrecompilesAPI} from "filecoin-solidity/contracts/v0.8/PrecompilesAPI.sol";
 import {StorageProviderTypes} from "./types/StorageProviderTypes.sol";
 import {FilAddress} from "fevmate/utils/FilAddress.sol";
+import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
@@ -25,7 +26,7 @@ import "./interfaces/IStorageProviderCollateralClient.sol";
  * it needs to transfer
  *
  */
-contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
+contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, ReentrancyGuard {
 	using Counters for Counters.Counter;
 	using Address for address;
 
@@ -110,7 +111,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 		address _targetPool,
 		uint256 _allocationLimit,
 		uint256 _dailyAllocation
-	) public virtual override validActorID(_minerId) {
+	) public virtual override validActorID(_minerId) nonReentrant {
 		require(_allocationLimit <= maxAllocation, "INVALID_ALLOCATION");
 		require(pools[_targetPool], "INVALID_TARGET_POOL");
 
@@ -171,7 +172,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 		uint256 _dailyAllocation,
 		uint256 _repayment,
 		int64 _lastEpoch
-	) public virtual validActorID(_minerId) {
+	) public virtual validActorID(_minerId) nonReentrant {
 		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
 		require(_repayment > _allocationLimit, "INCORRECT_REPAYMENT");
 		require(_allocationLimit <= maxAllocation, "INCORRECT_ALLOCATION");
@@ -199,7 +200,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 	/**
 	 * @notice Transfer beneficiary address of a miner to the target pool
 	 */
-	function changeBeneficiaryAddress() public virtual override {
+	function changeBeneficiaryAddress() public virtual override nonReentrant {
 		address ownerAddr = FilAddress.normalize(msg.sender);
 		(bool isID, uint64 ownerId) = FilAddress.getActorID(ownerAddr);
 		require(isID, "INACTIVE_ACTOR_ID");
@@ -222,7 +223,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 	 * @param _ownerId Storage Provider owner ID
 	 * @dev Only triggered by registry admin
 	 */
-	function acceptBeneficiaryAddress(uint64 _ownerId) public virtual override {
+	function acceptBeneficiaryAddress(uint64 _ownerId) public virtual override nonReentrant {
 		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
 
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_ownerId];
@@ -316,7 +317,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl {
 		uint256 _allocationLimit,
 		uint256 _dailyAllocation,
 		uint256 _repaymentAmount
-	) public virtual override activeStorageProvider(_ownerId) {
+	) public virtual override activeStorageProvider(_ownerId) nonReentrant {
 		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS"); // 0xFf0000000000000000009bd -> ID: 2455 -> t02455
 
 		StorageProviderTypes.AllocationRequest memory allocationRequest = allocationRequests[_ownerId];
