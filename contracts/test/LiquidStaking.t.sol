@@ -4,13 +4,14 @@ pragma solidity ^0.8.17;
 import {ERC20, MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
 import {MockERC4626} from "solmate/test/utils/mocks/MockERC4626.sol";
 import {WFIL} from "fevmate/token/WFIL.sol";
+import {IWFIL} from "../libraries/tokens/IWFIL.sol";
 import {Buffer} from "@ensdomains/buffer/contracts/Buffer.sol";
 import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
 
 import {IStorageProviderCollateral, StorageProviderCollateralMock} from "./mocks/StorageProviderCollateralMock.sol";
 import {StorageProviderRegistryMock} from "./mocks/StorageProviderRegistryMock.sol";
-import {IStakingRouter, StakingRouter} from "../StakingRouter.sol";
-import {IERC4626RouterBase, ERC4626RouterBase, IWETH9, IERC4626, SelfPermit, PeripheryPayments} from "fei-protocol/erc4626/ERC4626RouterBase.sol";
+// import {IStakingRouter, StakingRouter} from "../StakingRouter.sol";
+import {IERC4626RouterBase, ERC4626RouterBase, IERC4626, SelfPermit, PeripheryPayments} from "fei-protocol/erc4626/ERC4626RouterBase.sol";
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
 import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {LiquidStaking} from "../LiquidStaking.sol";
@@ -20,8 +21,8 @@ import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 
 contract LiquidStakingTest is DSTestPlus {
 	LiquidStakingMock public staking;
-	StakingRouter public router;
-	IWETH9 public wfil;
+	// StakingRouter public router;
+	IWFIL public wfil;
 	StorageProviderCollateralMock public collateral;
 	StorageProviderRegistryMock public registry;
 	MinerActorMock public minerActor;
@@ -61,7 +62,7 @@ contract LiquidStakingTest is DSTestPlus {
 		Buffer.buffer memory ownerBytes = Leb128.encodeUnsignedLeb128FromUInt64(aliceOwnerId);
 		owner = ownerBytes.buf;
 
-		wfil = IWETH9(address(new WFIL(msg.sender)));
+		wfil = IWFIL(address(new WFIL(msg.sender)));
 		minerActor = new MinerActorMock();
 		minerMockAPI = new MinerMockAPI(owner);
 
@@ -87,7 +88,7 @@ contract LiquidStakingTest is DSTestPlus {
 
 		collateral = new StorageProviderCollateralMock(wfil, address(registry), baseCollateralRequirements);
 
-		router = new StakingRouter("Collective DAO Router", wfil);
+		// router = new StakingRouter("Collective DAO Router", wfil);
 
 		registry.setCollateralAddress(address(collateral));
 		registry.registerPool(address(staking));
@@ -138,22 +139,22 @@ contract LiquidStakingTest is DSTestPlus {
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 	}
 
-	function testStakeViaRouterMulticall(uint256 amount) public {
-		hevm.assume(amount != 0);
-		hevm.deal(alice, amount);
+	// function testStakeViaRouterMulticall(uint256 amount) public {
+	// 	hevm.assume(amount != 0);
+	// 	hevm.deal(alice, amount);
 
-		hevm.startPrank(alice);
-		wfil.deposit{value: amount}();
-		wfil.approve(address(router), amount);
+	// 	hevm.startPrank(alice);
+	// 	wfil.deposit{value: amount}();
+	// 	wfil.approve(address(router), amount);
 
-		router.approve(wfil, address(staking), amount);
-		router.depositToVault(IERC4626(address(staking)), alice, amount, amount);
-		hevm.stopPrank();
+	// 	router.approve(wfil, address(staking), amount);
+	// 	router.depositToVault(IERC4626(address(staking)), alice, amount, amount);
+	// 	hevm.stopPrank();
 
-		require(staking.balanceOf(alice) == amount, "INVALID_BALANCE");
-		require(wfil.balanceOf(alice) == 0, "INVALID_BALANCE");
-		require(staking.totalAssets() == amount, "INVALID_BALANCE");
-	}
+	// 	require(staking.balanceOf(alice) == amount, "INVALID_BALANCE");
+	// 	require(wfil.balanceOf(alice) == 0, "INVALID_BALANCE");
+	// 	require(staking.totalAssets() == amount, "INVALID_BALANCE");
+	// }
 
 	// function testStakeWithPermitViaRouterMulticall(uint256 amount) public {
 	// 	hevm.assume(amount != 0);

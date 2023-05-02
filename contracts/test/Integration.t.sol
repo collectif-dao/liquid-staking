@@ -4,13 +4,13 @@ pragma solidity ^0.8.17;
 import {ERC20, MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
 import {MockERC4626} from "solmate/test/utils/mocks/MockERC4626.sol";
 import {WFIL} from "fevmate/token/WFIL.sol";
+import {IWFIL} from "../libraries/tokens/IWFIL.sol";
 import {Buffer} from "@ensdomains/buffer/contracts/Buffer.sol";
 import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
 import {IStorageProviderCollateral, StorageProviderCollateralMock} from "./mocks/StorageProviderCollateralMock.sol";
 import {StorageProviderRegistryMock} from "./mocks/StorageProviderRegistryMock.sol";
-import {IWETH9} from "fei-protocol/erc4626/ERC4626RouterBase.sol";
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
 import {MinerActorMock} from "./mocks/MinerActorMock.sol";
 import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
@@ -21,7 +21,7 @@ contract IntegrationTest is DSTestPlus {
 	using FixedPointMathLib for uint256;
 
 	LiquidStakingMock public staking;
-	IWETH9 public wfil;
+	IWFIL public wfil;
 	StorageProviderCollateralMock public collateral;
 	StorageProviderRegistryMock public registry;
 	MinerActorMock public minerActor;
@@ -66,7 +66,7 @@ contract IntegrationTest is DSTestPlus {
 		Buffer.buffer memory ownerBytes = Leb128.encodeUnsignedLeb128FromUInt64(aliceOwnerId);
 		owner = ownerBytes.buf;
 
-		wfil = IWETH9(address(new WFIL(msg.sender)));
+		wfil = IWFIL(address(new WFIL(msg.sender)));
 		minerActor = new MinerActorMock();
 		minerMockAPI = new MinerMockAPI(owner);
 
