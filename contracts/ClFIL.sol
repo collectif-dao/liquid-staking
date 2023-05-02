@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {ERC4626} from "solmate/mixins/ERC4626.sol";
-import {ERC20} from "solmate/tokens/ERC20.sol";
-import {IWETH9} from "fei-protocol/erc4626/external/PeripheryPayments.sol";
+import {ERC4626} from "./libraries/tokens/ERC4626.sol";
+import {ERC20} from "./libraries/tokens/ERC20.sol";
+import {IWFIL} from "./libraries/tokens/IWFIL.sol";
 
 /**
  * @title clFIL token contract is the main wrapper over staked FIL in the liquid staking system
@@ -17,10 +17,10 @@ import {IWETH9} from "fei-protocol/erc4626/external/PeripheryPayments.sol";
  * as it's an ultimate requirement of the ERC4626 standard.
  */
 contract ClFILToken is ERC4626 {
-	IWETH9 public immutable WFIL; // WFIL implementation
+	IWFIL public immutable WFIL; // WFIL implementation
 
 	constructor(address _wFIL) ERC4626(ERC20(_wFIL), "Collective Staked FIL", "clFIL") {
-		WFIL = IWETH9(_wFIL);
+		WFIL = IWFIL(_wFIL);
 	}
 
 	/**

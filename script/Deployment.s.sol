@@ -3,16 +3,16 @@ pragma solidity ^0.8.16;
 
 import "forge-std/Script.sol";
 import "../contracts/LiquidStaking.sol";
-import "../contracts/StakingRouter.sol";
+// import "../contracts/StakingRouter.sol";
 import "../contracts/StorageProviderRegistry.sol";
 import "../contracts/StorageProviderCollateral.sol";
 
 contract DeploymentScript is Script {
-	StakingRouter public router;
+	// StakingRouter public router;
 	LiquidStaking public staking;
 	StorageProviderCollateral private collateral;
 	StorageProviderRegistry private registry;
-	IWETH9 public wfil;
+	IWFIL public wfil;
 
 	uint256 private constant MAX_STORAGE_PROVIDERS = 200;
 	uint256 private constant MAX_ALLOCATION = 10000 ether;

@@ -4,7 +4,7 @@ pragma solidity ^0.8.17;
 import {ClFILToken} from "./ClFIL.sol";
 import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
+import {SafeTransferLib} from "./libraries/SafeTransferLib.sol";
 import {MinerAPI} from "filecoin-solidity/contracts/v0.8/MinerAPI.sol";
 import {CommonTypes} from "filecoin-solidity/contracts/v0.8/types/CommonTypes.sol";
 import {MinerTypes} from "filecoin-solidity/contracts/v0.8/types/MinerTypes.sol";
@@ -99,9 +99,9 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 	 */
 	function unstake(uint256 shares, address _owner) external nonReentrant returns (uint256 assets) {
 		if (msg.sender != _owner) {
-			uint256 allowed = allowance[_owner][msg.sender]; // Saves gas for limited approvals.
+			uint256 allowed = allowances[_owner][msg.sender]; // Saves gas for limited approvals.
 
-			if (allowed != type(uint256).max) allowance[_owner][msg.sender] = allowed - shares;
+			if (allowed != type(uint256).max) allowances[_owner][msg.sender] = allowed - shares;
 		}
 
 		// Check for rounding error since we round down in previewRedeem.
@@ -126,9 +126,9 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 		shares = previewWithdraw(assets); // No need to check for rounding error, previewWithdraw rounds up.
 
 		if (msg.sender != _owner) {
-			uint256 allowed = allowance[_owner][msg.sender]; // Saves gas for limited approvals.
+			uint256 allowed = allowances[_owner][msg.sender]; // Saves gas for limited approvals.
 
-			if (allowed != type(uint256).max) allowance[_owner][msg.sender] = allowed - shares;
+			if (allowed != type(uint256).max) allowances[_owner][msg.sender] = allowed - shares;
 		}
 
 		beforeWithdraw(assets, shares);

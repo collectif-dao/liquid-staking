@@ -3,7 +3,6 @@ pragma solidity ^0.8.17;
 
 import "../../LiquidStaking.sol";
 import {IMinerActorMock} from "./MinerActorMock.sol";
-import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 import {BigInts} from "filecoin-solidity/contracts/v0.8/utils/BigInts.sol";
 import {MinerMockAPI as MockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 

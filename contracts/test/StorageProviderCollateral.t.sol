@@ -3,8 +3,7 @@ pragma solidity ^0.8.17;
 
 import {MockERC4626} from "solmate/test/utils/mocks/MockERC4626.sol";
 import {WFIL} from "fevmate/token/WFIL.sol";
-import {IERC4626} from "fei-protocol/erc4626/interfaces/IERC4626.sol";
-import {IWETH9} from "fei-protocol/erc4626/external/PeripheryPayments.sol";
+import {IWFIL} from "../libraries/tokens/IWFIL.sol";
 import {Buffer} from "@ensdomains/buffer/contracts/Buffer.sol";
 import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -22,7 +21,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 
 	StorageProviderRegistryMock public registry;
 	LiquidStakingMock public staking;
-	IWETH9 public wfil;
+	IWFIL public wfil;
 	MinerMockAPI private minerMockAPI;
 
 	bytes public owner;
@@ -51,7 +50,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		Buffer.buffer memory ownerBytes = Leb128.encodeUnsignedLeb128FromUInt64(aliceOwnerId);
 		owner = ownerBytes.buf;
 
-		wfil = IWETH9(address(new WFIL(msg.sender)));
+		wfil = IWFIL(address(new WFIL(msg.sender)));
 		minerMockAPI = new MinerMockAPI(owner);
 
 		staking = new LiquidStakingMock(

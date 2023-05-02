@@ -22,7 +22,7 @@ contract StorageProviderCollateralMock is StorageProviderCollateral {
 	 *
 	 */
 	constructor(
-		IWETH9 _wFIL,
+		IWFIL _wFIL,
 		address _registry,
 		uint256 _baseCollateralRequirements
 	) StorageProviderCollateral(_wFIL, _registry, _baseCollateralRequirements) {}

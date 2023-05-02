@@ -3,9 +3,9 @@ pragma solidity ^0.8.17;
 
 import "./interfaces/IStorageProviderCollateral.sol";
 import "./interfaces/IStorageProviderRegistryClient.sol";
-import "solmate/utils/SafeTransferLib.sol";
+import {SafeTransferLib} from "./libraries/SafeTransferLib.sol";
 import {StorageProviderTypes} from "./types/StorageProviderTypes.sol";
-import {IWETH9} from "fei-protocol/erc4626/external/PeripheryPayments.sol";
+import {IWFIL} from "./libraries/tokens/IWFIL.sol";
 import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
 import {PrecompilesAPI} from "filecoin-solidity/contracts/v0.8/PrecompilesAPI.sol";
 import {FilAddress} from "fevmate/utils/FilAddress.sol";
@@ -42,7 +42,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	uint256 public constant BASIS_POINTS = 10000;
 	IStorageProviderRegistryClient public registry;
 
-	IWETH9 public immutable WFIL; // WFIL implementation
+	IWFIL public immutable WFIL; // WFIL implementation
 
 	// Storage Provider parameters
 	struct SPCollateral {
@@ -60,7 +60,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	 * @param _wFIL WFIL token implementation
 	 *
 	 */
-	constructor(IWETH9 _wFIL, address _registry, uint256 _baseRequirements) {
+	constructor(IWFIL _wFIL, address _registry, uint256 _baseRequirements) {
 		WFIL = _wFIL;
 		registry = IStorageProviderRegistryClient(_registry);
 
