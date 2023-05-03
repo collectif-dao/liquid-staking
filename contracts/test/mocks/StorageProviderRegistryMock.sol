@@ -26,20 +26,16 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 
 	/**
 	 * @dev Contract constructor function.
-	 * @param _maxStorageProviders Number of maximum storage providers allowed to use liquid staking
+	 * @param _minerApiMock Address of Miner API mock contract
+	 * @param _ownerId Owner ID for SP used in testing cases
 	 * @param _maxAllocation Number of maximum FIL allocated to a single storage provider
-	 * @param _minTimePeriod Minimal time period for storage provider allocation
-	 * @param _minTimePeriod Maximum time period for storage provider allocation
 	 *
 	 */
 	constructor(
 		address _minerApiMock,
 		uint64 _ownerId,
-		uint256 _maxStorageProviders,
-		uint256 _maxAllocation,
-		uint256 _minTimePeriod,
-		uint256 _maxTimePeriod
-	) StorageProviderRegistry(_maxStorageProviders, _maxAllocation, _minTimePeriod, _maxTimePeriod) {
+		uint256 _maxAllocation
+	) StorageProviderRegistry(_maxAllocation) {
 		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 		grantRole(REGISTRY_ADMIN, msg.sender);
 		ownerId = _ownerId;

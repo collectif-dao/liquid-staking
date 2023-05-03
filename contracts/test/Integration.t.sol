@@ -81,14 +81,7 @@ contract IntegrationTest is DSTestPlus {
 			address(minerMockAPI)
 		);
 
-		registry = new StorageProviderRegistryMock(
-			address(minerMockAPI),
-			aliceOwnerId,
-			MAX_STORAGE_PROVIDERS,
-			MAX_ALLOCATION,
-			MIN_TIME_PERIOD,
-			MAX_TIME_PERIOD
-		);
+		registry = new StorageProviderRegistryMock(address(minerMockAPI), aliceOwnerId, MAX_ALLOCATION);
 
 		collateral = new StorageProviderCollateralMock(wfil, address(registry), baseCollateralRequirements);
 

@@ -61,14 +61,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			address(minerMockAPI)
 		);
 
-		registry = new StorageProviderRegistryMock(
-			address(minerMockAPI),
-			ownerId,
-			MAX_STORAGE_PROVIDERS,
-			MAX_ALLOCATION,
-			MIN_TIME_PERIOD,
-			MAX_TIME_PERIOD
-		);
+		registry = new StorageProviderRegistryMock(address(minerMockAPI), ownerId, MAX_ALLOCATION);
 
 		collateral = new StorageProviderCollateralMock(wfil, address(registry), 1500);
 		registry.setCollateralAddress(address(collateral));
@@ -562,37 +555,48 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	}
 
 	function testSetCollateralAddress(address collateralAddr) public {
-		hevm.assume(collateralAddr != address(0) || collateralAddr != address(collateral));
+		hevm.assume(collateralAddr != address(0) && collateralAddr != address(collateral));
 		hevm.etch(collateralAddr, bytes("0x10378"));
 
 		registry.setCollateralAddress(collateralAddr);
 	}
 
-	function testCollateralAddressReverts(address collateralAddr, address provider) public {
-		hevm.assume(collateralAddr != address(0) && provider != address(0) && provider != address(this));
+	function testSetCollateralAddressReverts() public {
+		address collateralAddr = address(0x94812417984127);
 		hevm.etch(collateralAddr, bytes("0x103789851206015297"));
 
-		hevm.prank(provider);
+		hevm.prank(aliceOwnerAddr);
 		hevm.expectRevert("INVALID_ACCESS");
 		registry.setCollateralAddress(collateralAddr);
+
+		hevm.expectRevert("SAME_ADDRESS");
+		registry.setCollateralAddress(address(collateral));
 	}
 
 	function testRegisterPool(address pool) public {
-		hevm.assume(pool != address(0));
+		hevm.assume(
+			pool != address(0) && pool != address(staking) && pool != address(callerMock) && pool != address(registry)
+		);
 		hevm.etch(pool, bytes("0x10148"));
 
 		registry.registerPool(pool);
 		assertBoolEq(registry.isActivePool(pool), true);
 	}
 
-	function testRegisterPoolReverts(address pool, address provider) public {
-		hevm.assume(pool != address(0) && provider != address(0) && provider != address(this));
+	function testRegisterPoolReverts(address pool) public {
+		hevm.assume(pool != address(0));
 		hevm.etch(pool, bytes("0x10148851206015297"));
 
-		hevm.prank(provider);
-		hevm.expectRevert("INVALID_ACCESS");
-		registry.registerPool(pool);
-		assertBoolEq(registry.isActivePool(pool), false);
+		if (pool == address(staking)) {
+			hevm.expectRevert("ALREADY_ACTIVE_POOL");
+			registry.registerPool(pool);
+			assertBoolEq(registry.isActivePool(pool), true);
+		} else {
+			hevm.prank(aliceOwnerAddr);
+			hevm.expectRevert("INVALID_ACCESS");
+			registry.registerPool(pool);
+			assertBoolEq(registry.isActivePool(pool), false);
+		}
 	}
 
 	function testIncreaseRewards(uint64 minerId, uint256 _accruedRewards, int64 lastEpoch) public {
@@ -742,5 +746,22 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		(, , uint256 usedAllocation, , , uint256 repaidPledge) = registry.allocations(ownerId);
 		assertEq(repaidPledge, 0);
 		assertEq(usedAllocation, _usedAllocation);
+	}
+
+	function testUpdateMaxAllocation(uint256 maxAllocation) public {
+		hevm.assume(maxAllocation > 0 && maxAllocation != MAX_ALLOCATION);
+		registry.updateMaxAllocation(maxAllocation);
+	}
+
+	function testUpdateMaxAllocationReverts() public {
+		hevm.expectRevert("SAME_ALLOCATION");
+		registry.updateMaxAllocation(MAX_ALLOCATION);
+
+		hevm.prank(aliceOwnerAddr);
+		hevm.expectRevert("INVALID_ACCESS");
+		registry.updateMaxAllocation(1);
+
+		hevm.expectRevert("INVALID_ALLOCATION");
+		registry.updateMaxAllocation(0);
 	}
 }

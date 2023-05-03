@@ -11,6 +11,7 @@ import {PrecompilesAPI} from "filecoin-solidity/contracts/v0.8/PrecompilesAPI.so
 import {FilAddress} from "fevmate/utils/FilAddress.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 /**
  * @title Storage Provider Collateral stores collateral for covering potential
@@ -27,6 +28,7 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl, ReentrancyGuard {
 	using SafeTransferLib for address;
 	using FixedPointMathLib for uint256;
+	using Address for address;
 
 	// Mapping of storage provider collateral information to their owner ID
 	mapping(uint64 => SPCollateral) public collaterals;
@@ -380,5 +382,37 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 			WFIL.withdraw(_amount);
 			_recipient.safeTransferETH(_amount);
 		}
+	}
+
+	/**
+	 * @notice Updates base collateral requirements amount for Storage Providers
+	 * @param requirements New base collateral requirements for SP
+	 */
+	function updateBaseCollateralRequirements(uint256 requirements) public {
+		require(hasRole(COLLATERAL_ADMIN, msg.sender), "INVALID_ACCESS");
+		require(requirements > 0, "INVALID_REQUIREMENTS");
+
+		uint256 prevRequirements = baseRequirements;
+		require(requirements != prevRequirements, "SAME_REQUIREMENTS");
+
+		baseRequirements = requirements;
+
+		emit UpdateBaseCollateralRequirements(requirements);
+	}
+
+	/**
+	 * @notice Updates StorageProviderRegistry contract address
+	 * @param newAddr StorageProviderRegistry contract address
+	 */
+	function setRegistryAddress(address newAddr) public {
+		require(hasRole(COLLATERAL_ADMIN, msg.sender), "INVALID_ACCESS");
+		require(newAddr.isContract(), "NON_CONTRACT_ADDRESS");
+
+		address prevRegistry = address(registry);
+		require(prevRegistry != newAddr, "SAME_ADDRESS");
+
+		registry = IStorageProviderRegistryClient(newAddr);
+
+		emit SetRegistryAddress(newAddr);
 	}
 }

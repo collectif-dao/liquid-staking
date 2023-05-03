@@ -55,10 +55,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 
 	bytes32 private constant REGISTRY_ADMIN = keccak256("REGISTRY_ADMIN");
 
-	uint256 public maxStorageProviders;
 	uint256 public maxAllocation;
-	uint256 public minTimePeriod;
-	uint256 public maxTimePeriod;
 
 	IStorageProviderCollateralClient public collateral;
 
@@ -75,19 +72,12 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 
 	/**
 	 * @dev Contract constructor function.
-	 * @param _maxStorageProviders Number of maximum storage providers allowed to use liquid staking
 	 * @param _maxAllocation Number of maximum FIL allocated to a single storage provider
-	 * @param _minTimePeriod Minimal time period for storage provider allocation
-	 * @param _minTimePeriod Maximum time period for storage provider allocation
-	 *
 	 */
-	constructor(uint256 _maxStorageProviders, uint256 _maxAllocation, uint256 _minTimePeriod, uint256 _maxTimePeriod) {
+	constructor(uint256 _maxAllocation) {
 		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 		grantRole(REGISTRY_ADMIN, msg.sender);
-		maxStorageProviders = _maxStorageProviders;
 		maxAllocation = _maxAllocation;
-		minTimePeriod = _minTimePeriod;
-		maxTimePeriod = _maxTimePeriod;
 	}
 
 	struct RegisterLocalVars {
@@ -454,6 +444,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 	 */
 	function setCollateralAddress(address _collateral) public {
 		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
+		require(_collateral.isContract(), "NON_CONTRACT_ADDRESS");
 
 		address prevCollateral = address(collateral);
 		require(prevCollateral != _collateral, "SAME_ADDRESS");
@@ -470,11 +461,28 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 	 */
 	function registerPool(address _pool) public {
 		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
-		require(_pool != address(0), "INVALID_ADDRESS");
+		require(_pool.isContract(), "NON_CONTRACT_ADDRESS");
+		require(!pools[_pool], "ALREADY_ACTIVE_POOL");
 
 		pools[_pool] = true;
 
 		emit LiquidStakingPoolRegistered(_pool);
+	}
+
+	/**
+	 * @notice Updates maximum allocation amount for SP
+	 * @param allocation New max allocation per SP
+	 */
+	function updateMaxAllocation(uint256 allocation) public {
+		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
+		require(allocation > 0, "INVALID_ALLOCATION");
+
+		uint256 prevAllocation = maxAllocation;
+		require(allocation != prevAllocation, "SAME_ALLOCATION");
+
+		maxAllocation = allocation;
+
+		emit UpdateMaxAllocation(allocation);
 	}
 
 	/**

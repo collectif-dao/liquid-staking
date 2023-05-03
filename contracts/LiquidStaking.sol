@@ -4,6 +4,7 @@ pragma solidity ^0.8.17;
 import {ClFILToken} from "./ClFIL.sol";
 import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {SafeTransferLib} from "./libraries/SafeTransferLib.sol";
 import {MinerAPI} from "filecoin-solidity/contracts/v0.8/MinerAPI.sol";
 import {CommonTypes} from "filecoin-solidity/contracts/v0.8/types/CommonTypes.sol";
@@ -30,6 +31,7 @@ import "./interfaces/IStorageProviderRegistryClient.sol";
  */
 contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessControl {
 	using SafeTransferLib for *;
+	using Address for address;
 
 	/// @notice The current total amount of FIL that is allocated to SPs.
 	uint256 public totalFilPledged;
@@ -113,8 +115,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 
 		emit Unstaked(msg.sender, owner, assets, shares);
 
-		WFIL.withdraw(assets);
-		msg.sender.safeTransferETH(assets);
+		_unwrapWFIL(msg.sender, assets);
 	}
 
 	/**
@@ -137,8 +138,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 
 		emit Unstaked(msg.sender, owner, assets, shares);
 
-		WFIL.withdraw(assets);
-		msg.sender.safeTransferETH(assets);
+		_unwrapWFIL(msg.sender, assets);
 	}
 
 	/**
@@ -222,7 +222,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 	 * @notice Report recovery of previously slashed sectors for SP with `_ownerId`
 	 * @param _ownerId Storage provider owner ID
 	 */
-	function reportRecovery(uint64 _ownerId) external virtual nonReentrant {
+	function reportRecovery(uint64 _ownerId) external virtual {
 		require(hasRole(SLASHING_AGENT, msg.sender), "INVALID_ACCESS");
 		require(activeSlashings[_ownerId], "NO_ACTIVE_SLASHINGS");
 		(, , uint64 minerId, ) = registry.getStorageProvider(_ownerId);
@@ -281,7 +281,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 		vars.spShare = vars.withdrawn - (vars.stakingProfit + vars.protocolFees + vars.restakingAmt);
 
 		WFIL.deposit{value: vars.withdrawn}();
-		WFIL.safeTransfer(rewardCollector, vars.protocolFees);
+		WFIL.transfer(rewardCollector, vars.protocolFees);
 
 		WFIL.withdraw(vars.spShare);
 		SendAPI.send(CommonTypes.FilActorId.wrap(ownerId), vars.spShare);
@@ -309,7 +309,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 			emit ProfitShareUpdate(_ownerId, 0, baseProfitShare);
 		} else {
 			uint256 prevShare = profitShares[_ownerId];
-			require(_profitShare <= 10000, "PROFIT_SHARE_OVERFLOW");
+			require(_profitShare <= 8000, "PROFIT_SHARE_OVERFLOW");
 			require(_profitShare != prevShare, "SAME_PROFIT_SHARE");
 
 			profitShares[_ownerId] = _profitShare;
@@ -363,6 +363,11 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 	 */
 	function setCollateralAddress(address newAddr) public {
 		require(hasRole(LIQUID_STAKING_ADMIN, msg.sender), "INVALID_ACCESS");
+		require(newAddr.isContract(), "NON_CONTRACT_ADDRESS");
+
+		address prevCollateral = address(collateral);
+		require(prevCollateral != newAddr, "SAME_ADDRESS");
+
 		collateral = IStorageProviderCollateralClient(newAddr);
 
 		emit SetCollateralAddress(newAddr);
@@ -381,9 +386,64 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 	 */
 	function setRegistryAddress(address newAddr) public {
 		require(hasRole(LIQUID_STAKING_ADMIN, msg.sender), "INVALID_ACCESS");
+		require(newAddr.isContract(), "NON_CONTRACT_ADDRESS");
+
+		address prevRegistry = address(registry);
+		require(prevRegistry != newAddr, "SAME_ADDRESS");
+
 		registry = IStorageProviderRegistryClient(newAddr);
 
 		emit SetRegistryAddress(newAddr);
+	}
+
+	/**
+	 * @notice Updates admin fee for the protocol revenue
+	 * @param fee New admin fee
+	 * @dev Make sure that admin fee is not greater than 20%
+	 */
+	function updateAdminFee(uint256 fee) public {
+		require(hasRole(LIQUID_STAKING_ADMIN, msg.sender), "INVALID_ACCESS");
+		require(fee <= 2000, "ADMIN_FEE_OVERFLOW");
+
+		uint256 prevFee = adminFee;
+		require(fee != prevFee, "SAME_ADMIN_FEE");
+
+		adminFee = fee;
+
+		emit UpdateAdminFee(fee);
+	}
+
+	/**
+	 * @notice Updates base profit sharing ratio
+	 * @param share New base profit sharing ratio
+	 * @dev Make sure that profit sharing is not greater than 80%
+	 */
+	function updateBaseProfitShare(uint256 share) public {
+		require(hasRole(LIQUID_STAKING_ADMIN, msg.sender), "INVALID_ACCESS");
+		require(share <= 8000 && share > 0, "PROFIT_SHARE_OVERFLOW");
+
+		uint256 prevShare = baseProfitShare;
+		require(share != prevShare, "SAME_PROFIT_SHARE");
+
+		baseProfitShare = share;
+
+		emit UpdateBaseProfitShare(share);
+	}
+
+	/**
+	 * @notice Updates reward collector address of the protocol revenue
+	 * @param collector New rewards collector address
+	 */
+	function updateRewardsCollector(address collector) public {
+		require(hasRole(LIQUID_STAKING_ADMIN, msg.sender), "INVALID_ACCESS");
+		require(collector != address(0), "INVALID_ADDRESS");
+
+		address prevAddr = rewardCollector;
+		require(collector != prevAddr, "SAME_COLLECTOR_ADDRESS");
+
+		rewardCollector = collector;
+
+		emit UpdateRewardCollector(collector);
 	}
 
 	/**
@@ -420,7 +480,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 	function _wrapWETH9(address _recipient) internal {
 		uint256 amount = msg.value;
 		WFIL.deposit{value: amount}();
-		WFIL.safeTransfer(_recipient, amount);
+		WFIL.transfer(_recipient, amount);
 	}
 
 	/**

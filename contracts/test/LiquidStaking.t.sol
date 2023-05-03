@@ -77,14 +77,7 @@ contract LiquidStakingTest is DSTestPlus {
 			address(minerMockAPI)
 		);
 
-		registry = new StorageProviderRegistryMock(
-			address(minerMockAPI),
-			aliceOwnerId,
-			MAX_STORAGE_PROVIDERS,
-			MAX_ALLOCATION,
-			MIN_TIME_PERIOD,
-			MAX_TIME_PERIOD
-		);
+		registry = new StorageProviderRegistryMock(address(minerMockAPI), aliceOwnerId, MAX_ALLOCATION);
 
 		collateral = new StorageProviderCollateralMock(wfil, address(registry), baseCollateralRequirements);
 
@@ -501,7 +494,7 @@ contract LiquidStakingTest is DSTestPlus {
 	}
 
 	function testUpdateProfitShare(uint256 share) public {
-		hevm.assume(share <= 10000 && share > 0 && share != profitShare);
+		hevm.assume(share <= 8000 && share > 0 && share != profitShare);
 
 		staking.updateProfitShare(aliceOwnerId, share);
 
@@ -599,5 +592,103 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.prank(alice);
 		hevm.expectRevert("INVALID_ACCESS");
 		staking.reportRecovery(aliceOwnerId);
+	}
+
+	function testSetCollateralAddress(address collateralAddr) public {
+		hevm.assume(collateralAddr != address(0) && collateralAddr != address(collateral));
+		hevm.etch(collateralAddr, bytes("0x10378"));
+
+		staking.setCollateralAddress(collateralAddr);
+	}
+
+	function testCollateralAddressReverts() public {
+		address collateralAddr = address(0x94812417984127);
+		hevm.etch(collateralAddr, bytes("0x103789851206015297"));
+
+		hevm.prank(alice);
+		hevm.expectRevert("INVALID_ACCESS");
+		staking.setCollateralAddress(collateralAddr);
+
+		hevm.expectRevert("SAME_ADDRESS");
+		staking.setCollateralAddress(address(collateral));
+	}
+
+	function testSetRegistryAddress(address registryAddr) public {
+		hevm.assume(registryAddr != address(0) && registryAddr != address(registry));
+		hevm.etch(registryAddr, bytes("0x10378"));
+
+		staking.setRegistryAddress(registryAddr);
+	}
+
+	function testSetRegistryAddressReverts() public {
+		address registryAddr = address(0x94812417984127);
+
+		hevm.prank(alice);
+		hevm.expectRevert("INVALID_ACCESS");
+		staking.setRegistryAddress(registryAddr);
+
+		hevm.expectRevert("SAME_ADDRESS");
+		staking.setRegistryAddress(address(registry));
+	}
+
+	function testUpdateAdminFee(uint256 fee) public {
+		hevm.assume(fee <= 2000 && fee != adminFee);
+
+		staking.updateAdminFee(fee);
+	}
+
+	function testUpdateAdminFeeReverts(uint256 fee) public {
+		hevm.assume(fee > 2000 || fee == adminFee);
+
+		if (fee == adminFee) {
+			hevm.expectRevert("SAME_ADMIN_FEE");
+			staking.updateAdminFee(fee);
+		} else {
+			hevm.prank(alice);
+			hevm.expectRevert("INVALID_ACCESS");
+			staking.updateAdminFee(fee);
+
+			hevm.expectRevert("ADMIN_FEE_OVERFLOW");
+			staking.updateAdminFee(fee);
+		}
+	}
+
+	function testBaseProfitShare(uint256 share) public {
+		hevm.assume(share <= 8000 && share != profitShare && share > 0);
+
+		staking.updateBaseProfitShare(share);
+	}
+
+	function testBaseProfitShareReverts(uint256 share) public {
+		hevm.assume(share > 8000 || share == profitShare);
+
+		if (share == profitShare) {
+			hevm.expectRevert("SAME_PROFIT_SHARE");
+			staking.updateBaseProfitShare(profitShare);
+		} else {
+			hevm.prank(alice);
+			hevm.expectRevert("INVALID_ACCESS");
+			staking.updateBaseProfitShare(share);
+
+			hevm.expectRevert("PROFIT_SHARE_OVERFLOW");
+			staking.updateBaseProfitShare(share);
+		}
+	}
+
+	function testUpdateRewardsCollector(address collector) public {
+		hevm.assume(collector != address(0) && collector != rewardCollector);
+		staking.updateRewardsCollector(collector);
+	}
+
+	function testUpdateRewardsCollectorReverts() public {
+		hevm.expectRevert("SAME_COLLECTOR_ADDRESS");
+		staking.updateRewardsCollector(rewardCollector);
+
+		hevm.prank(alice);
+		hevm.expectRevert("INVALID_ACCESS");
+		staking.updateRewardsCollector(address(0));
+
+		hevm.expectRevert("INVALID_ADDRESS");
+		staking.updateRewardsCollector(address(0));
 	}
 }

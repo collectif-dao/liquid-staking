@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0;
 
-import {ERC20} from "./ERC20.sol";
+// import {ERC20} from "./ERC20.sol";
 
-abstract contract IWFIL is ERC20 {
+interface IWFIL {
 	/**
 	 * @notice Deposit Fil into the contract, and mint WFIL 1:1.
 	 */
-	function deposit() external payable virtual;
+	function deposit() external payable;
 
 	/**
 	 * @notice Burns _amount WFIL from caller's balance, and transfers them
@@ -29,5 +29,15 @@ abstract contract IWFIL is ERC20 {
 	 * (Though Multisig actors are not supported, BLS/SECPK/EthAccounts
 	 * and EVM contracts can use this method normally)
 	 */
-	function withdraw(uint256 amount) external virtual;
+	function withdraw(uint256 amount) external;
+
+	function transfer(address _to, uint _amount) external returns (bool);
+
+	function transferFrom(address _owner, address _to, uint _amount) external returns (bool);
+
+	function approve(address _spender, uint _amount) external returns (bool);
+
+	function balanceOf(address _a) external view returns (uint);
+
+	function allowance(address _owner, address _spender) external view returns (uint);
 }

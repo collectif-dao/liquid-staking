@@ -63,6 +63,24 @@ interface ILiquidStaking {
 	event ProfitShareUpdate(uint64 ownerId, uint256 prevShare, uint256 profitShare);
 
 	/**
+	 * @notice Emitted when admin fee is updated
+	 * @param adminFee New admin fee
+	 */
+	event UpdateAdminFee(uint256 adminFee);
+
+	/**
+	 * @notice Emitted when base profit sharing is updated
+	 * @param profitShare New base profit sharing ratio
+	 */
+	event UpdateBaseProfitShare(uint256 profitShare);
+
+	/**
+	 * @notice Emitted when reward collector address is updated
+	 * @param rewardsCollector New rewards collector address
+	 */
+	event UpdateRewardCollector(address rewardsCollector);
+
+	/**
 	 * @notice Stake FIL to the Liquid Staking pool and get clFIL in return
 	 * native FIL is wrapped into WFIL and deposited into LiquidStaking
 	 *
@@ -154,6 +172,26 @@ interface ILiquidStaking {
 	 * @param newAddr StorageProviderRegistry contract address
 	 */
 	function setRegistryAddress(address newAddr) external;
+
+	/**
+	 * @notice Updates admin fee for the protocol revenue
+	 * @param fee New admin fee
+	 * @dev Make sure that admin fee is not greater than 20%
+	 */
+	function updateAdminFee(uint256 fee) external;
+
+	/**
+	 * @notice Updates base profit sharing ratio
+	 * @param share New base profit sharing ratio
+	 * @dev Make sure that profit sharing is not greater than 80%
+	 */
+	function updateBaseProfitShare(uint256 share) external;
+
+	/**
+	 * @notice Updates reward collector address of the protocol revenue
+	 * @param collector New rewards collector address
+	 */
+	function updateRewardsCollector(address collector) external;
 
 	/**
 	 * @notice Triggers changeBeneficiary Miner actor call

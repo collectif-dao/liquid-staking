@@ -42,6 +42,7 @@ interface IStorageProviderRegistry {
 
 	event CollateralAddressUpdated(address collateral);
 	event LiquidStakingPoolRegistered(address pool);
+	event UpdateMaxAllocation(uint256 maxAllocation);
 
 	/**
 	 * @notice Register storage provider with `_minerId`, desired `_allocationLimit` and `_targetPool`
@@ -188,6 +189,12 @@ interface IStorageProviderRegistry {
 	 * @dev Only triggered by owner contract
 	 */
 	function registerPool(address _pool) external;
+
+	/**
+	 * @notice Updates maximum allocation amount for SP
+	 * @param allocation New max allocation per SP
+	 */
+	function updateMaxAllocation(uint256 allocation) external;
 
 	/**
 	 * @notice Return a boolean flag whether `_pool` is active or not

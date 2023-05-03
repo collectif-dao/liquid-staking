@@ -122,7 +122,7 @@ contract LiquidStakingMock is LiquidStaking {
 		vars.spShare = vars.withdrawn - (vars.stakingProfit + vars.protocolFees + vars.restakingAmt);
 
 		WFIL.deposit{value: vars.withdrawn}();
-		WFIL.safeTransfer(rewardCollector, vars.protocolFees);
+		WFIL.transfer(rewardCollector, vars.protocolFees);
 
 		WFIL.withdraw(vars.spShare);
 		ownerAddr.safeTransferETH(vars.spShare);

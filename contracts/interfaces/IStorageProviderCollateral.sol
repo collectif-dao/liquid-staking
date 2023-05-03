@@ -12,6 +12,8 @@ interface IStorageProviderCollateral {
 	);
 	event StorageProviderCollateralSlash(uint64 _ownerId, uint256 slashingAmt, address pool);
 	event StorageProviderCollateralUpdate(uint64 _ownerId, uint256 prevRequirements, uint256 requirements);
+	event UpdateBaseCollateralRequirements(uint256 baseCollateralRequirements);
+	event SetRegistryAddress(address registry);
 
 	/**
 	 * @dev Deposit `msg.value` FIL funds by the msg.sender into collateral
@@ -71,4 +73,16 @@ interface IStorageProviderCollateral {
 	 * @param requirements Percentage of collateral requirements
 	 */
 	function updateCollateralRequirements(uint64 _ownerId, uint256 requirements) external;
+
+	/**
+	 * @notice Updates base collateral requirements amount for Storage Providers
+	 * @param requirements New base collateral requirements for SP
+	 */
+	function updateBaseCollateralRequirements(uint256 requirements) external;
+
+	/**
+	 * @notice Updates StorageProviderRegistry contract address
+	 * @param newAddr StorageProviderRegistry contract address
+	 */
+	function setRegistryAddress(address newAddr) external;
 }

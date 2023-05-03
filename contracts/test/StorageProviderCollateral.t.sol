@@ -64,14 +64,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 			address(minerMockAPI)
 		);
 
-		registry = new StorageProviderRegistryMock(
-			address(minerMockAPI),
-			aliceOwnerId,
-			MAX_STORAGE_PROVIDERS,
-			MAX_ALLOCATION,
-			MIN_TIME_PERIOD,
-			MAX_TIME_PERIOD
-		);
+		registry = new StorageProviderRegistryMock(address(minerMockAPI), aliceOwnerId, MAX_ALLOCATION);
 
 		collateral = new StorageProviderCollateralMock(wfil, address(registry), baseCollateralRequirements);
 		callerMock = new StorageProviderCollateralCallerMock(address(collateral));
@@ -372,5 +365,40 @@ contract StorageProviderCollateralTest is DSTestPlus {
 
 		hevm.expectRevert("SAME_COLLATERAL_REQUIREMENTS");
 		collateral.updateCollateralRequirements(aliceOwnerId, 1500);
+	}
+
+	function testUpdateBaseCollateralRequirements(uint256 requirements) public {
+		hevm.assume(requirements > 0 && requirements != baseCollateralRequirements);
+		collateral.updateBaseCollateralRequirements(requirements);
+	}
+
+	function testUpdateBaseCollateralRequirementsReverts() public {
+		hevm.expectRevert("SAME_REQUIREMENTS");
+		collateral.updateBaseCollateralRequirements(baseCollateralRequirements);
+
+		hevm.prank(aliceOwnerAddr);
+		hevm.expectRevert("INVALID_ACCESS");
+		collateral.updateBaseCollateralRequirements(1);
+
+		hevm.expectRevert("INVALID_REQUIREMENTS");
+		collateral.updateBaseCollateralRequirements(0);
+	}
+
+	function testSetRegistryAddress(address registryAddr) public {
+		hevm.assume(registryAddr != address(0) && registryAddr != address(registry));
+		hevm.etch(registryAddr, bytes("0x10378"));
+
+		collateral.setRegistryAddress(registryAddr);
+	}
+
+	function testSetRegistryAddressReverts() public {
+		address registryAddr = address(0x94812417984127);
+
+		hevm.prank(alice);
+		hevm.expectRevert("INVALID_ACCESS");
+		collateral.setRegistryAddress(registryAddr);
+
+		hevm.expectRevert("SAME_ADDRESS");
+		collateral.setRegistryAddress(address(registry));
 	}
 }
