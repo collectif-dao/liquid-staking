@@ -241,6 +241,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 		uint256 protocolFees;
 		uint256 stakingProfit;
 		uint256 restakingAmt;
+		uint256 protocolShare;
 		uint256 spShare;
 		CommonTypes.FilActorId minerActorId;
 		CommonTypes.BigInt withdrawnBInt;
@@ -269,16 +270,17 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 
 		vars.stakingProfit = (vars.withdrawn * profitShare) / BASIS_POINTS;
 		vars.protocolFees = (vars.withdrawn * adminFee) / BASIS_POINTS;
+		vars.protocolShare = vars.stakingProfit + vars.protocolFees;
 
 		(vars.restakingRatio, vars.restakingAddress) = registry.restakings(ownerId);
 
 		vars.isRestaking = vars.restakingRatio > 0 && vars.restakingAddress != address(0);
 
 		if (vars.isRestaking) {
-			vars.restakingAmt = (vars.withdrawn * vars.restakingRatio) / BASIS_POINTS;
+			vars.restakingAmt = ((vars.withdrawn - vars.protocolShare) * vars.restakingRatio) / BASIS_POINTS;
 		}
 
-		vars.spShare = vars.withdrawn - (vars.stakingProfit + vars.protocolFees + vars.restakingAmt);
+		vars.spShare = vars.withdrawn - (vars.protocolShare + vars.restakingAmt);
 
 		WFIL.deposit{value: vars.withdrawn}();
 		WFIL.transfer(rewardCollector, vars.protocolFees);

@@ -35,7 +35,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	uint256 private profitShare = 2000;
 	address private rewardCollector = address(0x12523);
 	uint64 public aliceOwnerId = 1508;
-	uint256 maxRestaking = 10000 - profitShare - adminFee;
+	uint256 maxRestaking = 10000;
 
 	uint256 private constant MAX_STORAGE_PROVIDERS = 200;
 	uint256 private constant MAX_ALLOCATION = 10000 ether;

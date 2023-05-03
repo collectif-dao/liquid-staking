@@ -341,9 +341,8 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 	 */
 	function setRestaking(uint256 _restakingRatio, address _restakingAddress) public virtual override {
 		uint64 ownerId = PrecompilesAPI.resolveEthAddress(msg.sender);
-		uint256 totalFees = ILiquidStakingClient(storageProviders[ownerId].targetPool).totalFees(ownerId);
 
-		require(_restakingRatio <= 10000 - totalFees, "INVALID_RESTAKING_RATIO");
+		require(_restakingRatio <= 10000, "INVALID_RESTAKING_RATIO");
 		require(_restakingAddress != address(0), "INVALID_ADDRESS");
 
 		StorageProviderTypes.SPRestaking storage restaking = restakings[ownerId];

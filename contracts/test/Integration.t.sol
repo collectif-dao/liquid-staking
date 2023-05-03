@@ -600,11 +600,24 @@ contract IntegrationTest is DSTestPlus {
 		}
 	}
 
+	struct RestakingLocalVars {
+		uint256 adminShare;
+		uint256 protocolShare;
+		address restakingAddr;
+		uint256 restakingRatio;
+		uint256 restakingAmt;
+		uint256 clFILShares;
+		uint256 totalclFILShares;
+		uint256 clFILTotalSupply;
+		uint256 totalStakingAssets;
+	}
+
 	function testRestakingEffect(uint256 totalAllocation) public {
 		hevm.assume(totalAllocation > ALICE_TOTAL_ALLOCATION && totalAllocation <= MAX_ALLOCATION);
 		hevm.deal(staker, totalAllocation);
 
 		TestExecutionLocalVars memory vars;
+		RestakingLocalVars memory rVars;
 
 		vars.dailyAllocation = totalAllocation / ALICE_ALLOCATION_PERIOD;
 		vars.hypotheticalRepayment = (totalAllocation * 15000) / BASIS_POINTS;
@@ -640,14 +653,18 @@ contract IntegrationTest is DSTestPlus {
 
 		hevm.deal(address(minerActor), vars.totalAvailableRewards);
 
-		address restakingAddr = address(0x123777);
-		uint256 restakingRatio = 2500;
-		uint256 restakingAmt = (vars.availableRewardsPerDay * restakingRatio) / BASIS_POINTS;
-		uint256 clFILShares;
-		uint256 totalclFILShares;
+		rVars.adminShare = (vars.availableRewardsPerDay * adminFee) / BASIS_POINTS;
+		rVars.protocolShare = vars.revenuePerDay + rVars.adminShare;
+		rVars.restakingAddr = address(0x123777);
+		rVars.restakingRatio = 2500;
+		rVars.restakingAmt =
+			((vars.availableRewardsPerDay - rVars.protocolShare) * rVars.restakingRatio) /
+			BASIS_POINTS;
+		rVars.clFILShares;
+		rVars.totalclFILShares;
 
 		hevm.prank(alice);
-		registry.setRestaking(restakingRatio, restakingAddr);
+		registry.setRestaking(rVars.restakingRatio, rVars.restakingAddr);
 
 		for (uint256 i = 0; i < ALICE_ALLOCATION_PERIOD; i++) {
 			uint256 timeDelta = ONE_DAY * i;
@@ -676,11 +693,11 @@ contract IntegrationTest is DSTestPlus {
 			);
 
 			if (i > 0) {
-				uint256 clFILTotalSupply = staking.totalSupply();
-				uint256 totalStakingAssets = totalAllocation + (restakingAmt * i) + (vars.revenuePerDay * i);
+				rVars.clFILTotalSupply = staking.totalSupply();
+				rVars.totalStakingAssets = totalAllocation + (rVars.restakingAmt * i) + (vars.revenuePerDay * i);
 
-				clFILShares = restakingAmt.mulDivDown(clFILTotalSupply, totalStakingAssets);
-				totalclFILShares += clFILShares;
+				rVars.clFILShares = rVars.restakingAmt.mulDivDown(rVars.clFILTotalSupply, rVars.totalStakingAssets);
+				rVars.totalclFILShares += rVars.clFILShares;
 
 				staking.withdrawRewards(aliceOwnerId, vars.availableRewardsPerDay);
 				vars.rewardsDelta =
@@ -688,13 +705,13 @@ contract IntegrationTest is DSTestPlus {
 					vars.totalAllocated -
 					(vars.availableRewardsPerDay * (i));
 
-				require(staking.balanceOf(restakingAddr) == totalclFILShares, "INVALID_clFIL_SHARES");
+				require(staking.balanceOf(rVars.restakingAddr) == rVars.totalclFILShares, "INVALID_clFIL_SHARES");
 
 				require(
 					address(minerActor).balance == vars.rewardsDelta,
 					"INVALID_MINER_ACTOR_BALANCE_AFTER_WITHDRAWAL"
 				);
-				require(staking.totalAssets() == totalStakingAssets, "INVALID_LSP_ASSETS");
+				require(staking.totalAssets() == rVars.totalStakingAssets, "INVALID_LSP_ASSETS");
 				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
 				require(
 					collateral.getLockedCollateral(aliceOwnerId) == collateralRequirements,
@@ -702,7 +719,7 @@ contract IntegrationTest is DSTestPlus {
 				);
 				require(
 					wfil.balanceOf(address(staking)) ==
-						totalAllocation - vars.totalAllocated + (vars.revenuePerDay * i) + (restakingAmt * i),
+						totalAllocation - vars.totalAllocated + (vars.revenuePerDay * i) + (rVars.restakingAmt * i),
 					"INVALID_LSP_WFIL_BALANCE"
 				);
 			} else {

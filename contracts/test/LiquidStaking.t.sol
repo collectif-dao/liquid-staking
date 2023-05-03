@@ -388,8 +388,9 @@ contract LiquidStakingTest is DSTestPlus {
 
 		uint256 stakingProfit = (withdrawAmount * profitShare) / BASIS_POINTS;
 		uint256 protocolFees = (withdrawAmount * adminFee) / BASIS_POINTS;
-		uint256 restakingAmt = (withdrawAmount * 2000) / BASIS_POINTS;
-		uint256 spShare = withdrawAmount - (stakingProfit + protocolFees + restakingAmt);
+		uint256 protocolShare = stakingProfit + protocolFees;
+		uint256 restakingAmt = ((withdrawAmount - protocolShare) * 2000) / BASIS_POINTS;
+		uint256 spShare = withdrawAmount - (protocolShare + restakingAmt);
 
 		hevm.prank(alice);
 		registry.requestAllocationLimitUpdate(amount, dailyAllocation);
