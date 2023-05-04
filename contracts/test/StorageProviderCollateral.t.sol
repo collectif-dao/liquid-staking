@@ -7,7 +7,7 @@ import {IWFIL} from "../libraries/tokens/IWFIL.sol";
 import {BigIntsClient} from "../libraries/BigInts.sol";
 import {Buffer} from "@ensdomains/buffer/contracts/Buffer.sol";
 import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
-import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
 import {StorageProviderCollateralMock, IStorageProviderCollateral, StorageProviderCollateralCallerMock} from "./mocks/StorageProviderCollateralMock.sol";
 import {StorageProviderRegistryMock, StorageProviderRegistryCallerMock} from "./mocks/StorageProviderRegistryMock.sol";
@@ -193,7 +193,11 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		// call via mock contract
 		callerMock.lock(aliceOwnerId, SAMPLE_DAILY_ALLOCATION);
 
-		uint256 lockedAmount = Math.mulDiv(SAMPLE_DAILY_ALLOCATION, baseCollateralRequirements, BASIS_POINTS);
+		uint256 lockedAmount = FixedPointMathLib.mulDivDown(
+			SAMPLE_DAILY_ALLOCATION,
+			baseCollateralRequirements,
+			BASIS_POINTS
+		);
 		uint256 availableAmount = SAMPLE_DAILY_ALLOCATION - lockedAmount;
 		assertEq(collateral.getLockedCollateral(aliceOwnerId), lockedAmount);
 		assertEq(collateral.getAvailableCollateral(aliceOwnerId), availableAmount);
@@ -203,13 +207,13 @@ contract StorageProviderCollateralTest is DSTestPlus {
 
 		registry.registerPool(address(registryCallerMock));
 
-		uint256 pledgeRepayment = Math.mulDiv(SAMPLE_DAILY_ALLOCATION, percentage, BASIS_POINTS);
+		uint256 pledgeRepayment = FixedPointMathLib.mulDivDown(SAMPLE_DAILY_ALLOCATION, percentage, BASIS_POINTS);
 		// reduce collateral requirements by initial pledge repayment
 		registryCallerMock.increasePledgeRepayment(aliceOwnerId, pledgeRepayment);
 
 		callerMock.fit(aliceOwnerId);
 
-		uint256 adjAmt = Math.mulDiv(lockedAmount, percentage, BASIS_POINTS);
+		uint256 adjAmt = FixedPointMathLib.mulDivDown(lockedAmount, percentage, BASIS_POINTS);
 
 		lockedAmount = lockedAmount - adjAmt;
 		availableAmount = availableAmount + adjAmt;
@@ -233,7 +237,11 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		// call via mock contract
 		callerMock.lock(aliceOwnerId, SAMPLE_DAILY_ALLOCATION);
 
-		uint256 lockedAmount = Math.mulDiv(SAMPLE_DAILY_ALLOCATION, baseCollateralRequirements, BASIS_POINTS);
+		uint256 lockedAmount = FixedPointMathLib.mulDivDown(
+			SAMPLE_DAILY_ALLOCATION,
+			baseCollateralRequirements,
+			BASIS_POINTS
+		);
 		uint256 availableAmount = SAMPLE_DAILY_ALLOCATION - lockedAmount;
 		assertEq(collateral.getLockedCollateral(aliceOwnerId), lockedAmount);
 		assertEq(collateral.getAvailableCollateral(aliceOwnerId), availableAmount);
@@ -245,7 +253,13 @@ contract StorageProviderCollateralTest is DSTestPlus {
 
 		callerMock.fit(aliceOwnerId);
 
-		uint256 adjAmt = Math.mulDiv(additionalAllocation, baseCollateralRequirements, BASIS_POINTS);
+		uint256 usedAllocation = additionalAllocation + SAMPLE_DAILY_ALLOCATION;
+		uint256 newCollRequirements = FixedPointMathLib.mulDivDown(
+			usedAllocation,
+			baseCollateralRequirements,
+			BASIS_POINTS
+		);
+		uint256 adjAmt = newCollRequirements - lockedAmount;
 		emit log_named_uint("adjAmt:", adjAmt);
 
 		lockedAmount = lockedAmount + adjAmt;
@@ -254,8 +268,8 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		emit log_named_uint("aliceOwnerId locked collateral:", collateral.getLockedCollateral(aliceOwnerId));
 		emit log_named_uint("lockedAmount:", lockedAmount);
 
-		// assertEq(collateral.getLockedCollateral(aliceOwnerId), lockedAmount);
-		// assertEq(collateral.getAvailableCollateral(aliceOwnerId), availableAmount);
+		assertEq(collateral.getLockedCollateral(aliceOwnerId), lockedAmount);
+		assertEq(collateral.getAvailableCollateral(aliceOwnerId), availableAmount);
 	}
 
 	function testLockReverts(uint256 amount) public {
