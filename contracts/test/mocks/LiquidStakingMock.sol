@@ -29,8 +29,9 @@ contract LiquidStakingMock is LiquidStaking {
 		uint256 _profitShare,
 		address _rewardCollector,
 		address _ownerAddr,
-		address _minerApiMock
-	) LiquidStaking(_wFIL, _adminFee, _profitShare, _rewardCollector) {
+		address _minerApiMock,
+		address _bigIntsLib
+	) LiquidStaking(_wFIL, _adminFee, _profitShare, _rewardCollector, _bigIntsLib) {
 		minerActorMock = IMinerActorMock(minerActor);
 		ownerId = _ownerId;
 		ownerAddr = _ownerAddr;

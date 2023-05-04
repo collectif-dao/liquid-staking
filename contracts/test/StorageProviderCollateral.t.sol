@@ -4,6 +4,7 @@ pragma solidity ^0.8.17;
 import {MockERC4626} from "solmate/test/utils/mocks/MockERC4626.sol";
 import {WFIL} from "fevmate/token/WFIL.sol";
 import {IWFIL} from "../libraries/tokens/IWFIL.sol";
+import {BigIntsClient} from "../libraries/BigInts.sol";
 import {Buffer} from "@ensdomains/buffer/contracts/Buffer.sol";
 import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -23,6 +24,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	LiquidStakingMock public staking;
 	IWFIL public wfil;
 	MinerMockAPI private minerMockAPI;
+	BigIntsClient private bigIntsLib;
 
 	bytes public owner;
 	uint64 public aliceOwnerId = 1508;
@@ -53,6 +55,8 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		wfil = IWFIL(address(new WFIL(msg.sender)));
 		minerMockAPI = new MinerMockAPI(owner);
 
+		bigIntsLib = new BigIntsClient();
+
 		staking = new LiquidStakingMock(
 			address(wfil),
 			address(0x21421),
@@ -61,7 +65,8 @@ contract StorageProviderCollateralTest is DSTestPlus {
 			3000,
 			rewardCollector,
 			aliceOwnerAddr,
-			address(minerMockAPI)
+			address(minerMockAPI),
+			address(bigIntsLib)
 		);
 
 		registry = new StorageProviderRegistryMock(address(minerMockAPI), aliceOwnerId, MAX_ALLOCATION);

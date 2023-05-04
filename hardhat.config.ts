@@ -1,9 +1,29 @@
 import { HardhatUserConfig } from "hardhat/config";
 import * as fs from "fs";
+import {subtask} from "hardhat/config";
+ import {TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS} from "hardhat/builtin-tasks/task-names";
 import "@nomicfoundation/hardhat-toolbox";
 import "hardhat-preprocessor";
 import "hardhat-deploy";
 import "@nomiclabs/hardhat-ethers";
+import "@nomicfoundation/hardhat-foundry";
+import * as path from 'path';
+
+import * as dotenv from 'dotenv'
+dotenv.config();
+
+subtask(
+  TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS,
+  async (_, { config }, runSuper) => {
+    const paths = await runSuper();
+
+    return paths
+      .filter(solidityFilePath => {
+        const relativePath = path.relative(config.paths.sources, solidityFilePath)
+        return !relativePath.includes('test/') && !relativePath.includes('router/');
+      })
+  }
+);
 
 function getRemappings() {
   return fs
@@ -11,16 +31,31 @@ function getRemappings() {
     .split("\n")
     .filter(Boolean) // remove empty lines
     .map((line) => line.trim().split("="));
-}
+};
 
 const config: HardhatUserConfig = {
+  namedAccounts: {
+    deployer: {
+      default: 0,
+    },
+    dev: {
+      default: 1,
+    },
+  },
   solidity: {
     compilers: [
       {
-        version: "0.8.12",
-      },
-      {
         version: "0.8.17",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 1,
+            details: {
+              yul: false,
+              constantOptimizer: true,
+            }
+          }
+        }
       },
     ],
   },

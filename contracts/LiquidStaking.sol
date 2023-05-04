@@ -4,19 +4,16 @@ pragma solidity ^0.8.17;
 import {ClFILToken} from "./ClFIL.sol";
 import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {SafeTransferLib} from "./libraries/SafeTransferLib.sol";
-import {MinerAPI} from "filecoin-solidity/contracts/v0.8/MinerAPI.sol";
-import {CommonTypes} from "filecoin-solidity/contracts/v0.8/types/CommonTypes.sol";
-import {MinerTypes} from "filecoin-solidity/contracts/v0.8/types/MinerTypes.sol";
-import {BigInts} from "filecoin-solidity/contracts/v0.8/utils/BigInts.sol";
+import {MinerAPI, CommonTypes, MinerTypes} from "filecoin-solidity/contracts/v0.8/MinerAPI.sol";
 import {FilAddresses} from "filecoin-solidity/contracts/v0.8/utils/FilAddresses.sol";
 import {FilAddress} from "fevmate/utils/FilAddress.sol";
 import {SendAPI} from "filecoin-solidity/contracts/v0.8/SendAPI.sol";
 
-import "./interfaces/ILiquidStaking.sol";
-import "./interfaces/IStorageProviderCollateralClient.sol";
-import "./interfaces/IStorageProviderRegistryClient.sol";
+import {ILiquidStaking} from "./interfaces/ILiquidStaking.sol";
+import {IStorageProviderCollateralClient} from "./interfaces/IStorageProviderCollateralClient.sol";
+import {IStorageProviderRegistryClient} from "./interfaces/IStorageProviderRegistryClient.sol";
+import {IBigInts} from "./libraries/BigInts.sol";
 
 /**
  * @title LiquidStaking contract allows users to stake/unstake FIL to earn
@@ -31,7 +28,7 @@ import "./interfaces/IStorageProviderRegistryClient.sol";
  */
 contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessControl {
 	using SafeTransferLib for *;
-	using Address for address;
+	using FilAddress for address;
 
 	/// @notice The current total amount of FIL that is allocated to SPs.
 	uint256 public totalFilPledged;
@@ -42,6 +39,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 
 	IStorageProviderCollateralClient internal collateral;
 	IStorageProviderRegistryClient internal registry;
+	IBigInts internal immutable BigInts;
 
 	bytes32 private constant LIQUID_STAKING_ADMIN = keccak256("LIQUID_STAKING_ADMIN");
 	bytes32 private constant FEE_DISTRIBUTOR = keccak256("FEE_DISTRIBUTOR");
@@ -54,13 +52,16 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 		address _wFIL,
 		uint256 _adminFee,
 		uint256 _baseProfitShare,
-		address _rewardCollector
+		address _rewardCollector,
+		address _bigIntsLib
 	) ClFILToken(_wFIL) {
 		require(_adminFee <= 10000, "INVALID_ADMIN_FEE");
 		require(_rewardCollector != address(0), "INVALID_REWARD_COLLECTOR");
 		adminFee = _adminFee;
 		baseProfitShare = _baseProfitShare;
 		rewardCollector = _rewardCollector;
+
+		BigInts = IBigInts(_bigIntsLib);
 
 		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 		grantRole(LIQUID_STAKING_ADMIN, msg.sender);
@@ -148,8 +149,8 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 	function pledge(uint256 amount) external virtual nonReentrant {
 		require(amount <= totalAssets(), "PLEDGE_WITHDRAWAL_OVERFLOW");
 
-		address ownerAddr = FilAddress.normalize(msg.sender); // 0xFf0000000009b4 || 0xEthAddress
-		(bool isID, uint64 ownerId) = FilAddress.getActorID(ownerAddr);
+		address ownerAddr = msg.sender.normalize();
+		(bool isID, uint64 ownerId) = ownerAddr.getActorID();
 		require(isID, "INACTIVE_ACTOR_ID");
 		require(!activeSlashings[ownerId], "ACTIVE_SLASHING");
 
@@ -266,9 +267,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 		require(!vars.abort, "INCORRECT_BIG_NUM");
 		require(vars.withdrawn == amount, "INCORRECT_WITHDRAWAL_AMOUNT");
 
-		uint256 profitShare = profitShares[ownerId];
-
-		vars.stakingProfit = (vars.withdrawn * profitShare) / BASIS_POINTS;
+		vars.stakingProfit = (vars.withdrawn * profitShares[ownerId]) / BASIS_POINTS;
 		vars.protocolFees = (vars.withdrawn * adminFee) / BASIS_POINTS;
 		vars.protocolShare = vars.stakingProfit + vars.protocolFees;
 
@@ -282,10 +281,9 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 
 		vars.spShare = vars.withdrawn - (vars.protocolShare + vars.restakingAmt);
 
-		WFIL.deposit{value: vars.withdrawn}();
+		WFIL.deposit{value: vars.protocolShare}();
 		WFIL.transfer(rewardCollector, vars.protocolFees);
 
-		WFIL.withdraw(vars.spShare);
 		SendAPI.send(CommonTypes.FilActorId.wrap(ownerId), vars.spShare);
 
 		registry.increaseRewards(ownerId, vars.stakingProfit);
@@ -365,7 +363,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 	 */
 	function setCollateralAddress(address newAddr) public {
 		require(hasRole(LIQUID_STAKING_ADMIN, msg.sender), "INVALID_ACCESS");
-		require(newAddr.isContract(), "NON_CONTRACT_ADDRESS");
+		require(newAddr != address(0), "INVALID_ADDRESS");
 
 		address prevCollateral = address(collateral);
 		require(prevCollateral != newAddr, "SAME_ADDRESS");
@@ -388,7 +386,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 	 */
 	function setRegistryAddress(address newAddr) public {
 		require(hasRole(LIQUID_STAKING_ADMIN, msg.sender), "INVALID_ACCESS");
-		require(newAddr.isContract(), "NON_CONTRACT_ADDRESS");
+		require(newAddr != address(0), "INVALID_ADDRESS");
 
 		address prevRegistry = address(registry);
 		require(prevRegistry != newAddr, "SAME_ADDRESS");

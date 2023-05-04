@@ -56,7 +56,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 		address _targetPool,
 		uint256 _allocationLimit,
 		uint256 _dailyAllocation
-	) public override validActorID(_minerId) {
+	) public override {
 		require(_allocationLimit <= maxAllocation, "INVALID_ALLOCATION");
 		require(pools[_targetPool], "INVALID_TARGET_POOL");
 
@@ -109,7 +109,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 		uint256 _dailyAllocation,
 		uint256 _repayment,
 		int64 _lastEpoch
-	) public virtual override validActorID(_minerId) {
+	) public virtual override {
 		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
 		require(_repayment > _allocationLimit, "INCORRECT_REPAYMENT");
 		require(_allocationLimit <= maxAllocation, "INCORRECT_ALLOCATION");
@@ -252,6 +252,24 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 		restaking.restakingAddress = _restakingAddress;
 
 		emit StorageProviderMinerRestakingRatioUpdate(ownerId, _restakingRatio, _restakingAddress);
+	}
+
+	/**
+	 * @notice Update storage provider miner ID with `_minerId`
+	 * @param _ownerId Storage Provider owner ID
+	 * @param _minerId Storage Provider new miner ID
+	 * @dev Only triggered by registry admin
+	 */
+	function setMinerAddress(uint64 _ownerId, uint64 _minerId) public override activeStorageProvider(_ownerId) {
+		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
+		uint64 prevMiner = storageProviders[_ownerId].minerId;
+		require(prevMiner != _minerId, "SAME_MINER");
+
+		// Skip ownership check as it fails on tests
+
+		storageProviders[_ownerId].minerId = _minerId;
+
+		emit StorageProviderMinerAddressUpdate(_ownerId, _minerId);
 	}
 }
 

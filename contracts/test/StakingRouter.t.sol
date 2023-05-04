@@ -5,7 +5,7 @@ import {ERC20, MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
 import {MockERC4626} from "solmate/test/utils/mocks/MockERC4626.sol";
 import {WFIL} from "fevmate/token/WFIL.sol";
 
-import {IStakingRouter, StakingRouter} from "../StakingRouter.sol";
+import {IStakingRouter, StakingRouter} from "../router/StakingRouter.sol";
 import {IERC4626RouterBase, ERC4626RouterBase, IWETH9, IERC4626, SelfPermit, PeripheryPayments} from "fei-protocol/erc4626/ERC4626RouterBase.sol";
 
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";

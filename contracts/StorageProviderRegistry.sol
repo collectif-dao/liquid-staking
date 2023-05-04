@@ -1,10 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {MinerAPI} from "filecoin-solidity/contracts/v0.8/MinerAPI.sol";
-import {MinerTypes} from "filecoin-solidity/contracts/v0.8/types/MinerTypes.sol";
-import {CommonTypes} from "filecoin-solidity/contracts/v0.8/types/CommonTypes.sol";
-import {FilAddresses} from "filecoin-solidity/contracts/v0.8/utils/FilAddresses.sol";
+import {MinerAPI, MinerTypes, CommonTypes} from "filecoin-solidity/contracts/v0.8/MinerAPI.sol";
 import {PrecompilesAPI} from "filecoin-solidity/contracts/v0.8/PrecompilesAPI.sol";
 import {StorageProviderTypes} from "./types/StorageProviderTypes.sol";
 import {FilAddress} from "fevmate/utils/FilAddress.sol";
@@ -12,11 +9,10 @@ import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {BokkyPooBahsDateTimeLibrary} from "./libraries/DateTimeLibraryCompressed.sol";
-import "./interfaces/IStorageProviderRegistry.sol";
-import "./interfaces/ILiquidStakingClient.sol";
-import "./interfaces/IStorageProviderCollateralClient.sol";
+import {IStorageProviderRegistry} from "./interfaces/IStorageProviderRegistry.sol";
+import {ILiquidStakingClient} from "./interfaces/ILiquidStakingClient.sol";
+import {IStorageProviderCollateralClient} from "./interfaces/IStorageProviderCollateralClient.sol";
 
 /**
  * @title Storage Provider Registry contract allows storage providers to register
@@ -28,7 +24,7 @@ import "./interfaces/IStorageProviderCollateralClient.sol";
  */
 contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, ReentrancyGuard {
 	using Counters for Counters.Counter;
-	using Address for address;
+	using FilAddress for address;
 
 	// Mapping of storage provider IDs to their storage provider info
 	mapping(uint64 => StorageProviderTypes.StorageProvider) public storageProviders;
@@ -58,12 +54,6 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 	uint256 public maxAllocation;
 
 	IStorageProviderCollateralClient public collateral;
-
-	modifier validActorID(uint64 _id) {
-		CommonTypes.FilAddress memory addr = FilAddresses.fromActorID(_id);
-		require(FilAddresses.validate(addr), "INVALID_ID");
-		_;
-	}
 
 	modifier activeStorageProvider(uint64 _ownerId) {
 		require(storageProviders[_ownerId].active, "INACTIVE_STORAGE_PROVIDER");
@@ -101,22 +91,22 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 		address _targetPool,
 		uint256 _allocationLimit,
 		uint256 _dailyAllocation
-	) public virtual override validActorID(_minerId) nonReentrant {
+	) public virtual override nonReentrant {
 		require(_allocationLimit <= maxAllocation, "INVALID_ALLOCATION");
 		require(pools[_targetPool], "INVALID_TARGET_POOL");
 
 		RegisterLocalVars memory vars;
 
-		vars.ownerAddr = FilAddress.normalize(msg.sender);
-		(vars.isID, vars.msgSenderId) = FilAddress.getActorID(vars.ownerAddr);
+		vars.ownerAddr = msg.sender.normalize();
+		(vars.isID, vars.msgSenderId) = vars.ownerAddr.getActorID();
 		require(vars.isID, "INACTIVE_ACTOR_ID");
 
 		CommonTypes.FilActorId actorId = CommonTypes.FilActorId.wrap(_minerId);
 
-		MinerTypes.GetOwnerReturn memory ownerReturn = MinerAPI.getOwner(actorId); // 0x009b4
+		MinerTypes.GetOwnerReturn memory ownerReturn = MinerAPI.getOwner(actorId);
 		require(keccak256(ownerReturn.proposed.data) == keccak256(bytes("")), "PROPOSED_NEW_OWNER");
 
-		vars.ownerId = PrecompilesAPI.resolveAddress(ownerReturn.owner); //2045
+		vars.ownerId = PrecompilesAPI.resolveAddress(ownerReturn.owner);
 		require(vars.ownerId == vars.msgSenderId, "INVALID_MINER_OWNERSHIP");
 		require(!storageProviders[vars.ownerId].onboarded, "ALREADY_REGISTERED");
 
@@ -162,7 +152,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 		uint256 _dailyAllocation,
 		uint256 _repayment,
 		int64 _lastEpoch
-	) public virtual validActorID(_minerId) nonReentrant {
+	) public virtual nonReentrant {
 		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
 		require(_repayment > _allocationLimit, "INCORRECT_REPAYMENT");
 		require(_allocationLimit <= maxAllocation, "INCORRECT_ALLOCATION");
@@ -191,8 +181,8 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 	 * @notice Transfer beneficiary address of a miner to the target pool
 	 */
 	function changeBeneficiaryAddress() public virtual override nonReentrant {
-		address ownerAddr = FilAddress.normalize(msg.sender);
-		(bool isID, uint64 ownerId) = FilAddress.getActorID(ownerAddr);
+		address ownerAddr = msg.sender.normalize();
+		(bool isID, uint64 ownerId) = ownerAddr.getActorID();
 		require(isID, "INACTIVE_ACTOR_ID");
 
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[ownerId];
@@ -251,15 +241,18 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 	 * @param _minerId Storage Provider new miner ID
 	 * @dev Only triggered by registry admin
 	 */
-	function setMinerAddress(
-		uint64 _ownerId,
-		uint64 _minerId
-	) public activeStorageProvider(_ownerId) validActorID(_minerId) {
+	function setMinerAddress(uint64 _ownerId, uint64 _minerId) public virtual activeStorageProvider(_ownerId) {
 		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
 		uint64 prevMiner = storageProviders[_ownerId].minerId;
 		require(prevMiner != _minerId, "SAME_MINER");
 
-		// TODO: Add native call to set new miner address
+		CommonTypes.FilActorId actorId = CommonTypes.FilActorId.wrap(_minerId);
+
+		MinerTypes.GetOwnerReturn memory ownerReturn = MinerAPI.getOwner(actorId);
+		require(keccak256(ownerReturn.proposed.data) == keccak256(bytes("")), "PROPOSED_NEW_OWNER");
+
+		uint64 ownerId = PrecompilesAPI.resolveAddress(ownerReturn.owner);
+		require(ownerId == _ownerId, "INVALID_MINER_OWNERSHIP");
 
 		storageProviders[_ownerId].minerId = _minerId;
 
@@ -273,8 +266,8 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 	 * @dev Only triggered by Storage Provider owner
 	 */
 	function requestAllocationLimitUpdate(uint256 _allocationLimit, uint256 _dailyAllocation) public virtual override {
-		address ownerAddr = FilAddress.normalize(msg.sender);
-		(bool isID, uint64 ownerId) = FilAddress.getActorID(ownerAddr);
+		address ownerAddr = msg.sender.normalize();
+		(bool isID, uint64 ownerId) = ownerAddr.getActorID();
 		require(isID, "INACTIVE_ACTOR_ID");
 
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[ownerId];
@@ -443,7 +436,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 	 */
 	function setCollateralAddress(address _collateral) public {
 		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
-		require(_collateral.isContract(), "NON_CONTRACT_ADDRESS");
+		require(_collateral != address(0), "INVALID_ADDRESS");
 
 		address prevCollateral = address(collateral);
 		require(prevCollateral != _collateral, "SAME_ADDRESS");
@@ -460,7 +453,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 	 */
 	function registerPool(address _pool) public {
 		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
-		require(_pool.isContract(), "NON_CONTRACT_ADDRESS");
+		require(_pool != address(0), "INVALID_ADDRESS");
 		require(!pools[_pool], "ALREADY_ACTIVE_POOL");
 
 		pools[_pool] = true;

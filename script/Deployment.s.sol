@@ -18,7 +18,6 @@ contract DeploymentScript is Script {
 	uint256 private constant MAX_ALLOCATION = 10000 ether;
 	uint256 private constant MIN_TIME_PERIOD = 90 days;
 	uint256 private constant MAX_TIME_PERIOD = 360 days;
-	uint256 private constant genesisEpoch = 58658;
 
 	function run() external {
 		uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");

@@ -5,6 +5,7 @@ import {ERC20, MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
 import {MockERC4626} from "solmate/test/utils/mocks/MockERC4626.sol";
 import {WFIL} from "fevmate/token/WFIL.sol";
 import {IWFIL} from "../libraries/tokens/IWFIL.sol";
+import {BigIntsClient} from "../libraries/BigInts.sol";
 import {Buffer} from "@ensdomains/buffer/contracts/Buffer.sol";
 import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
 
@@ -27,6 +28,7 @@ contract LiquidStakingTest is DSTestPlus {
 	StorageProviderRegistryMock public registry;
 	MinerActorMock public minerActor;
 	MinerMockAPI private minerMockAPI;
+	BigIntsClient private bigIntsLib;
 
 	bytes public owner;
 	uint64 public aliceOwnerId = 1508;
@@ -50,7 +52,6 @@ contract LiquidStakingTest is DSTestPlus {
 
 	uint256 public baseCollateralRequirements = 1500;
 	uint256 public constant BASIS_POINTS = 10000;
-	uint256 private constant genesisEpoch = 56576;
 	uint256 private constant preCommitDeposit = 95700000000000000;
 	uint256 private constant initialPledge = 151700000000000000;
 
@@ -66,6 +67,8 @@ contract LiquidStakingTest is DSTestPlus {
 		minerActor = new MinerActorMock();
 		minerMockAPI = new MinerMockAPI(owner);
 
+		bigIntsLib = new BigIntsClient();
+
 		staking = new LiquidStakingMock(
 			address(wfil),
 			address(minerActor),
@@ -74,7 +77,8 @@ contract LiquidStakingTest is DSTestPlus {
 			profitShare,
 			rewardCollector,
 			aliceOwnerAddr,
-			address(minerMockAPI)
+			address(minerMockAPI),
+			address(bigIntsLib)
 		);
 
 		registry = new StorageProviderRegistryMock(address(minerMockAPI), aliceOwnerId, MAX_ALLOCATION);

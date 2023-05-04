@@ -1,17 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "./interfaces/IStorageProviderCollateral.sol";
-import "./interfaces/IStorageProviderRegistryClient.sol";
+import {IStorageProviderCollateral} from "./interfaces/IStorageProviderCollateral.sol";
+import {IStorageProviderRegistryClient} from "./interfaces/IStorageProviderRegistryClient.sol";
 import {SafeTransferLib} from "./libraries/SafeTransferLib.sol";
 import {StorageProviderTypes} from "./types/StorageProviderTypes.sol";
 import {IWFIL} from "./libraries/tokens/IWFIL.sol";
 import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
-import {PrecompilesAPI} from "filecoin-solidity/contracts/v0.8/PrecompilesAPI.sol";
 import {FilAddress} from "fevmate/utils/FilAddress.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 /**
  * @title Storage Provider Collateral stores collateral for covering potential
@@ -28,7 +26,7 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl, ReentrancyGuard {
 	using SafeTransferLib for address;
 	using FixedPointMathLib for uint256;
-	using Address for address;
+	using FilAddress for address;
 
 	// Mapping of storage provider collateral information to their owner ID
 	mapping(uint64 => SPCollateral) public collaterals;
@@ -85,8 +83,8 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 		uint256 amount = msg.value;
 		require(amount > 0, "INVALID_AMOUNT");
 
-		address ownerAddr = FilAddress.normalize(msg.sender);
-		(bool isID, uint64 ownerId) = FilAddress.getActorID(ownerAddr);
+		address ownerAddr = msg.sender.normalize();
+		(bool isID, uint64 ownerId) = ownerAddr.getActorID();
 		require(isID, "INACTIVE_ACTOR_ID");
 		require(registry.isActiveProvider(ownerId), "INACTIVE_STORAGE_PROVIDER");
 
@@ -106,8 +104,8 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	function withdraw(uint256 _amount) public nonReentrant {
 		require(_amount > 0, "ZERO_AMOUNT");
 
-		address ownerAddr = FilAddress.normalize(msg.sender);
-		(bool isID, uint64 ownerId) = FilAddress.getActorID(ownerAddr);
+		address ownerAddr = msg.sender.normalize();
+		(bool isID, uint64 ownerId) = ownerAddr.getActorID();
 		require(isID, "INACTIVE_ACTOR_ID");
 		require(registry.isActiveProvider(ownerId), "INACTIVE_STORAGE_PROVIDER");
 
@@ -406,7 +404,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	 */
 	function setRegistryAddress(address newAddr) public {
 		require(hasRole(COLLATERAL_ADMIN, msg.sender), "INVALID_ACCESS");
-		require(newAddr.isContract(), "NON_CONTRACT_ADDRESS");
+		require(newAddr != address(0), "INVALID_ADDRESS");
 
 		address prevRegistry = address(registry);
 		require(prevRegistry != newAddr, "SAME_ADDRESS");
