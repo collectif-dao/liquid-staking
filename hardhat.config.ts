@@ -1,14 +1,33 @@
 import { HardhatUserConfig } from "hardhat/config";
+import {subtask} from "hardhat/config";
+import {TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS} from "hardhat/builtin-tasks/task-names";
 import * as fs from "fs";
 import "@nomicfoundation/hardhat-toolbox";
+import "@nomicfoundation/hardhat-foundry";
 import "hardhat-preprocessor";
 import "hardhat-deploy";
+import "hardhat-deploy-ethers";
 import "@nomiclabs/hardhat-ethers";
 import * as dotenv from 'dotenv';
+import * as path from 'path';
 dotenv.config();
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const url = process.env.HYPERSPACE_RPC_URL;
+
+subtask(
+  TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS,
+  async (_, { config }, runSuper) => {
+    const paths = await runSuper();
+
+    return paths
+      .filter(solidityFilePath => {
+        const relativePath = path.relative(config.paths.sources, solidityFilePath)
+        // console.log(relativePath);
+        return !relativePath.includes('test/');
+      })
+  }
+);
 
 function getRemappings() {
   return fs
@@ -37,13 +56,9 @@ const config: HardhatUserConfig = {
       chainId: 1337,
     },
     hyperspace: {
-      url: `${process.env.HYPERSPACE_RPC_URL}`,
       chainId: 3141,
+      url: "https://api.hyperspace.node.glif.io/rpc/v1",
       accounts: [PRIVATE_KEY],
-      live: true,
-      saveDeployments: true,
-      gasPrice: 100000000,
-      gasMultiplier: 8000,
     },
   },
   preprocess: {
