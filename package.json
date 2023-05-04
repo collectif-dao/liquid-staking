@@ -8,6 +8,9 @@
     "test": "test"
   },
   "scripts": {
+    "deploy:hardhat": "hardhat deploy --network hardhat",
+    "deploy:calibration": "hardhat deploy --network calibration",
+    "deploy:hyperspace": "hardhat deploy --network hyperspace",
     "lint:check": "solhint -f table contracts/*.sol",
     "lint:fix": "solhint --fix contracts/*.sol",
     "prepare": "husky install",

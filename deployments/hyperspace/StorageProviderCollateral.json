@@ -1,0 +1,1027 @@
+{
+  "address": "0xd78368beB78fdF2198CF804ebC06c05751766d2A",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "contract IWFIL",
+          "name": "_wFIL",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_registry",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_baseRequirements",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "previousAdminRole",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "newAdminRole",
+          "type": "bytes32"
+        }
+      ],
+      "name": "RoleAdminChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        }
+      ],
+      "name": "RoleGranted",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "sender",
+          "type": "address"
+        }
+      ],
+      "name": "RoleRevoked",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "registry",
+          "type": "address"
+        }
+      ],
+      "name": "SetRegistryAddress",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint64",
+          "name": "_ownerId",
+          "type": "uint64"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "StorageProviderCollateralDeposit",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint64",
+          "name": "_ownerId",
+          "type": "uint64"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "lockedCollateral",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "availableCollateral",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "isUnlock",
+          "type": "bool"
+        }
+      ],
+      "name": "StorageProviderCollateralRebalance",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint64",
+          "name": "_ownerId",
+          "type": "uint64"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "slashingAmt",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "pool",
+          "type": "address"
+        }
+      ],
+      "name": "StorageProviderCollateralSlash",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint64",
+          "name": "_ownerId",
+          "type": "uint64"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "prevRequirements",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "requirements",
+          "type": "uint256"
+        }
+      ],
+      "name": "StorageProviderCollateralUpdate",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint64",
+          "name": "_ownerId",
+          "type": "uint64"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "StorageProviderCollateralWithdraw",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "baseCollateralRequirements",
+          "type": "uint256"
+        }
+      ],
+      "name": "UpdateBaseCollateralRequirements",
+      "type": "event"
+    },
+    {
+      "stateMutability": "payable",
+      "type": "fallback"
+    },
+    {
+      "inputs": [],
+      "name": "BASIS_POINTS",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "DEFAULT_ADMIN_ROLE",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "WFIL",
+      "outputs": [
+        {
+          "internalType": "contract IWFIL",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "baseRequirements",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint64",
+          "name": "",
+          "type": "uint64"
+        }
+      ],
+      "name": "collateralRequirements",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint64",
+          "name": "",
+          "type": "uint64"
+        }
+      ],
+      "name": "collaterals",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "availableCollateral",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "lockedCollateral",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "deposit",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint64",
+          "name": "_ownerId",
+          "type": "uint64"
+        }
+      ],
+      "name": "fit",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint64",
+          "name": "_ownerId",
+          "type": "uint64"
+        }
+      ],
+      "name": "getAvailableCollateral",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint64",
+          "name": "_ownerId",
+          "type": "uint64"
+        }
+      ],
+      "name": "getCollateral",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint64",
+          "name": "_ownerId",
+          "type": "uint64"
+        }
+      ],
+      "name": "getDebt",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint64",
+          "name": "_ownerId",
+          "type": "uint64"
+        }
+      ],
+      "name": "getLockedCollateral",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        }
+      ],
+      "name": "getRoleAdmin",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "grantRole",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "hasRole",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint64",
+          "name": "_ownerId",
+          "type": "uint64"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_allocated",
+          "type": "uint256"
+        }
+      ],
+      "name": "lock",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "registry",
+      "outputs": [
+        {
+          "internalType": "contract IStorageProviderRegistryClient",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "renounceRole",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "role",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "account",
+          "type": "address"
+        }
+      ],
+      "name": "revokeRole",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newAddr",
+          "type": "address"
+        }
+      ],
+      "name": "setRegistryAddress",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint64",
+          "name": "_ownerId",
+          "type": "uint64"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_slashingAmt",
+          "type": "uint256"
+        }
+      ],
+      "name": "slash",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint64",
+          "name": "",
+          "type": "uint64"
+        }
+      ],
+      "name": "slashings",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes4",
+          "name": "interfaceId",
+          "type": "bytes4"
+        }
+      ],
+      "name": "supportsInterface",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "requirements",
+          "type": "uint256"
+        }
+      ],
+      "name": "updateBaseCollateralRequirements",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint64",
+          "name": "_ownerId",
+          "type": "uint64"
+        },
+        {
+          "internalType": "uint256",
+          "name": "requirements",
+          "type": "uint256"
+        }
+      ],
+      "name": "updateCollateralRequirements",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "withdraw",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "stateMutability": "payable",
+      "type": "receive"
+    }
+  ],
+  "transactionHash": "0x15687bcbcbcf83c3ae86f36eff4ca8ae27239cd45d9b8d7ef46f774e808b7167",
+  "receipt": {
+    "to": null,
+    "from": "0x6228e24Fd0ad7697585BdC7e1AAea279914D7549",
+    "contractAddress": "0xd78368beB78fdF2198CF804ebC06c05751766d2A",
+    "transactionIndex": 0,
+    "gasUsed": "98507403",
+    "logsBloom": "0xe40042250814420218c0357000160c00482186000000000288a1e2002580450300409000400a02a24080200280018104040674094b048484825000b120ac20009810b002082c10081900000804940480c04134002004301a0a0e280a6a26468000041241832430284628981008100800250208040122ca00601020540842004000c00076c0100829004000000004001308900aa88004c80000503280562800501226816290040201320801400404280a4004e14aa4c000200959c1484000400848b7044220004400a00400800204e000118008000409c231e50041202448e020203781228c4080840188284040008214010800630094001050ca2c80104b210c",
+    "blockHash": "0xaff3001f3960758194cd94af675caee75b94527145cd49cee786f96f9862559c",
+    "transactionHash": "0x15687bcbcbcf83c3ae86f36eff4ca8ae27239cd45d9b8d7ef46f774e808b7167",
+    "logs": [
+      {
+        "transactionIndex": 0,
+        "blockNumber": 312347,
+        "transactionHash": "0x15687bcbcbcf83c3ae86f36eff4ca8ae27239cd45d9b8d7ef46f774e808b7167",
+        "address": "0xd78368beB78fdF2198CF804ebC06c05751766d2A",
+        "topics": [
+          "0x2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d",
+          "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "0x0000000000000000000000006228e24fd0ad7697585bdc7e1aaea279914d7549",
+          "0x0000000000000000000000006228e24fd0ad7697585bdc7e1aaea279914d7549"
+        ],
+        "data": "0x",
+        "logIndex": 0,
+        "blockHash": "0xaff3001f3960758194cd94af675caee75b94527145cd49cee786f96f9862559c"
+      },
+      {
+        "transactionIndex": 0,
+        "blockNumber": 312347,
+        "transactionHash": "0x15687bcbcbcf83c3ae86f36eff4ca8ae27239cd45d9b8d7ef46f774e808b7167",
+        "address": "0xd78368beB78fdF2198CF804ebC06c05751766d2A",
+        "topics": [
+          "0x2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d",
+          "0xbd162f0ed5d9ba0d62460e28548c2d494e547f6a13b10c140ac720c9196c50f9",
+          "0x0000000000000000000000006228e24fd0ad7697585bdc7e1aaea279914d7549",
+          "0x0000000000000000000000006228e24fd0ad7697585bdc7e1aaea279914d7549"
+        ],
+        "data": "0x",
+        "logIndex": 1,
+        "blockHash": "0xaff3001f3960758194cd94af675caee75b94527145cd49cee786f96f9862559c"
+      }
+    ],
+    "blockNumber": 312347,
+    "cumulativeGasUsed": "0",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0x6C297AeD654816dc5d211c956DE816Ba923475D2",
+    "0x55fed7f0b7222769f07CBF9cf20f318936E11687",
+    2725
+  ],
+  "numDeployments": 2,
+  "solcInputHash": "ace9ef673aa915ddbb11c2ca6b8ce85c",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.17+commit.8df45f5f\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"contract IWFIL\",\"name\":\"_wFIL\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_registry\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"_baseRequirements\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"previousAdminRole\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"newAdminRole\",\"type\":\"bytes32\"}],\"name\":\"RoleAdminChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"}],\"name\":\"RoleGranted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"sender\",\"type\":\"address\"}],\"name\":\"RoleRevoked\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"registry\",\"type\":\"address\"}],\"name\":\"SetRegistryAddress\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"_ownerId\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"StorageProviderCollateralDeposit\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"_ownerId\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"lockedCollateral\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"availableCollateral\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"isUnlock\",\"type\":\"bool\"}],\"name\":\"StorageProviderCollateralRebalance\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"_ownerId\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"slashingAmt\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"pool\",\"type\":\"address\"}],\"name\":\"StorageProviderCollateralSlash\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"_ownerId\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"prevRequirements\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"requirements\",\"type\":\"uint256\"}],\"name\":\"StorageProviderCollateralUpdate\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"_ownerId\",\"type\":\"uint64\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"StorageProviderCollateralWithdraw\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"baseCollateralRequirements\",\"type\":\"uint256\"}],\"name\":\"UpdateBaseCollateralRequirements\",\"type\":\"event\"},{\"stateMutability\":\"payable\",\"type\":\"fallback\"},{\"inputs\":[],\"name\":\"BASIS_POINTS\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"DEFAULT_ADMIN_ROLE\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"WFIL\",\"outputs\":[{\"internalType\":\"contract IWFIL\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"baseRequirements\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"\",\"type\":\"uint64\"}],\"name\":\"collateralRequirements\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"\",\"type\":\"uint64\"}],\"name\":\"collaterals\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"availableCollateral\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"lockedCollateral\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"deposit\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"_ownerId\",\"type\":\"uint64\"}],\"name\":\"fit\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"_ownerId\",\"type\":\"uint64\"}],\"name\":\"getAvailableCollateral\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"_ownerId\",\"type\":\"uint64\"}],\"name\":\"getCollateral\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"_ownerId\",\"type\":\"uint64\"}],\"name\":\"getDebt\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"_ownerId\",\"type\":\"uint64\"}],\"name\":\"getLockedCollateral\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"}],\"name\":\"getRoleAdmin\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"grantRole\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"hasRole\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"_ownerId\",\"type\":\"uint64\"},{\"internalType\":\"uint256\",\"name\":\"_allocated\",\"type\":\"uint256\"}],\"name\":\"lock\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"registry\",\"outputs\":[{\"internalType\":\"contract IStorageProviderRegistryClient\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"renounceRole\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"role\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"revokeRole\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newAddr\",\"type\":\"address\"}],\"name\":\"setRegistryAddress\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"_ownerId\",\"type\":\"uint64\"},{\"internalType\":\"uint256\",\"name\":\"_slashingAmt\",\"type\":\"uint256\"}],\"name\":\"slash\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"\",\"type\":\"uint64\"}],\"name\":\"slashings\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes4\",\"name\":\"interfaceId\",\"type\":\"bytes4\"}],\"name\":\"supportsInterface\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"requirements\",\"type\":\"uint256\"}],\"name\":\"updateBaseCollateralRequirements\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint64\",\"name\":\"_ownerId\",\"type\":\"uint64\"},{\"internalType\":\"uint256\",\"name\":\"requirements\",\"type\":\"uint256\"}],\"name\":\"updateCollateralRequirements\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"}],\"name\":\"withdraw\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"stateMutability\":\"payable\",\"type\":\"receive\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"constructor\":{\"details\":\"Contract constructor function.\",\"params\":{\"_wFIL\":\"WFIL token implementation\"}},\"deposit()\":{\"details\":\"Deposit `msg.value` FIL funds by the msg.sender into collateral\"},\"fit(uint64)\":{\"details\":\"Fits collateral amounts based on SP pledge usage, distributed rewards and pledge paybacks\",\"params\":{\"_ownerId\":\"Storage provider owner ID\"}},\"getRoleAdmin(bytes32)\":{\"details\":\"Returns the admin role that controls `role`. See {grantRole} and {revokeRole}. To change a role's admin, use {_setRoleAdmin}.\"},\"grantRole(bytes32,address)\":{\"details\":\"Grants `role` to `account`. If `account` had not been already granted `role`, emits a {RoleGranted} event. Requirements: - the caller must have ``role``'s admin role. May emit a {RoleGranted} event.\"},\"hasRole(bytes32,address)\":{\"details\":\"Returns `true` if `account` has been granted `role`.\"},\"lock(uint64,uint256)\":{\"details\":\"Locks required collateral amount based on `_allocated` FIL to pledge\",\"params\":{\"_allocated\":\"FIL amount that is going to be pledged for Storage Provider\",\"_ownerId\":\"Storage provider owner ID\"}},\"renounceRole(bytes32,address)\":{\"details\":\"Revokes `role` from the calling account. Roles are often managed via {grantRole} and {revokeRole}: this function's purpose is to provide a mechanism for accounts to lose their privileges if they are compromised (such as when a trusted device is misplaced). If the calling account had been revoked `role`, emits a {RoleRevoked} event. Requirements: - the caller must be `account`. May emit a {RoleRevoked} event.\"},\"revokeRole(bytes32,address)\":{\"details\":\"Revokes `role` from `account`. If `account` had been granted `role`, emits a {RoleRevoked} event. Requirements: - the caller must have ``role``'s admin role. May emit a {RoleRevoked} event.\"},\"setRegistryAddress(address)\":{\"params\":{\"newAddr\":\"StorageProviderRegistry contract address\"}},\"slash(uint64,uint256)\":{\"details\":\"Slashes SP for a `_slashingAmt` and delivers WFIL amount to the `msg.sender` LSP\",\"params\":{\"_ownerId\":\"Storage provider owner ID\",\"_slashingAmt\":\"Slashing amount for SP\"}},\"supportsInterface(bytes4)\":{\"details\":\"See {IERC165-supportsInterface}.\"},\"updateBaseCollateralRequirements(uint256)\":{\"params\":{\"requirements\":\"New base collateral requirements for SP\"}},\"updateCollateralRequirements(uint64,uint256)\":{\"details\":\"Updates collateral requirements for SP with `_ownerId` by `requirements` percentage\",\"params\":{\"_ownerId\":\"Storage provider owner ID\",\"requirements\":\"Percentage of collateral requirements\"}},\"withdraw(uint256)\":{\"details\":\"Withdraw `_amount` of FIL funds by the `msg.sender` from the collateral system\"}},\"title\":\"Storage Provider Collateral stores collateral for covering potential slashing risks by SPs (Storage Providers) in liquid staking protocol. The basis coverage is expected to be around 15% of the total FIL allocation requested by SP. Over time as SPs earn FIL rewards, a locked portion of rewards would be exchanged for the collateral provided upfront. Therefore locked SPs collateral becomes accessible for withdrawals by stakers. This mechanism doesn't create additional slashing risks as SPs are slashed by the locked rewards first, making it a good option for collateralization in the system.\",\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"deposit()\":{\"notice\":\"Wrapps of FIL into WFIL token internally\"},\"fit(uint64)\":{\"notice\":\"Rebalances the total locked and available collateral amounts\"},\"getAvailableCollateral(uint64)\":{\"notice\":\"Return Storage Provider Available Collateral information with `_provider` address\"},\"getCollateral(uint64)\":{\"notice\":\"Return Storage Provider Collateral information with `_provider` address\"},\"getLockedCollateral(uint64)\":{\"notice\":\"Return Storage Provider Locked Collateral information with `_provider` address\"},\"lock(uint64,uint256)\":{\"notice\":\"Increases the total amount of locked collateral for storage provider\"},\"setRegistryAddress(address)\":{\"notice\":\"Updates StorageProviderRegistry contract address\"},\"slash(uint64,uint256)\":{\"notice\":\"Doesn't perform a rebalancing checks\"},\"updateBaseCollateralRequirements(uint256)\":{\"notice\":\"Updates base collateral requirements amount for Storage Providers\"},\"updateCollateralRequirements(uint64,uint256)\":{\"notice\":\"Only triggered by Collateral admin or registry contract while registering SP\"},\"withdraw(uint256)\":{\"notice\":\"Unwraps of FIL into WFIL token internally and delivers maximum amount of FIL available for withdrawal if `_amount` is bigger.\"}},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/StorageProviderCollateral.sol\":\"StorageProviderCollateral\"},\"evmVersion\":\"london\",\"libraries\":{\":__CACHE_BREAKER__\":\"0x0000000000000031363833323139313032373532\"},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"details\":{\"constantOptimizer\":true,\"cse\":true,\"deduplicate\":true,\"inliner\":true,\"jumpdestRemover\":true,\"orderLiterals\":true,\"peephole\":true,\"yul\":false},\"runs\":1},\"remappings\":[\":@ensdomains/buffer/=lib/filecoin-solidity/lib/buffer/\",\":@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/\",\":@zondax/solidity-bignumber/=lib/solidity-BigNumber/\",\":ERC4626/=lib/ERC4626/src/\",\":buffer/=lib/buffer/contracts/\",\":ds-test/=lib/forge-std/lib/ds-test/src/\",\":fei-protocol/erc4626/=lib/ERC4626/src/\",\":fevmate/=lib/fevmate/contracts/\",\":filecoin-solidity/=lib/filecoin-solidity/\",\":forge-std/=lib/forge-std/src/\",\":solidity-BigNumber/=lib/solidity-BigNumber/src/\",\":solidity-bignumber/=lib/filecoin-solidity/lib/solidity-bignumber/src/\",\":solidity-cborutils/=lib/solidity-cborutils/contracts/\",\":solidity-cborutils/contracts/=lib/solidity-cborutils/contracts/\",\":solmate/=lib/solmate/src/\"]},\"sources\":{\"contracts/StorageProviderCollateral.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.17;\\n\\nimport {IStorageProviderCollateral} from \\\"./interfaces/IStorageProviderCollateral.sol\\\";\\nimport {IStorageProviderRegistryClient} from \\\"./interfaces/IStorageProviderRegistryClient.sol\\\";\\nimport {SafeTransferLib} from \\\"./libraries/SafeTransferLib.sol\\\";\\nimport {StorageProviderTypes} from \\\"./types/StorageProviderTypes.sol\\\";\\nimport {IWFIL} from \\\"./libraries/tokens/IWFIL.sol\\\";\\nimport {ReentrancyGuard} from \\\"lib/solmate/src/utils/ReentrancyGuard.sol\\\";\\nimport {FilAddress} from \\\"lib/fevmate/contracts/utils/FilAddress.sol\\\";\\nimport {FixedPointMathLib} from \\\"lib/solmate/src/utils/FixedPointMathLib.sol\\\";\\nimport {AccessControl} from \\\"lib/openzeppelin-contracts/contracts//access/AccessControl.sol\\\";\\n\\n/**\\n * @title Storage Provider Collateral stores collateral for covering potential\\n * slashing risks by SPs (Storage Providers) in liquid staking protocol.\\n *\\n * The basis coverage is expected to be around 15% of the total FIL allocation\\n * requested by SP. Over time as SPs earn FIL rewards, a locked portion of rewards\\n * would be exchanged for the collateral provided upfront. Therefore locked SPs\\n * collateral becomes accessible for withdrawals by stakers. This mechanism doesn't\\n * create additional slashing risks as SPs are slashed by the locked rewards first,\\n * making it a good option for collateralization in the system.\\n *\\n */\\ncontract StorageProviderCollateral is IStorageProviderCollateral, AccessControl, ReentrancyGuard {\\n\\tusing SafeTransferLib for address;\\n\\tusing FixedPointMathLib for uint256;\\n\\tusing FilAddress for address;\\n\\n\\t// Mapping of storage provider collateral information to their owner ID\\n\\tmapping(uint64 => SPCollateral) public collaterals;\\n\\n\\t// Mapping of storage provider total slashing amounts to their owner ID\\n\\tmapping(uint64 => uint256) public slashings;\\n\\n\\tmapping(uint64 => uint256) public collateralRequirements;\\n\\n\\tbytes32 private constant COLLATERAL_ADMIN = keccak256(\\\"COLLATERAL_ADMIN\\\");\\n\\n\\tuint256 public baseRequirements; // Number in basis points (10000 = 100%)\\n\\tuint256 public constant BASIS_POINTS = 10000;\\n\\tIStorageProviderRegistryClient public registry;\\n\\n\\tIWFIL public immutable WFIL; // WFIL implementation\\n\\n\\t// Storage Provider parameters\\n\\tstruct SPCollateral {\\n\\t\\tuint256 availableCollateral;\\n\\t\\tuint256 lockedCollateral;\\n\\t}\\n\\n\\tmodifier activeStorageProvider(uint64 _ownerId) {\\n\\t\\trequire(registry.isActiveProvider(_ownerId), \\\"INACTIVE_STORAGE_PROVIDER\\\");\\n\\t\\t_;\\n\\t}\\n\\n\\t/**\\n\\t * @dev Contract constructor function.\\n\\t * @param _wFIL WFIL token implementation\\n\\t *\\n\\t */\\n\\tconstructor(IWFIL _wFIL, address _registry, uint256 _baseRequirements) {\\n\\t\\tWFIL = _wFIL;\\n\\t\\tregistry = IStorageProviderRegistryClient(_registry);\\n\\n\\t\\trequire(_baseRequirements > 0 || _baseRequirements <= 10000, \\\"BASE_REQUIREMENTS_OVERFLOW\\\");\\n\\t\\tbaseRequirements = _baseRequirements;\\n\\n\\t\\t_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);\\n\\t\\tgrantRole(COLLATERAL_ADMIN, msg.sender);\\n\\t}\\n\\n\\treceive() external payable virtual {}\\n\\n\\tfallback() external payable virtual {}\\n\\n\\t/**\\n\\t * @dev Deposit `msg.value` FIL funds by the msg.sender into collateral\\n\\t * @notice Wrapps of FIL into WFIL token internally\\n\\t */\\n\\tfunction deposit() public payable nonReentrant {\\n\\t\\tuint256 amount = msg.value;\\n\\t\\trequire(amount > 0, \\\"INVALID_AMOUNT\\\");\\n\\n\\t\\taddress ownerAddr = msg.sender.normalize();\\n\\t\\t(bool isID, uint64 ownerId) = ownerAddr.getActorID();\\n\\t\\trequire(isID, \\\"INACTIVE_ACTOR_ID\\\");\\n\\t\\trequire(registry.isActiveProvider(ownerId), \\\"INACTIVE_STORAGE_PROVIDER\\\");\\n\\n\\t\\tSPCollateral storage collateral = collaterals[ownerId];\\n\\t\\tcollateral.availableCollateral = collateral.availableCollateral + amount;\\n\\n\\t\\t_wrapFIL(address(this));\\n\\n\\t\\temit StorageProviderCollateralDeposit(ownerId, amount);\\n\\t}\\n\\n\\t/**\\n\\t * @dev Withdraw `_amount` of FIL funds by the `msg.sender` from the collateral system\\n\\t * @notice Unwraps of FIL into WFIL token internally and\\n\\t * delivers maximum amount of FIL available for withdrawal if `_amount` is bigger.\\n\\t */\\n\\tfunction withdraw(uint256 _amount) public nonReentrant {\\n\\t\\trequire(_amount > 0, \\\"ZERO_AMOUNT\\\");\\n\\n\\t\\taddress ownerAddr = msg.sender.normalize();\\n\\t\\t(bool isID, uint64 ownerId) = ownerAddr.getActorID();\\n\\t\\trequire(isID, \\\"INACTIVE_ACTOR_ID\\\");\\n\\t\\trequire(registry.isActiveProvider(ownerId), \\\"INACTIVE_STORAGE_PROVIDER\\\");\\n\\n\\t\\t(uint256 lockedWithdraw, uint256 availableWithdraw, bool isUnlock) = calcMaximumWithdraw(ownerId);\\n\\t\\tuint256 maxWithdraw = lockedWithdraw + availableWithdraw;\\n\\t\\tuint256 finalAmount = _amount > maxWithdraw ? maxWithdraw : _amount;\\n\\t\\tuint256 delta;\\n\\n\\t\\tif (isUnlock) {\\n\\t\\t\\tdelta = finalAmount - lockedWithdraw;\\n\\t\\t\\tcollaterals[ownerId].lockedCollateral = collaterals[ownerId].lockedCollateral - lockedWithdraw; // 10 - 2 == 8\\n\\t\\t\\tcollaterals[ownerId].availableCollateral = collaterals[ownerId].availableCollateral - delta; // 5 + 1 == 6\\n\\n\\t\\t\\t_unwrapWFIL(msg.sender, finalAmount);\\n\\t\\t} else {\\n\\t\\t\\tcollaterals[ownerId].availableCollateral = collaterals[ownerId].availableCollateral - finalAmount;\\n\\t\\t}\\n\\n\\t\\temit StorageProviderCollateralWithdraw(ownerId, finalAmount);\\n\\t}\\n\\n\\t/**\\n\\t * @dev Locks required collateral amount based on `_allocated` FIL to pledge\\n\\t * @notice Increases the total amount of locked collateral for storage provider\\n\\t * @param _ownerId Storage provider owner ID\\n\\t * @param _allocated FIL amount that is going to be pledged for Storage Provider\\n\\t */\\n\\tfunction lock(uint64 _ownerId, uint256 _allocated) external activeStorageProvider(_ownerId) {\\n\\t\\trequire(registry.isActivePool(msg.sender), \\\"INVALID_ACCESS\\\");\\n\\t\\trequire(_allocated > 0, \\\"ZERO_ALLOCATION\\\");\\n\\n\\t\\t_rebalance(_ownerId, _allocated);\\n\\t\\tregistry.increaseUsedAllocation(_ownerId, _allocated, block.timestamp);\\n\\t}\\n\\n\\t/**\\n\\t * @dev Fits collateral amounts based on SP pledge usage, distributed rewards and pledge paybacks\\n\\t * @notice Rebalances the total locked and available collateral amounts\\n\\t * @param _ownerId Storage provider owner ID\\n\\t */\\n\\tfunction fit(uint64 _ownerId) external activeStorageProvider(_ownerId) {\\n\\t\\trequire(registry.isActivePool(msg.sender), \\\"INVALID_ACCESS\\\");\\n\\n\\t\\t_rebalance(_ownerId, 0);\\n\\t}\\n\\n\\t/**\\n\\t * @dev Slashes SP for a `_slashingAmt` and delivers WFIL amount to the `msg.sender` LSP\\n\\t * @notice Doesn't perform a rebalancing checks\\n\\t * @param _ownerId Storage provider owner ID\\n\\t * @param _slashingAmt Slashing amount for SP\\n\\t */\\n\\tfunction slash(uint64 _ownerId, uint256 _slashingAmt) external activeStorageProvider(_ownerId) {\\n\\t\\trequire(registry.isActivePool(msg.sender), \\\"INVALID_ACCESS\\\");\\n\\n\\t\\tSPCollateral memory collateral = collaterals[_ownerId];\\n\\t\\tif (_slashingAmt <= collateral.lockedCollateral) {\\n\\t\\t\\tcollateral.lockedCollateral = collateral.lockedCollateral - _slashingAmt;\\n\\t\\t} else {\\n\\t\\t\\tuint256 totalCollateral = collateral.lockedCollateral + collateral.availableCollateral;\\n\\t\\t\\trequire(_slashingAmt <= totalCollateral, \\\"NOT_ENOUGH_COLLATERAL\\\"); // TODO: introduce debt for SP to cover worst case scenario\\n\\t\\t\\tuint256 delta = _slashingAmt - collateral.lockedCollateral;\\n\\n\\t\\t\\tcollateral.lockedCollateral = 0;\\n\\t\\t\\tcollateral.availableCollateral = collateral.availableCollateral - delta;\\n\\t\\t}\\n\\n\\t\\tcollaterals[_ownerId] = collateral;\\n\\t\\tslashings[_ownerId] += _slashingAmt;\\n\\n\\t\\tWFIL.transfer(msg.sender, _slashingAmt);\\n\\n\\t\\temit StorageProviderCollateralSlash(_ownerId, _slashingAmt, msg.sender);\\n\\t}\\n\\n\\t/**\\n\\t * @notice Return Storage Provider Collateral information with `_provider` address\\n\\t */\\n\\tfunction getCollateral(uint64 _ownerId) public view returns (uint256, uint256) {\\n\\t\\tSPCollateral memory collateral = collaterals[_ownerId];\\n\\t\\treturn (collateral.availableCollateral, collateral.lockedCollateral);\\n\\t}\\n\\n\\t/**\\n\\t * @notice Return Storage Provider Available Collateral information with `_provider` address\\n\\t */\\n\\tfunction getAvailableCollateral(uint64 _ownerId) public view returns (uint256) {\\n\\t\\treturn collaterals[_ownerId].availableCollateral;\\n\\t}\\n\\n\\t/**\\n\\t * @notice Return Storage Provider Locked Collateral information with `_provider` address\\n\\t */\\n\\tfunction getLockedCollateral(uint64 _ownerId) public view returns (uint256) {\\n\\t\\treturn collaterals[_ownerId].lockedCollateral;\\n\\t}\\n\\n\\tfunction getDebt(uint64 _ownerId) public view returns (uint256) {\\n\\t\\t(, , uint256 usedAllocation, , , uint256 repaidPledge) = registry.allocations(_ownerId);\\n\\n\\t\\tuint256 _collateralRequirements = collateralRequirements[_ownerId];\\n\\t\\tuint256 requirements = calcCollateralRequirements(usedAllocation, repaidPledge, 0, _collateralRequirements);\\n\\t\\tSPCollateral memory collateral = collaterals[_ownerId];\\n\\n\\t\\t(uint256 adjAmt, bool isUnlock) = calcCollateralAdjustment(collateral.lockedCollateral, requirements);\\n\\n\\t\\tif (!isUnlock) {\\n\\t\\t\\treturn adjAmt;\\n\\t\\t}\\n\\n\\t\\treturn 0;\\n\\t}\\n\\n\\t/**\\n\\t * @notice Calculates max collateral withdrawal amount for SP depending on the\\n\\t * total used FIL allocation and locked rewards.\\n\\t * @param _ownerId Storage Provider owner address\\n\\t */\\n\\tfunction calcMaximumWithdraw(uint64 _ownerId) internal view returns (uint256, uint256, bool) {\\n\\t\\t(, , uint256 usedAllocation, , , uint256 repaidPledge) = registry.allocations(_ownerId);\\n\\n\\t\\tuint256 _collateralRequirements = collateralRequirements[_ownerId];\\n\\t\\tuint256 requirements = calcCollateralRequirements(usedAllocation, repaidPledge, 0, _collateralRequirements);\\n\\t\\tSPCollateral memory collateral = collaterals[_ownerId];\\n\\n\\t\\t(uint256 adjAmt, bool isUnlock) = calcCollateralAdjustment(collateral.lockedCollateral, requirements);\\n\\n\\t\\tif (!isUnlock) {\\n\\t\\t\\tadjAmt = collateral.availableCollateral - adjAmt;\\n\\n\\t\\t\\treturn (0, adjAmt, isUnlock);\\n\\t\\t} else {\\n\\t\\t\\treturn (adjAmt, collateral.availableCollateral, isUnlock);\\n\\t\\t}\\n\\t}\\n\\n\\t/**\\n\\t * @notice Rebalances collateral for a specified `_ownerId` with `_allocated` in mind\\n\\t * @param _ownerId Storage Provider owner address\\n\\t * @param _allocated Hypothetical allocation for SP\\n\\t */\\n\\tfunction _rebalance(uint64 _ownerId, uint256 _allocated) internal {\\n\\t\\t(uint256 allocationLimit, , uint256 usedAllocation, , , uint256 repaidPledge) = registry.allocations(_ownerId);\\n\\n\\t\\tif (_allocated > 0) {\\n\\t\\t\\trequire(usedAllocation + _allocated <= allocationLimit, \\\"ALLOCATION_OVERFLOW\\\");\\n\\t\\t}\\n\\t\\tuint256 _collateralRequirements = collateralRequirements[_ownerId];\\n\\t\\tuint256 totalRequirements = calcCollateralRequirements(\\n\\t\\t\\tusedAllocation,\\n\\t\\t\\trepaidPledge,\\n\\t\\t\\t_allocated,\\n\\t\\t\\t_collateralRequirements\\n\\t\\t);\\n\\n\\t\\tSPCollateral memory collateral = collaterals[_ownerId];\\n\\t\\trequire(\\n\\t\\t\\ttotalRequirements <= collateral.lockedCollateral + collateral.availableCollateral,\\n\\t\\t\\t\\\"INSUFFICIENT_COLLATERAL\\\"\\n\\t\\t);\\n\\n\\t\\t(uint256 adjAmt, bool isUnlock) = calcCollateralAdjustment(collateral.lockedCollateral, totalRequirements);\\n\\n\\t\\tif (!isUnlock) {\\n\\t\\t\\tcollateral.lockedCollateral = collateral.lockedCollateral + adjAmt;\\n\\t\\t\\tcollateral.availableCollateral = collateral.availableCollateral - adjAmt;\\n\\n\\t\\t\\temit StorageProviderCollateralRebalance(_ownerId, adjAmt, 0, isUnlock);\\n\\t\\t} else {\\n\\t\\t\\tcollateral.lockedCollateral = collateral.lockedCollateral - adjAmt;\\n\\t\\t\\tcollateral.availableCollateral = collateral.availableCollateral + adjAmt;\\n\\n\\t\\t\\temit StorageProviderCollateralRebalance(_ownerId, 0, adjAmt, isUnlock);\\n\\t\\t}\\n\\n\\t\\tcollaterals[_ownerId] = collateral;\\n\\t}\\n\\n\\t/**\\n\\t * @notice Calculates total collateral requirements for SP depending on the\\n\\t * total used FIL allocation and locked rewards.\\n\\t * @param _usedAllocation Already used FIL allocation by Storage Provider\\n\\t * @param _repaidPledge Repaid pledge by SP\\n\\t * @param _allocationToUse Allocation to be used by SP\\n\\t * @param _collateralRequirements Percentage of collateral coverage\\n\\t */\\n\\tfunction calcCollateralRequirements(\\n\\t\\tuint256 _usedAllocation,\\n\\t\\tuint256 _repaidPledge,\\n\\t\\tuint256 _allocationToUse,\\n\\t\\tuint256 _collateralRequirements\\n\\t) internal pure returns (uint256) {\\n\\t\\tuint256 usedAllocation = _allocationToUse > 0 ? _usedAllocation + _allocationToUse : _usedAllocation;\\n\\t\\tuint256 req = usedAllocation - _repaidPledge;\\n\\n\\t\\tif (req > 0) {\\n\\t\\t\\treturn req.mulDivDown(_collateralRequirements, BASIS_POINTS);\\n\\t\\t} else {\\n\\t\\t\\treturn 0;\\n\\t\\t}\\n\\t}\\n\\n\\t/**\\n\\t * @notice Calculates collateral adjustment for SP depending on the\\n\\t * total locked collateral and overall collateral requirements.\\n\\t * @param _lockedCollateral Locked collateral amount for Storage Provider\\n\\t * @param _collateralRequirements Collateral requirements for SP\\n\\t */\\n\\tfunction calcCollateralAdjustment(\\n\\t\\tuint256 _lockedCollateral,\\n\\t\\tuint256 _collateralRequirements\\n\\t) internal pure returns (uint256, bool) {\\n\\t\\tif (_lockedCollateral > 0 && _collateralRequirements > 0) {\\n\\t\\t\\tif (_lockedCollateral > _collateralRequirements) {\\n\\t\\t\\t\\treturn (_lockedCollateral - _collateralRequirements, true);\\n\\t\\t\\t} else {\\n\\t\\t\\t\\treturn (_collateralRequirements - _lockedCollateral, false);\\n\\t\\t\\t}\\n\\t\\t} else if (_lockedCollateral > 0 && _collateralRequirements == 0) {\\n\\t\\t\\treturn (_lockedCollateral, true);\\n\\t\\t} else if (_lockedCollateral == 0 && _collateralRequirements > 0) {\\n\\t\\t\\treturn (_collateralRequirements, false);\\n\\t\\t} else if (_lockedCollateral == 0 && _collateralRequirements == 0) {\\n\\t\\t\\treturn (0, true);\\n\\t\\t}\\n\\t}\\n\\n\\t/**\\n\\t * @dev Updates collateral requirements for SP with `_ownerId` by `requirements` percentage\\n\\t * @notice Only triggered by Collateral admin or registry contract while registering SP\\n\\t * @param _ownerId Storage provider owner ID\\n\\t * @param requirements Percentage of collateral requirements\\n\\t */\\n\\tfunction updateCollateralRequirements(uint64 _ownerId, uint256 requirements) external {\\n\\t\\trequire(hasRole(COLLATERAL_ADMIN, msg.sender) || msg.sender == address(registry), \\\"INVALID_ACCESS\\\");\\n\\n\\t\\tif (requirements == 0) {\\n\\t\\t\\tcollateralRequirements[_ownerId] = baseRequirements;\\n\\n\\t\\t\\temit StorageProviderCollateralUpdate(_ownerId, 0, baseRequirements);\\n\\t\\t} else {\\n\\t\\t\\tuint256 prevRequirements = collateralRequirements[_ownerId];\\n\\t\\t\\trequire(requirements <= 10000, \\\"COLLATERAL_REQUIREMENTS_OVERFLOW\\\");\\n\\t\\t\\trequire(requirements != prevRequirements, \\\"SAME_COLLATERAL_REQUIREMENTS\\\");\\n\\n\\t\\t\\tcollateralRequirements[_ownerId] = requirements;\\n\\n\\t\\t\\temit StorageProviderCollateralUpdate(_ownerId, prevRequirements, requirements);\\n\\t\\t}\\n\\t}\\n\\n\\t/**\\n\\t * @notice Wraps FIL into WFIL and transfers it to the `_recipient` address\\n\\t * @param _recipient WFIL recipient address\\n\\t */\\n\\tfunction _wrapFIL(address _recipient) internal {\\n\\t\\tuint256 amount = msg.value;\\n\\n\\t\\tWFIL.deposit{value: amount}();\\n\\t\\tWFIL.transfer(_recipient, amount);\\n\\t}\\n\\n\\t/**\\n\\t * @notice Unwraps `_amount` of WFIL into FIL and transfers it to the `_recipient` address\\n\\t * @param _recipient WFIL recipient address\\n\\t */\\n\\tfunction _unwrapWFIL(address _recipient, uint256 _amount) internal {\\n\\t\\tuint256 balanceWETH9 = WFIL.balanceOf(address(this));\\n\\t\\trequire(balanceWETH9 >= _amount, \\\"Insufficient WETH9\\\");\\n\\n\\t\\tif (balanceWETH9 > 0) {\\n\\t\\t\\tWFIL.withdraw(_amount);\\n\\t\\t\\t_recipient.safeTransferETH(_amount);\\n\\t\\t}\\n\\t}\\n\\n\\t/**\\n\\t * @notice Updates base collateral requirements amount for Storage Providers\\n\\t * @param requirements New base collateral requirements for SP\\n\\t */\\n\\tfunction updateBaseCollateralRequirements(uint256 requirements) public {\\n\\t\\trequire(hasRole(COLLATERAL_ADMIN, msg.sender), \\\"INVALID_ACCESS\\\");\\n\\t\\trequire(requirements > 0, \\\"INVALID_REQUIREMENTS\\\");\\n\\n\\t\\tuint256 prevRequirements = baseRequirements;\\n\\t\\trequire(requirements != prevRequirements, \\\"SAME_REQUIREMENTS\\\");\\n\\n\\t\\tbaseRequirements = requirements;\\n\\n\\t\\temit UpdateBaseCollateralRequirements(requirements);\\n\\t}\\n\\n\\t/**\\n\\t * @notice Updates StorageProviderRegistry contract address\\n\\t * @param newAddr StorageProviderRegistry contract address\\n\\t */\\n\\tfunction setRegistryAddress(address newAddr) public {\\n\\t\\trequire(hasRole(COLLATERAL_ADMIN, msg.sender), \\\"INVALID_ACCESS\\\");\\n\\t\\trequire(newAddr != address(0), \\\"INVALID_ADDRESS\\\");\\n\\n\\t\\taddress prevRegistry = address(registry);\\n\\t\\trequire(prevRegistry != newAddr, \\\"SAME_ADDRESS\\\");\\n\\n\\t\\tregistry = IStorageProviderRegistryClient(newAddr);\\n\\n\\t\\temit SetRegistryAddress(newAddr);\\n\\t}\\n}\\n\",\"keccak256\":\"0x50f46ccd3e3ebfe6d28a7e61dc5c5cb4ffbb512824fdc94fc43aa939839819ac\",\"license\":\"MIT\"},\"contracts/interfaces/IStorageProviderCollateral.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.17;\\n\\ninterface IStorageProviderCollateral {\\n\\tevent StorageProviderCollateralDeposit(uint64 _ownerId, uint256 amount);\\n\\tevent StorageProviderCollateralWithdraw(uint64 _ownerId, uint256 amount);\\n\\tevent StorageProviderCollateralRebalance(\\n\\t\\tuint64 _ownerId,\\n\\t\\tuint256 lockedCollateral,\\n\\t\\tuint256 availableCollateral,\\n\\t\\tbool isUnlock\\n\\t);\\n\\tevent StorageProviderCollateralSlash(uint64 _ownerId, uint256 slashingAmt, address pool);\\n\\tevent StorageProviderCollateralUpdate(uint64 _ownerId, uint256 prevRequirements, uint256 requirements);\\n\\tevent UpdateBaseCollateralRequirements(uint256 baseCollateralRequirements);\\n\\tevent SetRegistryAddress(address registry);\\n\\n\\t/**\\n\\t * @dev Deposit `msg.value` FIL funds by the msg.sender into collateral\\n\\t * @notice Wrapps of FIL into WFIL token internally\\n\\t */\\n\\tfunction deposit() external payable;\\n\\n\\t/**\\n\\t * @dev Withdraw `_amount` of FIL funds by the `msg.sender` from the collateral system\\n\\t * @notice Unwraps of FIL into WFIL token internally and\\n\\t * delivers maximum amount of FIL available for withdrawal if `_amount` is bigger.\\n\\t */\\n\\tfunction withdraw(uint256 _amount) external;\\n\\n\\t/**\\n\\t * @dev Locks required collateral amount based on `_allocated` FIL to pledge\\n\\t * @notice Increases the total amount of locked collateral for storage provider\\n\\t * @param _ownerId Storage provider owner ID\\n\\t * @param _allocated FIL amount that is going to be pledged for Storage Provider\\n\\t */\\n\\tfunction lock(uint64 _ownerId, uint256 _allocated) external;\\n\\n\\t/**\\n\\t * @dev Fits collateral amounts based on SP pledge usage, distributed rewards and pledge paybacks\\n\\t * @notice Rebalances the total locked and available collateral amounts\\n\\t * @param _ownerId Storage provider owner ID\\n\\t */\\n\\tfunction fit(uint64 _ownerId) external;\\n\\n\\t/**\\n\\t * @dev Slashes SP for a `_slashingAmt` and delivers WFIL amount to the `msg.sender` LSP\\n\\t * @notice Doesn't perform a rebalancing checks\\n\\t * @param _ownerId Storage provider owner ID\\n\\t * @param _slashingAmt Slashing amount for SP\\n\\t */\\n\\tfunction slash(uint64 _ownerId, uint256 _slashingAmt) external;\\n\\n\\t/**\\n\\t * @notice Return Storage Provider Collateral information with `_provider` address\\n\\t */\\n\\tfunction getCollateral(uint64 _ownerId) external view returns (uint256, uint256);\\n\\n\\t/**\\n\\t * @notice Return Storage Provider Available Collateral information with `_provider` address\\n\\t */\\n\\tfunction getAvailableCollateral(uint64 _ownerId) external view returns (uint256);\\n\\n\\t/**\\n\\t * @notice Return Storage Provider Locked Collateral information with `_provider` address\\n\\t */\\n\\tfunction getLockedCollateral(uint64 _ownerId) external view returns (uint256);\\n\\n\\t/**\\n\\t * @dev Updates collateral requirements for SP with `_ownerId` by `requirements` percentage\\n\\t * @notice Only triggered by Collateral admin or registry contract while registering SP\\n\\t * @param _ownerId Storage provider owner ID\\n\\t * @param requirements Percentage of collateral requirements\\n\\t */\\n\\tfunction updateCollateralRequirements(uint64 _ownerId, uint256 requirements) external;\\n\\n\\t/**\\n\\t * @notice Updates base collateral requirements amount for Storage Providers\\n\\t * @param requirements New base collateral requirements for SP\\n\\t */\\n\\tfunction updateBaseCollateralRequirements(uint256 requirements) external;\\n\\n\\t/**\\n\\t * @notice Updates StorageProviderRegistry contract address\\n\\t * @param newAddr StorageProviderRegistry contract address\\n\\t */\\n\\tfunction setRegistryAddress(address newAddr) external;\\n}\\n\",\"keccak256\":\"0x59dd8bc87014d384f11f1093a5ccd37b576f5ecb762cac7bb531e468b801644c\",\"license\":\"MIT\"},\"contracts/interfaces/IStorageProviderRegistryClient.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.17;\\n\\ninterface IStorageProviderRegistryClient {\\n\\t/**\\n\\t * @notice Return Storage Provider information with `_ownerId`\\n\\t */\\n\\tfunction getStorageProvider(uint64 _ownerId) external view returns (bool, address, uint64, int64);\\n\\n\\t/**\\n\\t * @notice Increase collected rewards by Storage Provider\\n\\t * @param _ownerId Storage Provider owner ID\\n\\t * @param _accuredRewards Withdrawn rewards from SP's miner actor\\n\\t */\\n\\tfunction increaseRewards(uint64 _ownerId, uint256 _accuredRewards) external;\\n\\n\\t/**\\n\\t * @notice Increase repaid pledge by Storage Provider\\n\\t * @param _ownerId Storage Provider owner ID\\n\\t * @param _repaidPledge Withdrawn initial pledge after sector termination\\n\\t */\\n\\tfunction increasePledgeRepayment(uint64 _ownerId, uint256 _repaidPledge) external;\\n\\n\\t/**\\n\\t * @notice Increase used allocation for Storage Provider\\n\\t * @param _ownerId Storage Provider owner ID\\n\\t * @param _allocated FIL amount that is going to be pledged for Storage Provider\\n\\t * @param _timestamp Transaction timestamp\\n\\t */\\n\\tfunction increaseUsedAllocation(uint64 _ownerId, uint256 _allocated, uint256 _timestamp) external;\\n\\n\\t/**\\n\\t * @notice Return a boolean flag of Storage Provider activity\\n\\t */\\n\\tfunction isActiveProvider(uint64 _ownerId) external view returns (bool);\\n\\n\\t/**\\n\\t * @notice Return a boolean flag whether `_pool` is active or not\\n\\t */\\n\\tfunction isActivePool(address _pool) external view returns (bool);\\n\\n\\t/**\\n\\t * @notice Return a restaking information for a storage provider\\n\\t */\\n\\tfunction restakings(uint64 ownerId) external view returns (uint256, address);\\n\\n\\t/**\\n\\t * @notice Return allocation information for a storage provider\\n\\t */\\n\\tfunction allocations(uint64 ownerId) external view returns (uint256, uint256, uint256, uint256, uint256, uint256);\\n}\\n\",\"keccak256\":\"0x2af5009fcc017ba3906c1503de32cfe9a6e8f1fe05c04e9c3fcae98c7b14b66a\",\"license\":\"MIT\"},\"contracts/libraries/SafeTransferLib.sol\":{\"content\":\"// SPDX-License-Identifier: AGPL-3.0-only\\n\\npragma solidity >=0.8.0;\\n\\n/**\\n * Slightly modified Solmate SafeTransferLib library for safe transfers of tokens\\n * original ERC20 token has been replaced by Filecoin-safe ERC20. Updated token version performs\\n * address normalization and allows to send tokens to f0/f1/f3/f4 addresses. In FVM no\\n * tokens could be sent to the native actors.\\n */\\n\\nimport {ERC20} from \\\"./tokens/ERC20.sol\\\";\\n\\n/// @notice Safe ETH and ERC20 transfer library that gracefully handles missing return values.\\n/// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/utils/SafeTransferLib.sol)\\n/// @dev Use with caution! Some functions in this library knowingly create dirty bits at the destination of the free memory pointer.\\n/// @dev Note that none of the functions in this library check that a token has code at all! That responsibility is delegated to the caller.\\nlibrary SafeTransferLib {\\n\\t/*//////////////////////////////////////////////////////////////\\n                             ETH OPERATIONS\\n    //////////////////////////////////////////////////////////////*/\\n\\n\\tfunction safeTransferETH(address to, uint256 amount) internal {\\n\\t\\tbool success;\\n\\n\\t\\t/// @solidity memory-safe-assembly\\n\\t\\tassembly {\\n\\t\\t\\t// Transfer the ETH and store if it succeeded or not.\\n\\t\\t\\tsuccess := call(gas(), to, amount, 0, 0, 0, 0)\\n\\t\\t}\\n\\n\\t\\trequire(success, \\\"ETH_TRANSFER_FAILED\\\");\\n\\t}\\n\\n\\t/*//////////////////////////////////////////////////////////////\\n                            ERC20 OPERATIONS\\n    //////////////////////////////////////////////////////////////*/\\n\\n\\tfunction safeTransferFrom(ERC20 token, address from, address to, uint256 amount) internal {\\n\\t\\tbool success;\\n\\n\\t\\t/// @solidity memory-safe-assembly\\n\\t\\tassembly {\\n\\t\\t\\t// Get a pointer to some free memory.\\n\\t\\t\\tlet freeMemoryPointer := mload(0x40)\\n\\n\\t\\t\\t// Write the abi-encoded calldata into memory, beginning with the function selector.\\n\\t\\t\\tmstore(freeMemoryPointer, 0x23b872dd00000000000000000000000000000000000000000000000000000000)\\n\\t\\t\\tmstore(add(freeMemoryPointer, 4), from) // Append the \\\"from\\\" argument.\\n\\t\\t\\tmstore(add(freeMemoryPointer, 36), to) // Append the \\\"to\\\" argument.\\n\\t\\t\\tmstore(add(freeMemoryPointer, 68), amount) // Append the \\\"amount\\\" argument.\\n\\n\\t\\t\\tsuccess := and(\\n\\t\\t\\t\\t// Set success to whether the call reverted, if not we check it either\\n\\t\\t\\t\\t// returned exactly 1 (can't just be non-zero data), or had no return data.\\n\\t\\t\\t\\tor(and(eq(mload(0), 1), gt(returndatasize(), 31)), iszero(returndatasize())),\\n\\t\\t\\t\\t// We use 100 because the length of our calldata totals up like so: 4 + 32 * 3.\\n\\t\\t\\t\\t// We use 0 and 32 to copy up to 32 bytes of return data into the scratch space.\\n\\t\\t\\t\\t// Counterintuitively, this call must be positioned second to the or() call in the\\n\\t\\t\\t\\t// surrounding and() call or else returndatasize() will be zero during the computation.\\n\\t\\t\\t\\tcall(gas(), token, 0, freeMemoryPointer, 100, 0, 32)\\n\\t\\t\\t)\\n\\t\\t}\\n\\n\\t\\trequire(success, \\\"TRANSFER_FROM_FAILED\\\");\\n\\t}\\n\\n\\tfunction safeTransfer(ERC20 token, address to, uint256 amount) internal {\\n\\t\\tbool success;\\n\\n\\t\\t/// @solidity memory-safe-assembly\\n\\t\\tassembly {\\n\\t\\t\\t// Get a pointer to some free memory.\\n\\t\\t\\tlet freeMemoryPointer := mload(0x40)\\n\\n\\t\\t\\t// Write the abi-encoded calldata into memory, beginning with the function selector.\\n\\t\\t\\tmstore(freeMemoryPointer, 0xa9059cbb00000000000000000000000000000000000000000000000000000000)\\n\\t\\t\\tmstore(add(freeMemoryPointer, 4), to) // Append the \\\"to\\\" argument.\\n\\t\\t\\tmstore(add(freeMemoryPointer, 36), amount) // Append the \\\"amount\\\" argument.\\n\\n\\t\\t\\tsuccess := and(\\n\\t\\t\\t\\t// Set success to whether the call reverted, if not we check it either\\n\\t\\t\\t\\t// returned exactly 1 (can't just be non-zero data), or had no return data.\\n\\t\\t\\t\\tor(and(eq(mload(0), 1), gt(returndatasize(), 31)), iszero(returndatasize())),\\n\\t\\t\\t\\t// We use 68 because the length of our calldata totals up like so: 4 + 32 * 2.\\n\\t\\t\\t\\t// We use 0 and 32 to copy up to 32 bytes of return data into the scratch space.\\n\\t\\t\\t\\t// Counterintuitively, this call must be positioned second to the or() call in the\\n\\t\\t\\t\\t// surrounding and() call or else returndatasize() will be zero during the computation.\\n\\t\\t\\t\\tcall(gas(), token, 0, freeMemoryPointer, 68, 0, 32)\\n\\t\\t\\t)\\n\\t\\t}\\n\\n\\t\\trequire(success, \\\"TRANSFER_FAILED\\\");\\n\\t}\\n\\n\\tfunction safeApprove(ERC20 token, address to, uint256 amount) internal {\\n\\t\\tbool success;\\n\\n\\t\\t/// @solidity memory-safe-assembly\\n\\t\\tassembly {\\n\\t\\t\\t// Get a pointer to some free memory.\\n\\t\\t\\tlet freeMemoryPointer := mload(0x40)\\n\\n\\t\\t\\t// Write the abi-encoded calldata into memory, beginning with the function selector.\\n\\t\\t\\tmstore(freeMemoryPointer, 0x095ea7b300000000000000000000000000000000000000000000000000000000)\\n\\t\\t\\tmstore(add(freeMemoryPointer, 4), to) // Append the \\\"to\\\" argument.\\n\\t\\t\\tmstore(add(freeMemoryPointer, 36), amount) // Append the \\\"amount\\\" argument.\\n\\n\\t\\t\\tsuccess := and(\\n\\t\\t\\t\\t// Set success to whether the call reverted, if not we check it either\\n\\t\\t\\t\\t// returned exactly 1 (can't just be non-zero data), or had no return data.\\n\\t\\t\\t\\tor(and(eq(mload(0), 1), gt(returndatasize(), 31)), iszero(returndatasize())),\\n\\t\\t\\t\\t// We use 68 because the length of our calldata totals up like so: 4 + 32 * 2.\\n\\t\\t\\t\\t// We use 0 and 32 to copy up to 32 bytes of return data into the scratch space.\\n\\t\\t\\t\\t// Counterintuitively, this call must be positioned second to the or() call in the\\n\\t\\t\\t\\t// surrounding and() call or else returndatasize() will be zero during the computation.\\n\\t\\t\\t\\tcall(gas(), token, 0, freeMemoryPointer, 68, 0, 32)\\n\\t\\t\\t)\\n\\t\\t}\\n\\n\\t\\trequire(success, \\\"APPROVE_FAILED\\\");\\n\\t}\\n}\\n\",\"keccak256\":\"0xea8bae2840f60718e6e8040cdf27f7a0f80705714647262d6362d8831c5e6bae\",\"license\":\"AGPL-3.0-only\"},\"contracts/libraries/tokens/ERC20.sol\":{\"content\":\"// SPDX-License-Identifier: AGPL-3.0-only\\npragma solidity >=0.8.0;\\n\\n/**\\n * Slightly modified Solmate ERC20 token implementation with Filecoin-safe address\\n * conversions that allow this token to be transferred to f0/f1/f3/f4 addresses.\\n */\\n\\nimport {FilAddress} from \\\"lib/fevmate/contracts/utils/FilAddress.sol\\\";\\n\\n/// @notice Modern and gas efficient ERC20 + EIP-2612 implementation.\\n/// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/tokens/ERC20.sol)\\n/// @author Modified from Uniswap (https://github.com/Uniswap/uniswap-v2-core/blob/master/contracts/UniswapV2ERC20.sol)\\n/// @dev Do not manually set balances without updating totalSupply, as the sum of all user balances must not exceed it.\\nabstract contract ERC20 {\\n\\tusing FilAddress for *;\\n\\n\\t/*//////////////////////////////////////////////////////////////\\n                                 EVENTS\\n    //////////////////////////////////////////////////////////////*/\\n\\n\\tevent Transfer(address indexed from, address indexed to, uint256 amount);\\n\\n\\tevent Approval(address indexed owner, address indexed spender, uint256 amount);\\n\\n\\t/*//////////////////////////////////////////////////////////////\\n                            METADATA STORAGE\\n    //////////////////////////////////////////////////////////////*/\\n\\n\\tstring public name;\\n\\n\\tstring public symbol;\\n\\n\\tuint8 public immutable decimals;\\n\\n\\t/*//////////////////////////////////////////////////////////////\\n                              ERC20 STORAGE\\n    //////////////////////////////////////////////////////////////*/\\n\\n\\tuint256 public totalSupply;\\n\\n\\tmapping(address => uint256) balances;\\n\\n\\tmapping(address => mapping(address => uint256)) allowances;\\n\\n\\t/*//////////////////////////////////////////////////////////////\\n                            EIP-2612 STORAGE\\n    //////////////////////////////////////////////////////////////*/\\n\\n\\tuint256 internal immutable INITIAL_CHAIN_ID;\\n\\n\\tbytes32 internal immutable INITIAL_DOMAIN_SEPARATOR;\\n\\n\\tmapping(address => uint256) public nonces;\\n\\n\\t/*//////////////////////////////////////////////////////////////\\n                               CONSTRUCTOR\\n    //////////////////////////////////////////////////////////////*/\\n\\n\\tconstructor(string memory _name, string memory _symbol, uint8 _decimals) {\\n\\t\\tname = _name;\\n\\t\\tsymbol = _symbol;\\n\\t\\tdecimals = _decimals;\\n\\n\\t\\tINITIAL_CHAIN_ID = block.chainid;\\n\\t\\tINITIAL_DOMAIN_SEPARATOR = computeDomainSeparator();\\n\\t}\\n\\n\\t/*//////////////////////////////////////////////////////////////\\n                               ERC20 LOGIC\\n    //////////////////////////////////////////////////////////////*/\\n\\n\\tfunction approve(address spender, uint256 amount) public virtual returns (bool) {\\n\\t\\tspender = spender.normalize();\\n\\t\\tallowances[msg.sender][spender] = amount;\\n\\n\\t\\temit Approval(msg.sender, spender, amount);\\n\\n\\t\\treturn true;\\n\\t}\\n\\n\\tfunction transfer(address to, uint256 amount) public virtual returns (bool) {\\n\\t\\tto = to.normalize();\\n\\n\\t\\tbalances[msg.sender] -= amount;\\n\\n\\t\\t// Cannot overflow because the sum of all user\\n\\t\\t// balances can't exceed the max uint256 value.\\n\\t\\tunchecked {\\n\\t\\t\\tbalances[to] += amount;\\n\\t\\t}\\n\\n\\t\\temit Transfer(msg.sender, to, amount);\\n\\n\\t\\treturn true;\\n\\t}\\n\\n\\tfunction transferFrom(address from, address to, uint256 amount) public virtual returns (bool) {\\n\\t\\tfrom = from.normalize();\\n\\t\\tto = to.normalize();\\n\\n\\t\\tuint256 allowed = allowances[from][msg.sender]; // Saves gas for limited approvals.\\n\\n\\t\\tif (allowed != type(uint256).max) allowances[from][msg.sender] = allowed - amount;\\n\\n\\t\\tbalances[from] -= amount;\\n\\n\\t\\t// Cannot overflow because the sum of all user\\n\\t\\t// balances can't exceed the max uint256 value.\\n\\t\\tunchecked {\\n\\t\\t\\tbalances[to] += amount;\\n\\t\\t}\\n\\n\\t\\temit Transfer(from, to, amount);\\n\\n\\t\\treturn true;\\n\\t}\\n\\n\\t/*//////////////////////////////////////\\n                 ERC-20 GETTERS\\n    //////////////////////////////////////*/\\n\\n\\tfunction balanceOf(address a) public view virtual returns (uint) {\\n\\t\\treturn balances[a.normalize()];\\n\\t}\\n\\n\\tfunction allowance(address owner, address spender) public view virtual returns (uint) {\\n\\t\\treturn allowances[owner.normalize()][spender.normalize()];\\n\\t}\\n\\n\\t/*//////////////////////////////////////////////////////////////\\n                             EIP-2612 LOGIC\\n    //////////////////////////////////////////////////////////////*/\\n\\n\\tfunction permit(\\n\\t\\taddress owner,\\n\\t\\taddress spender,\\n\\t\\tuint256 value,\\n\\t\\tuint256 deadline,\\n\\t\\tuint8 v,\\n\\t\\tbytes32 r,\\n\\t\\tbytes32 s\\n\\t) public virtual {\\n\\t\\t// permits only supported by f4 addresses no need to check the owner\\n\\t\\tspender = spender.normalize();\\n\\n\\t\\trequire(deadline >= block.timestamp, \\\"PERMIT_DEADLINE_EXPIRED\\\");\\n\\n\\t\\t// Unchecked because the only math done is incrementing\\n\\t\\t// the owner's nonce which cannot realistically overflow.\\n\\t\\tunchecked {\\n\\t\\t\\taddress recoveredAddress = ecrecover(\\n\\t\\t\\t\\tkeccak256(\\n\\t\\t\\t\\t\\tabi.encodePacked(\\n\\t\\t\\t\\t\\t\\t\\\"\\\\x19\\\\x01\\\",\\n\\t\\t\\t\\t\\t\\tDOMAIN_SEPARATOR(),\\n\\t\\t\\t\\t\\t\\tkeccak256(\\n\\t\\t\\t\\t\\t\\t\\tabi.encode(\\n\\t\\t\\t\\t\\t\\t\\t\\tkeccak256(\\n\\t\\t\\t\\t\\t\\t\\t\\t\\t\\\"Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)\\\"\\n\\t\\t\\t\\t\\t\\t\\t\\t),\\n\\t\\t\\t\\t\\t\\t\\t\\towner,\\n\\t\\t\\t\\t\\t\\t\\t\\tspender,\\n\\t\\t\\t\\t\\t\\t\\t\\tvalue,\\n\\t\\t\\t\\t\\t\\t\\t\\tnonces[owner]++,\\n\\t\\t\\t\\t\\t\\t\\t\\tdeadline\\n\\t\\t\\t\\t\\t\\t\\t)\\n\\t\\t\\t\\t\\t\\t)\\n\\t\\t\\t\\t\\t)\\n\\t\\t\\t\\t),\\n\\t\\t\\t\\tv,\\n\\t\\t\\t\\tr,\\n\\t\\t\\t\\ts\\n\\t\\t\\t);\\n\\n\\t\\t\\trequire(recoveredAddress != address(0) && recoveredAddress == owner, \\\"INVALID_SIGNER\\\");\\n\\n\\t\\t\\tallowances[recoveredAddress][spender] = value;\\n\\t\\t}\\n\\n\\t\\temit Approval(owner, spender, value);\\n\\t}\\n\\n\\tfunction DOMAIN_SEPARATOR() public view virtual returns (bytes32) {\\n\\t\\treturn block.chainid == INITIAL_CHAIN_ID ? INITIAL_DOMAIN_SEPARATOR : computeDomainSeparator();\\n\\t}\\n\\n\\tfunction computeDomainSeparator() internal view virtual returns (bytes32) {\\n\\t\\treturn\\n\\t\\t\\tkeccak256(\\n\\t\\t\\t\\tabi.encode(\\n\\t\\t\\t\\t\\tkeccak256(\\\"EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)\\\"),\\n\\t\\t\\t\\t\\tkeccak256(bytes(name)),\\n\\t\\t\\t\\t\\tkeccak256(\\\"1\\\"),\\n\\t\\t\\t\\t\\tblock.chainid,\\n\\t\\t\\t\\t\\taddress(this)\\n\\t\\t\\t\\t)\\n\\t\\t\\t);\\n\\t}\\n\\n\\t/*//////////////////////////////////////////////////////////////\\n                        INTERNAL MINT/BURN LOGIC\\n    //////////////////////////////////////////////////////////////*/\\n\\n\\tfunction _mint(address to, uint256 amount) internal virtual {\\n\\t\\tto = to.normalize();\\n\\t\\ttotalSupply += amount;\\n\\n\\t\\t// Cannot overflow because the sum of all user\\n\\t\\t// balances can't exceed the max uint256 value.\\n\\t\\tunchecked {\\n\\t\\t\\tbalances[to] += amount;\\n\\t\\t}\\n\\n\\t\\temit Transfer(address(0), to, amount);\\n\\t}\\n\\n\\tfunction _burn(address from, uint256 amount) internal virtual {\\n\\t\\tfrom = from.normalize();\\n\\t\\tbalances[from] -= amount;\\n\\n\\t\\t// Cannot underflow because a user's balance\\n\\t\\t// will never be larger than the total supply.\\n\\t\\tunchecked {\\n\\t\\t\\ttotalSupply -= amount;\\n\\t\\t}\\n\\n\\t\\temit Transfer(from, address(0), amount);\\n\\t}\\n}\\n\",\"keccak256\":\"0x4f7e95923666c69c24404a400ec2a8f5239f713b6bd56d187f69de1092c5f83e\",\"license\":\"AGPL-3.0-only\"},\"contracts/libraries/tokens/IWFIL.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >=0.8.0;\\n\\n// import {ERC20} from \\\"./ERC20.sol\\\";\\n\\ninterface IWFIL {\\n\\t/**\\n\\t * @notice Deposit Fil into the contract, and mint WFIL 1:1.\\n\\t */\\n\\tfunction deposit() external payable;\\n\\n\\t/**\\n\\t * @notice Burns _amount WFIL from caller's balance, and transfers them\\n\\t * the unwrapped Fil 1:1.\\n\\t *\\n\\t * Note: The fund transfer used here is address.call{value: _amount}(\\\"\\\"),\\n\\t * which does NOT work with the FVM's builtin Multisig actor. This is\\n\\t * because, under the hood, address.call acts like a message to an actor's\\n\\t * InvokeEVM method. The Multisig actor does not implement this method.\\n\\t *\\n\\t * This is a known issue, but we've decided to keep the method as-is,\\n\\t * because it's likely that the Multisig actor is eventually upgraded to\\n\\t * support this method. Even though a Multisig actor cannot directly\\n\\t * withdraw, it is still possible for Multisigs to deposit, transfer,\\n\\t * etc WFIL. So, if your Multisig actor needs to withdraw, you can\\n\\t * transfer your WFIL to another contract, which can perform the\\n\\t * withdrawal for you.\\n\\t *\\n\\t * (Though Multisig actors are not supported, BLS/SECPK/EthAccounts\\n\\t * and EVM contracts can use this method normally)\\n\\t */\\n\\tfunction withdraw(uint256 amount) external;\\n\\n\\tfunction transfer(address _to, uint _amount) external returns (bool);\\n\\n\\tfunction transferFrom(address _owner, address _to, uint _amount) external returns (bool);\\n\\n\\tfunction approve(address _spender, uint _amount) external returns (bool);\\n\\n\\tfunction balanceOf(address _a) external view returns (uint);\\n\\n\\tfunction allowance(address _owner, address _spender) external view returns (uint);\\n}\\n\",\"keccak256\":\"0xf955455533128f9ab73d6f72113027340d6fd17fb85bfe252997acf6118c79ea\",\"license\":\"MIT\"},\"contracts/types/StorageProviderTypes.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.17;\\n\\n/**\\n * @title Storage provider account types for Solidity.\\n * @author Collective DAO\\n */\\nlibrary StorageProviderTypes {\\n\\tstruct StorageProvider {\\n\\t\\tbool active;\\n\\t\\tbool onboarded;\\n\\t\\taddress targetPool;\\n\\t\\tuint64 minerId; // Miner worker address\\n\\t\\tint64 lastEpoch; // Max time period for accessing FIL from liquid staking\\n\\t}\\n\\n\\tstruct SPAllocation {\\n\\t\\tuint256 allocationLimit; // FIL allocation\\n\\t\\tuint256 repayment; // FIL repayment amount\\n\\t\\tuint256 usedAllocation; // Used allocation in pledges\\n\\t\\tuint256 dailyAllocation; // Daily FIL allocation for SP\\n\\t\\tuint256 accruedRewards; // Storage Provider delivered rewards\\n\\t\\tuint256 repaidPledge; // Storage Provider repaid initial pledge\\n\\t}\\n\\n\\tstruct SPRestaking {\\n\\t\\tuint256 restakingRatio; // Percentage of FIL rewards that is going to be restaked into liquid staking pool\\n\\t\\taddress restakingAddress;\\n\\t}\\n\\n\\tstruct AllocationRequest {\\n\\t\\tuint256 allocationLimit;\\n\\t\\tuint256 dailyAllocation;\\n\\t}\\n}\\n\",\"keccak256\":\"0x97b324a9e58625b824bc177bcd4ed7471f7c84502d0824c372e4cec04c2948f9\",\"license\":\"MIT\"},\"lib/fevmate/contracts/utils/FilAddress.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.17;\\n\\n/**\\n * @author fevmate (https://github.com/wadealexc/fevmate)\\n * @notice Utility functions for converting between id and\\n * eth addresses. Helps implement address normalization.\\n *\\n * See README for more details about how to use this when\\n * developing for the FEVM.\\n */\\nlibrary FilAddress {\\n    \\n    // Custom errors\\n    error CallFailed();\\n    error InvalidAddress();\\n    error InsufficientFunds();\\n\\n    // Builtin Actor addresses (singletons)\\n    address constant SYSTEM_ACTOR = 0xfF00000000000000000000000000000000000000;\\n    address constant INIT_ACTOR = 0xff00000000000000000000000000000000000001;\\n    address constant REWARD_ACTOR = 0xff00000000000000000000000000000000000002;\\n    address constant CRON_ACTOR = 0xFF00000000000000000000000000000000000003;\\n    address constant POWER_ACTOR = 0xFf00000000000000000000000000000000000004;\\n    address constant MARKET_ACTOR = 0xff00000000000000000000000000000000000005;\\n    address constant VERIFIED_REGISTRY_ACTOR = 0xFF00000000000000000000000000000000000006;\\n    address constant DATACAP_TOKEN_ACTOR = 0xfF00000000000000000000000000000000000007;\\n    address constant EAM_ACTOR = 0xfF0000000000000000000000000000000000000a;\\n\\n    // FEVM precompile addresses\\n    address constant RESOLVE_ADDRESS = 0xFE00000000000000000000000000000000000001;\\n    address constant LOOKUP_DELEGATED_ADDRESS = 0xfE00000000000000000000000000000000000002;\\n    address constant CALL_ACTOR = 0xfe00000000000000000000000000000000000003;\\n    // address constant GET_ACTOR_TYPE = 0xFe00000000000000000000000000000000000004; // (deprecated)\\n    address constant CALL_ACTOR_BY_ID = 0xfe00000000000000000000000000000000000005;\\n\\n    // An ID address with id == 0. It's also equivalent to the system actor address\\n    // This is useful for bitwise operations\\n    address constant ZERO_ID_ADDRESS = SYSTEM_ACTOR;\\n    \\n    /**\\n     * @notice Convert ID to Eth address. Returns input if conversion fails.\\n     *\\n     * Attempt to convert address _a from an ID address to an Eth address\\n     * If _a is NOT an ID address, this returns _a\\n     * If _a does NOT have a corresponding Eth address, this returns _a\\n     * \\n     * NOTE: It is possible this returns an ID address! If you want a method\\n     *       that will NEVER return an ID address, see mustNormalize below.\\n     */\\n    function normalize(address _a) internal view returns (address) {\\n        // First, check if we have an ID address. If we don't, return as-is\\n        (bool isID, uint64 id) = isIDAddress(_a);\\n        if (!isID) {\\n            return _a;\\n        }\\n\\n        // We have an ID address -- attempt the conversion\\n        // If there is no corresponding Eth address, return _a\\n        (bool success, address eth) = getEthAddress(id);\\n        if (!success) {\\n            return _a;\\n        } else {\\n            return eth;\\n        }\\n    }\\n\\n    /**\\n     * @notice Convert ID to Eth address. Reverts if conversion fails.\\n     *\\n     * Attempt to convert address _a from an ID address to an Eth address\\n     * If _a is NOT an ID address, this returns _a unchanged\\n     * If _a does NOT have a corresponding Eth address, this method reverts\\n     *\\n     * This method can be used when you want a guarantee that an ID address is not\\n     * returned. Note, though, that rejecting ID addresses may mean you don't support\\n     * other Filecoin-native actors.\\n     */\\n    function mustNormalize(address _a) internal view returns (address) {\\n        // First, check if we have an ID address. If we don't, return as-is\\n        (bool isID, uint64 id) = isIDAddress(_a);\\n        if (!isID) {\\n            return _a;\\n        }\\n\\n        // We have an ID address -- attempt the conversion\\n        // If there is no corresponding Eth address, revert\\n        (bool success, address eth) = getEthAddress(id);\\n        if (!success) revert InvalidAddress();\\n        return eth;\\n    }\\n\\n    // Used to clear the last 8 bytes of an address    (addr & U64_MASK)\\n    address constant U64_MASK = 0xFffFfFffffFfFFffffFFFffF0000000000000000;\\n    // Used to retrieve the last 8 bytes of an address (addr & MAX_U64)\\n    address constant MAX_U64 = 0x000000000000000000000000fFFFFFffFFFFfffF;\\n\\n    /**\\n     * @notice Checks whether _a matches the ID address format.\\n     * If it does, returns true and the id\\n     * \\n     * The ID address format is:\\n     * 0xFF | bytes11(0) | uint64(id)\\n     */\\n    function isIDAddress(address _a) internal pure returns (bool isID, uint64 id) {\\n        /// @solidity memory-safe-assembly\\n        assembly {\\n            // Zeroes out the last 8 bytes of _a\\n            let a_mask := and(_a, U64_MASK)\\n\\n            // If the result is equal to the ZERO_ID_ADDRESS,\\n            // _a is an ID address.\\n            if eq(a_mask, ZERO_ID_ADDRESS) {\\n                isID := true\\n                id := and(_a, MAX_U64)\\n            }\\n        }\\n    }\\n\\n    /**\\n     * @notice Given an Actor ID, converts it to an EVM-compatible address.\\n     * \\n     * If _id has a corresponding Eth address, we return that\\n     * Otherwise, _id is returned as a 20-byte ID address\\n     */\\n    function toAddress(uint64 _id) internal view returns (address) {\\n        (bool success, address eth) = getEthAddress(_id);\\n        if (success) {\\n            return eth;\\n        } else {\\n            return toIDAddress(_id);\\n        }\\n    }\\n\\n    /**\\n     * @notice Given an Actor ID, converts it to a 20-byte ID address\\n     * \\n     * Note that this method does NOT check if the _id has a corresponding\\n     * Eth address. If you want that, try toAddress above.\\n     */\\n    function toIDAddress(uint64 _id) internal pure returns (address addr) {\\n        /// @solidity memory-safe-assembly\\n        assembly { addr := or(ZERO_ID_ADDRESS, _id) }\\n    }\\n\\n    // An address with all bits set. Used to clean higher-order bits\\n    address constant ADDRESS_MASK = 0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF;\\n\\n    /**\\n     * @notice Convert ID to Eth address by querying the lookup_delegated_address\\n     * precompile.\\n     *\\n     * If the actor ID corresponds to an Eth address, this will return (true, addr)\\n     * If the actor ID does NOT correspond to an Eth address, this will return (false, 0)\\n     * \\n     * --- About ---\\n     * \\n     * The lookup_delegated_address precompile retrieves the actor state corresponding\\n     * to the id. If the actor has a delegated address, it is returned using fil\\n     * address encoding (see below).\\n     *\\n     * f4, or delegated addresses, have a namespace as well as a subaddress that can\\n     * be up to 54 bytes long. This is to support future address formats. Currently,\\n     * though, the f4 format is only used to support Eth addresses.\\n     *\\n     * Consequently, the only addresses lookup_delegated_address should return have:\\n     * - Prefix:     \\\"f4\\\" address      - 1 byte   - (0x04)\\n     * - Namespace:  EAM actor id 10   - 1 byte   - (0x0A)\\n     * - Subaddress: EVM-style address - 20 bytes - (EVM address)\\n     * \\n     * This method checks that the precompile output exactly matches this format:\\n     * 22 bytes, starting with 0x040A.\\n     * \\n     * If we get anything else, we return (false, 0x00).\\n     */\\n    function getEthAddress(uint64 _id) internal view returns (bool success, address eth) {\\n        /// @solidity memory-safe-assembly\\n        assembly {\\n            // Call LOOKUP_DELEGATED_ADDRESS precompile\\n            //\\n            // Input: uint64 id, in standard EVM format (left-padded to 32 bytes)\\n            //\\n            // Output: LOOKUP_DELEGATED_ADDRESS returns an f4-encoded address. \\n            // For Eth addresses, the format is a 20-byte address, prefixed with\\n            // 0x040A. So, we expect exactly 22 bytes of returndata.\\n            // \\n            // Since we want to read an address from the returndata, we place the\\n            // output at memory offset 10, which means the address is already\\n            // word-aligned (10 + 22 == 32)\\n            //\\n            // NOTE: success and returndatasize checked at the end of the function\\n            mstore(0, _id)\\n            success := staticcall(gas(), LOOKUP_DELEGATED_ADDRESS, 0, 32, 10, 22)\\n\\n            // Read result. LOOKUP_DELEGATED_ADDRESS returns raw, unpadded\\n            // bytes. Assuming we succeeded, we can extract the eth address\\n            // by reading from offset 0 and cleaning any higher-order bits:\\n            let result := mload(0)\\n            eth := and(ADDRESS_MASK, result)\\n\\n            // Check that the returned address has the expected prefix. The\\n            // prefix is the first 2 bytes of returndata, located at memory \\n            // offset 10. \\n            // \\n            // To isolate it, shift right by the # of bits in an address (160),\\n            // and clean all but the last 2 bytes.\\n            let prefix := and(0xFFFF, shr(160, result))\\n            if iszero(eq(prefix, 0x040A)) {\\n                success := false\\n                eth := 0\\n            }\\n        }\\n        // Checking these here because internal functions don't have\\n        // a good way to return from inline assembly.\\n        //\\n        // But, it's very important we do check these. If the output\\n        // wasn't exactly what we expected, we assume there's no eth\\n        // address and return (false, 0).\\n        if (!success || returnDataSize() != 22) {\\n            return (false, address(0));\\n        }\\n    }\\n\\n    /**\\n     * @notice Convert Eth address to ID by querying the resolve_address precompile.\\n     *\\n     * If the passed-in address is already in ID form, returns (true, id)\\n     * If the Eth address has no corresponding ID address, returns (false, 0)\\n     * Otherwise, the lookup succeeds and this returns (true, id)\\n     * \\n     * --- About ---\\n     *\\n     * The resolve_address precompile can resolve any fil-encoded address to its\\n     * corresponding actor ID, if there is one. This means resolve_address handles\\n     * all address protocols: f0, f1, f2, f3, and f4. \\n     * \\n     * An address might not have an actor ID if it does not exist in state yet. A \\n     * typical example of this is a public-key-type address, which can exist even \\n     * if it hasn't been used on-chain yet.\\n     *\\n     * This method is only meant to look up ids for Eth addresses, so it contains\\n     * very specific logic to correctly encode an Eth address into its f4 format.\\n     * \\n     * Note: This is essentially just the reverse of getEthAddress above, so check\\n     * the comments there for more details on f4 encoding.\\n     */\\n    function getActorID(address _eth) internal view returns (bool success, uint64 id) {\\n        // First - if we already have an ID address, we can just return that\\n        (success, id) = isIDAddress(_eth);\\n        if (success) {\\n            return (success, id);\\n        }\\n\\n        /// @solidity memory-safe-assembly\\n        assembly {\\n            // Convert Eth address to f4 format: 22 bytes, with prefix 0x040A.\\n            // (see getEthAddress above for more details on this format)\\n            //\\n            // We're going to pass the 22 bytes to the precompile without any\\n            // padding or length, so everything will be left-aligned. Since \\n            // addresses are right-aligned, we need to shift everything left:\\n            // - 0x040A prefix - shifted left 240 bits (30 bytes * 8 bits)\\n            // - Eth address   - shifted left 80 bits  (10 bytes * 8 bits)\\n            let input := or(\\n                shl(240, 0x040A),\\n                shl(80, _eth)\\n            )\\n            // Call RESOLVE_ADDRESS precompile\\n            //\\n            // Input: Eth address in f4 format. 22 bytes, no padding or length\\n            //\\n            // Output: RESOLVE_ADDRESS returns a uint64 actor ID in standard EVM\\n            // format (left-padded to 32 bytes).\\n            // \\n            // NOTE: success and returndatasize checked at the end of the function\\n            mstore(0, input)\\n            success := staticcall(gas(), RESOLVE_ADDRESS, 0, 22, 0, 32)\\n\\n            // Read result and clean higher-order bits, just in case.\\n            // If successful, this will be the actor id.\\n            id := and(MAX_U64, mload(0))\\n        }\\n        // Checking these here because internal functions don't have\\n        // a good way to return from inline assembly.\\n        //\\n        // But, it's very important we do check these. If the output\\n        // wasn't exactly what we expected, we assume there's no ID\\n        // address and return (false, 0).\\n        if (!success || returnDataSize() != 32) {\\n            return (false, 0);\\n        }\\n    }\\n\\n    /**\\n     * @notice Replacement for Solidity's address.send and address.transfer\\n     * This sends _amount to _recipient, forwarding all available gas and\\n     * reverting if there are any errors.\\n     *\\n     * If _recpient is an Eth address, this works the way you'd\\n     * expect the EVM to work.\\n     *\\n     * If _recpient is an ID address, this works if:\\n     * 1. The ID corresponds to an Eth EOA address      (EthAccount actor)\\n     * 2. The ID corresponds to an Eth contract address (EVM actor)\\n     * 3. The ID corresponds to a BLS/SECPK address     (Account actor)\\n     *\\n     * If _recpient is some other Filecoin-native actor, this will revert.\\n     */\\n    function sendValue(address payable _recipient, uint _amount) internal {\\n        if (address(this).balance < _amount) revert InsufficientFunds();\\n\\n        (bool success, ) = _recipient.call{value: _amount}(\\\"\\\");\\n        if (!success) revert CallFailed();\\n    }\\n\\n    function returnDataSize() private pure returns (uint size) {\\n        /// @solidity memory-safe-assembly\\n        assembly { size := returndatasize() }\\n    }\\n}\\n\",\"keccak256\":\"0x8707b4f152e92b852090c313419c0dc772eebf4428472a0659dd6b13dd6bee31\",\"license\":\"MIT\"},\"lib/openzeppelin-contracts/contracts//access/AccessControl.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v4.8.0) (access/AccessControl.sol)\\n\\npragma solidity ^0.8.0;\\n\\nimport \\\"./IAccessControl.sol\\\";\\nimport \\\"../utils/Context.sol\\\";\\nimport \\\"../utils/Strings.sol\\\";\\nimport \\\"../utils/introspection/ERC165.sol\\\";\\n\\n/**\\n * @dev Contract module that allows children to implement role-based access\\n * control mechanisms. This is a lightweight version that doesn't allow enumerating role\\n * members except through off-chain means by accessing the contract event logs. Some\\n * applications may benefit from on-chain enumerability, for those cases see\\n * {AccessControlEnumerable}.\\n *\\n * Roles are referred to by their `bytes32` identifier. These should be exposed\\n * in the external API and be unique. The best way to achieve this is by\\n * using `public constant` hash digests:\\n *\\n * ```\\n * bytes32 public constant MY_ROLE = keccak256(\\\"MY_ROLE\\\");\\n * ```\\n *\\n * Roles can be used to represent a set of permissions. To restrict access to a\\n * function call, use {hasRole}:\\n *\\n * ```\\n * function foo() public {\\n *     require(hasRole(MY_ROLE, msg.sender));\\n *     ...\\n * }\\n * ```\\n *\\n * Roles can be granted and revoked dynamically via the {grantRole} and\\n * {revokeRole} functions. Each role has an associated admin role, and only\\n * accounts that have a role's admin role can call {grantRole} and {revokeRole}.\\n *\\n * By default, the admin role for all roles is `DEFAULT_ADMIN_ROLE`, which means\\n * that only accounts with this role will be able to grant or revoke other\\n * roles. More complex role relationships can be created by using\\n * {_setRoleAdmin}.\\n *\\n * WARNING: The `DEFAULT_ADMIN_ROLE` is also its own admin: it has permission to\\n * grant and revoke this role. Extra precautions should be taken to secure\\n * accounts that have been granted it.\\n */\\nabstract contract AccessControl is Context, IAccessControl, ERC165 {\\n    struct RoleData {\\n        mapping(address => bool) members;\\n        bytes32 adminRole;\\n    }\\n\\n    mapping(bytes32 => RoleData) private _roles;\\n\\n    bytes32 public constant DEFAULT_ADMIN_ROLE = 0x00;\\n\\n    /**\\n     * @dev Modifier that checks that an account has a specific role. Reverts\\n     * with a standardized message including the required role.\\n     *\\n     * The format of the revert reason is given by the following regular expression:\\n     *\\n     *  /^AccessControl: account (0x[0-9a-f]{40}) is missing role (0x[0-9a-f]{64})$/\\n     *\\n     * _Available since v4.1._\\n     */\\n    modifier onlyRole(bytes32 role) {\\n        _checkRole(role);\\n        _;\\n    }\\n\\n    /**\\n     * @dev See {IERC165-supportsInterface}.\\n     */\\n    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {\\n        return interfaceId == type(IAccessControl).interfaceId || super.supportsInterface(interfaceId);\\n    }\\n\\n    /**\\n     * @dev Returns `true` if `account` has been granted `role`.\\n     */\\n    function hasRole(bytes32 role, address account) public view virtual override returns (bool) {\\n        return _roles[role].members[account];\\n    }\\n\\n    /**\\n     * @dev Revert with a standard message if `_msgSender()` is missing `role`.\\n     * Overriding this function changes the behavior of the {onlyRole} modifier.\\n     *\\n     * Format of the revert message is described in {_checkRole}.\\n     *\\n     * _Available since v4.6._\\n     */\\n    function _checkRole(bytes32 role) internal view virtual {\\n        _checkRole(role, _msgSender());\\n    }\\n\\n    /**\\n     * @dev Revert with a standard message if `account` is missing `role`.\\n     *\\n     * The format of the revert reason is given by the following regular expression:\\n     *\\n     *  /^AccessControl: account (0x[0-9a-f]{40}) is missing role (0x[0-9a-f]{64})$/\\n     */\\n    function _checkRole(bytes32 role, address account) internal view virtual {\\n        if (!hasRole(role, account)) {\\n            revert(\\n                string(\\n                    abi.encodePacked(\\n                        \\\"AccessControl: account \\\",\\n                        Strings.toHexString(account),\\n                        \\\" is missing role \\\",\\n                        Strings.toHexString(uint256(role), 32)\\n                    )\\n                )\\n            );\\n        }\\n    }\\n\\n    /**\\n     * @dev Returns the admin role that controls `role`. See {grantRole} and\\n     * {revokeRole}.\\n     *\\n     * To change a role's admin, use {_setRoleAdmin}.\\n     */\\n    function getRoleAdmin(bytes32 role) public view virtual override returns (bytes32) {\\n        return _roles[role].adminRole;\\n    }\\n\\n    /**\\n     * @dev Grants `role` to `account`.\\n     *\\n     * If `account` had not been already granted `role`, emits a {RoleGranted}\\n     * event.\\n     *\\n     * Requirements:\\n     *\\n     * - the caller must have ``role``'s admin role.\\n     *\\n     * May emit a {RoleGranted} event.\\n     */\\n    function grantRole(bytes32 role, address account) public virtual override onlyRole(getRoleAdmin(role)) {\\n        _grantRole(role, account);\\n    }\\n\\n    /**\\n     * @dev Revokes `role` from `account`.\\n     *\\n     * If `account` had been granted `role`, emits a {RoleRevoked} event.\\n     *\\n     * Requirements:\\n     *\\n     * - the caller must have ``role``'s admin role.\\n     *\\n     * May emit a {RoleRevoked} event.\\n     */\\n    function revokeRole(bytes32 role, address account) public virtual override onlyRole(getRoleAdmin(role)) {\\n        _revokeRole(role, account);\\n    }\\n\\n    /**\\n     * @dev Revokes `role` from the calling account.\\n     *\\n     * Roles are often managed via {grantRole} and {revokeRole}: this function's\\n     * purpose is to provide a mechanism for accounts to lose their privileges\\n     * if they are compromised (such as when a trusted device is misplaced).\\n     *\\n     * If the calling account had been revoked `role`, emits a {RoleRevoked}\\n     * event.\\n     *\\n     * Requirements:\\n     *\\n     * - the caller must be `account`.\\n     *\\n     * May emit a {RoleRevoked} event.\\n     */\\n    function renounceRole(bytes32 role, address account) public virtual override {\\n        require(account == _msgSender(), \\\"AccessControl: can only renounce roles for self\\\");\\n\\n        _revokeRole(role, account);\\n    }\\n\\n    /**\\n     * @dev Grants `role` to `account`.\\n     *\\n     * If `account` had not been already granted `role`, emits a {RoleGranted}\\n     * event. Note that unlike {grantRole}, this function doesn't perform any\\n     * checks on the calling account.\\n     *\\n     * May emit a {RoleGranted} event.\\n     *\\n     * [WARNING]\\n     * ====\\n     * This function should only be called from the constructor when setting\\n     * up the initial roles for the system.\\n     *\\n     * Using this function in any other way is effectively circumventing the admin\\n     * system imposed by {AccessControl}.\\n     * ====\\n     *\\n     * NOTE: This function is deprecated in favor of {_grantRole}.\\n     */\\n    function _setupRole(bytes32 role, address account) internal virtual {\\n        _grantRole(role, account);\\n    }\\n\\n    /**\\n     * @dev Sets `adminRole` as ``role``'s admin role.\\n     *\\n     * Emits a {RoleAdminChanged} event.\\n     */\\n    function _setRoleAdmin(bytes32 role, bytes32 adminRole) internal virtual {\\n        bytes32 previousAdminRole = getRoleAdmin(role);\\n        _roles[role].adminRole = adminRole;\\n        emit RoleAdminChanged(role, previousAdminRole, adminRole);\\n    }\\n\\n    /**\\n     * @dev Grants `role` to `account`.\\n     *\\n     * Internal function without access restriction.\\n     *\\n     * May emit a {RoleGranted} event.\\n     */\\n    function _grantRole(bytes32 role, address account) internal virtual {\\n        if (!hasRole(role, account)) {\\n            _roles[role].members[account] = true;\\n            emit RoleGranted(role, account, _msgSender());\\n        }\\n    }\\n\\n    /**\\n     * @dev Revokes `role` from `account`.\\n     *\\n     * Internal function without access restriction.\\n     *\\n     * May emit a {RoleRevoked} event.\\n     */\\n    function _revokeRole(bytes32 role, address account) internal virtual {\\n        if (hasRole(role, account)) {\\n            _roles[role].members[account] = false;\\n            emit RoleRevoked(role, account, _msgSender());\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0x67e3daf189111d6d5b0464ed09cf9f0605a22c4b965a7fcecd707101faff008a\",\"license\":\"MIT\"},\"lib/openzeppelin-contracts/contracts//access/IAccessControl.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts v4.4.1 (access/IAccessControl.sol)\\n\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev External interface of AccessControl declared to support ERC165 detection.\\n */\\ninterface IAccessControl {\\n    /**\\n     * @dev Emitted when `newAdminRole` is set as ``role``'s admin role, replacing `previousAdminRole`\\n     *\\n     * `DEFAULT_ADMIN_ROLE` is the starting admin for all roles, despite\\n     * {RoleAdminChanged} not being emitted signaling this.\\n     *\\n     * _Available since v3.1._\\n     */\\n    event RoleAdminChanged(bytes32 indexed role, bytes32 indexed previousAdminRole, bytes32 indexed newAdminRole);\\n\\n    /**\\n     * @dev Emitted when `account` is granted `role`.\\n     *\\n     * `sender` is the account that originated the contract call, an admin role\\n     * bearer except when using {AccessControl-_setupRole}.\\n     */\\n    event RoleGranted(bytes32 indexed role, address indexed account, address indexed sender);\\n\\n    /**\\n     * @dev Emitted when `account` is revoked `role`.\\n     *\\n     * `sender` is the account that originated the contract call:\\n     *   - if using `revokeRole`, it is the admin role bearer\\n     *   - if using `renounceRole`, it is the role bearer (i.e. `account`)\\n     */\\n    event RoleRevoked(bytes32 indexed role, address indexed account, address indexed sender);\\n\\n    /**\\n     * @dev Returns `true` if `account` has been granted `role`.\\n     */\\n    function hasRole(bytes32 role, address account) external view returns (bool);\\n\\n    /**\\n     * @dev Returns the admin role that controls `role`. See {grantRole} and\\n     * {revokeRole}.\\n     *\\n     * To change a role's admin, use {AccessControl-_setRoleAdmin}.\\n     */\\n    function getRoleAdmin(bytes32 role) external view returns (bytes32);\\n\\n    /**\\n     * @dev Grants `role` to `account`.\\n     *\\n     * If `account` had not been already granted `role`, emits a {RoleGranted}\\n     * event.\\n     *\\n     * Requirements:\\n     *\\n     * - the caller must have ``role``'s admin role.\\n     */\\n    function grantRole(bytes32 role, address account) external;\\n\\n    /**\\n     * @dev Revokes `role` from `account`.\\n     *\\n     * If `account` had been granted `role`, emits a {RoleRevoked} event.\\n     *\\n     * Requirements:\\n     *\\n     * - the caller must have ``role``'s admin role.\\n     */\\n    function revokeRole(bytes32 role, address account) external;\\n\\n    /**\\n     * @dev Revokes `role` from the calling account.\\n     *\\n     * Roles are often managed via {grantRole} and {revokeRole}: this function's\\n     * purpose is to provide a mechanism for accounts to lose their privileges\\n     * if they are compromised (such as when a trusted device is misplaced).\\n     *\\n     * If the calling account had been granted `role`, emits a {RoleRevoked}\\n     * event.\\n     *\\n     * Requirements:\\n     *\\n     * - the caller must be `account`.\\n     */\\n    function renounceRole(bytes32 role, address account) external;\\n}\\n\",\"keccak256\":\"0x59ce320a585d7e1f163cd70390a0ef2ff9cec832e2aa544293a00692465a7a57\",\"license\":\"MIT\"},\"lib/openzeppelin-contracts/contracts/utils/Context.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts v4.4.1 (utils/Context.sol)\\n\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev Provides information about the current execution context, including the\\n * sender of the transaction and its data. While these are generally available\\n * via msg.sender and msg.data, they should not be accessed in such a direct\\n * manner, since when dealing with meta-transactions the account sending and\\n * paying for execution may not be the actual sender (as far as an application\\n * is concerned).\\n *\\n * This contract is only required for intermediate, library-like contracts.\\n */\\nabstract contract Context {\\n    function _msgSender() internal view virtual returns (address) {\\n        return msg.sender;\\n    }\\n\\n    function _msgData() internal view virtual returns (bytes calldata) {\\n        return msg.data;\\n    }\\n}\\n\",\"keccak256\":\"0xe2e337e6dde9ef6b680e07338c493ebea1b5fd09b43424112868e9cc1706bca7\",\"license\":\"MIT\"},\"lib/openzeppelin-contracts/contracts/utils/Strings.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v4.8.0) (utils/Strings.sol)\\n\\npragma solidity ^0.8.0;\\n\\nimport \\\"./math/Math.sol\\\";\\n\\n/**\\n * @dev String operations.\\n */\\nlibrary Strings {\\n    bytes16 private constant _SYMBOLS = \\\"0123456789abcdef\\\";\\n    uint8 private constant _ADDRESS_LENGTH = 20;\\n\\n    /**\\n     * @dev Converts a `uint256` to its ASCII `string` decimal representation.\\n     */\\n    function toString(uint256 value) internal pure returns (string memory) {\\n        unchecked {\\n            uint256 length = Math.log10(value) + 1;\\n            string memory buffer = new string(length);\\n            uint256 ptr;\\n            /// @solidity memory-safe-assembly\\n            assembly {\\n                ptr := add(buffer, add(32, length))\\n            }\\n            while (true) {\\n                ptr--;\\n                /// @solidity memory-safe-assembly\\n                assembly {\\n                    mstore8(ptr, byte(mod(value, 10), _SYMBOLS))\\n                }\\n                value /= 10;\\n                if (value == 0) break;\\n            }\\n            return buffer;\\n        }\\n    }\\n\\n    /**\\n     * @dev Converts a `uint256` to its ASCII `string` hexadecimal representation.\\n     */\\n    function toHexString(uint256 value) internal pure returns (string memory) {\\n        unchecked {\\n            return toHexString(value, Math.log256(value) + 1);\\n        }\\n    }\\n\\n    /**\\n     * @dev Converts a `uint256` to its ASCII `string` hexadecimal representation with fixed length.\\n     */\\n    function toHexString(uint256 value, uint256 length) internal pure returns (string memory) {\\n        bytes memory buffer = new bytes(2 * length + 2);\\n        buffer[0] = \\\"0\\\";\\n        buffer[1] = \\\"x\\\";\\n        for (uint256 i = 2 * length + 1; i > 1; --i) {\\n            buffer[i] = _SYMBOLS[value & 0xf];\\n            value >>= 4;\\n        }\\n        require(value == 0, \\\"Strings: hex length insufficient\\\");\\n        return string(buffer);\\n    }\\n\\n    /**\\n     * @dev Converts an `address` with fixed length of 20 bytes to its not checksummed ASCII `string` hexadecimal representation.\\n     */\\n    function toHexString(address addr) internal pure returns (string memory) {\\n        return toHexString(uint256(uint160(addr)), _ADDRESS_LENGTH);\\n    }\\n}\\n\",\"keccak256\":\"0xa4d1d62251f8574deb032a35fc948386a9b4de74b812d4f545a1ac120486b48a\",\"license\":\"MIT\"},\"lib/openzeppelin-contracts/contracts/utils/introspection/ERC165.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts v4.4.1 (utils/introspection/ERC165.sol)\\n\\npragma solidity ^0.8.0;\\n\\nimport \\\"./IERC165.sol\\\";\\n\\n/**\\n * @dev Implementation of the {IERC165} interface.\\n *\\n * Contracts that want to implement ERC165 should inherit from this contract and override {supportsInterface} to check\\n * for the additional interface id that will be supported. For example:\\n *\\n * ```solidity\\n * function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {\\n *     return interfaceId == type(MyInterface).interfaceId || super.supportsInterface(interfaceId);\\n * }\\n * ```\\n *\\n * Alternatively, {ERC165Storage} provides an easier to use but more expensive implementation.\\n */\\nabstract contract ERC165 is IERC165 {\\n    /**\\n     * @dev See {IERC165-supportsInterface}.\\n     */\\n    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {\\n        return interfaceId == type(IERC165).interfaceId;\\n    }\\n}\\n\",\"keccak256\":\"0xd10975de010d89fd1c78dc5e8a9a7e7f496198085c151648f20cba166b32582b\",\"license\":\"MIT\"},\"lib/openzeppelin-contracts/contracts/utils/introspection/IERC165.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts v4.4.1 (utils/introspection/IERC165.sol)\\n\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev Interface of the ERC165 standard, as defined in the\\n * https://eips.ethereum.org/EIPS/eip-165[EIP].\\n *\\n * Implementers can declare support of contract interfaces, which can then be\\n * queried by others ({ERC165Checker}).\\n *\\n * For an implementation, see {ERC165}.\\n */\\ninterface IERC165 {\\n    /**\\n     * @dev Returns true if this contract implements the interface defined by\\n     * `interfaceId`. See the corresponding\\n     * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]\\n     * to learn more about how these ids are created.\\n     *\\n     * This function call must use less than 30 000 gas.\\n     */\\n    function supportsInterface(bytes4 interfaceId) external view returns (bool);\\n}\\n\",\"keccak256\":\"0x447a5f3ddc18419d41ff92b3773fb86471b1db25773e07f877f548918a185bf1\",\"license\":\"MIT\"},\"lib/openzeppelin-contracts/contracts/utils/math/Math.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v4.8.0) (utils/math/Math.sol)\\n\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev Standard math utilities missing in the Solidity language.\\n */\\nlibrary Math {\\n    enum Rounding {\\n        Down, // Toward negative infinity\\n        Up, // Toward infinity\\n        Zero // Toward zero\\n    }\\n\\n    /**\\n     * @dev Returns the largest of two numbers.\\n     */\\n    function max(uint256 a, uint256 b) internal pure returns (uint256) {\\n        return a > b ? a : b;\\n    }\\n\\n    /**\\n     * @dev Returns the smallest of two numbers.\\n     */\\n    function min(uint256 a, uint256 b) internal pure returns (uint256) {\\n        return a < b ? a : b;\\n    }\\n\\n    /**\\n     * @dev Returns the average of two numbers. The result is rounded towards\\n     * zero.\\n     */\\n    function average(uint256 a, uint256 b) internal pure returns (uint256) {\\n        // (a + b) / 2 can overflow.\\n        return (a & b) + (a ^ b) / 2;\\n    }\\n\\n    /**\\n     * @dev Returns the ceiling of the division of two numbers.\\n     *\\n     * This differs from standard division with `/` in that it rounds up instead\\n     * of rounding down.\\n     */\\n    function ceilDiv(uint256 a, uint256 b) internal pure returns (uint256) {\\n        // (a + b - 1) / b can overflow on addition, so we distribute.\\n        return a == 0 ? 0 : (a - 1) / b + 1;\\n    }\\n\\n    /**\\n     * @notice Calculates floor(x * y / denominator) with full precision. Throws if result overflows a uint256 or denominator == 0\\n     * @dev Original credit to Remco Bloemen under MIT license (https://xn--2-umb.com/21/muldiv)\\n     * with further edits by Uniswap Labs also under MIT license.\\n     */\\n    function mulDiv(\\n        uint256 x,\\n        uint256 y,\\n        uint256 denominator\\n    ) internal pure returns (uint256 result) {\\n        unchecked {\\n            // 512-bit multiply [prod1 prod0] = x * y. Compute the product mod 2^256 and mod 2^256 - 1, then use\\n            // use the Chinese Remainder Theorem to reconstruct the 512 bit result. The result is stored in two 256\\n            // variables such that product = prod1 * 2^256 + prod0.\\n            uint256 prod0; // Least significant 256 bits of the product\\n            uint256 prod1; // Most significant 256 bits of the product\\n            assembly {\\n                let mm := mulmod(x, y, not(0))\\n                prod0 := mul(x, y)\\n                prod1 := sub(sub(mm, prod0), lt(mm, prod0))\\n            }\\n\\n            // Handle non-overflow cases, 256 by 256 division.\\n            if (prod1 == 0) {\\n                return prod0 / denominator;\\n            }\\n\\n            // Make sure the result is less than 2^256. Also prevents denominator == 0.\\n            require(denominator > prod1);\\n\\n            ///////////////////////////////////////////////\\n            // 512 by 256 division.\\n            ///////////////////////////////////////////////\\n\\n            // Make division exact by subtracting the remainder from [prod1 prod0].\\n            uint256 remainder;\\n            assembly {\\n                // Compute remainder using mulmod.\\n                remainder := mulmod(x, y, denominator)\\n\\n                // Subtract 256 bit number from 512 bit number.\\n                prod1 := sub(prod1, gt(remainder, prod0))\\n                prod0 := sub(prod0, remainder)\\n            }\\n\\n            // Factor powers of two out of denominator and compute largest power of two divisor of denominator. Always >= 1.\\n            // See https://cs.stackexchange.com/q/138556/92363.\\n\\n            // Does not overflow because the denominator cannot be zero at this stage in the function.\\n            uint256 twos = denominator & (~denominator + 1);\\n            assembly {\\n                // Divide denominator by twos.\\n                denominator := div(denominator, twos)\\n\\n                // Divide [prod1 prod0] by twos.\\n                prod0 := div(prod0, twos)\\n\\n                // Flip twos such that it is 2^256 / twos. If twos is zero, then it becomes one.\\n                twos := add(div(sub(0, twos), twos), 1)\\n            }\\n\\n            // Shift in bits from prod1 into prod0.\\n            prod0 |= prod1 * twos;\\n\\n            // Invert denominator mod 2^256. Now that denominator is an odd number, it has an inverse modulo 2^256 such\\n            // that denominator * inv = 1 mod 2^256. Compute the inverse by starting with a seed that is correct for\\n            // four bits. That is, denominator * inv = 1 mod 2^4.\\n            uint256 inverse = (3 * denominator) ^ 2;\\n\\n            // Use the Newton-Raphson iteration to improve the precision. Thanks to Hensel's lifting lemma, this also works\\n            // in modular arithmetic, doubling the correct bits in each step.\\n            inverse *= 2 - denominator * inverse; // inverse mod 2^8\\n            inverse *= 2 - denominator * inverse; // inverse mod 2^16\\n            inverse *= 2 - denominator * inverse; // inverse mod 2^32\\n            inverse *= 2 - denominator * inverse; // inverse mod 2^64\\n            inverse *= 2 - denominator * inverse; // inverse mod 2^128\\n            inverse *= 2 - denominator * inverse; // inverse mod 2^256\\n\\n            // Because the division is now exact we can divide by multiplying with the modular inverse of denominator.\\n            // This will give us the correct result modulo 2^256. Since the preconditions guarantee that the outcome is\\n            // less than 2^256, this is the final result. We don't need to compute the high bits of the result and prod1\\n            // is no longer required.\\n            result = prod0 * inverse;\\n            return result;\\n        }\\n    }\\n\\n    /**\\n     * @notice Calculates x * y / denominator with full precision, following the selected rounding direction.\\n     */\\n    function mulDiv(\\n        uint256 x,\\n        uint256 y,\\n        uint256 denominator,\\n        Rounding rounding\\n    ) internal pure returns (uint256) {\\n        uint256 result = mulDiv(x, y, denominator);\\n        if (rounding == Rounding.Up && mulmod(x, y, denominator) > 0) {\\n            result += 1;\\n        }\\n        return result;\\n    }\\n\\n    /**\\n     * @dev Returns the square root of a number. If the number is not a perfect square, the value is rounded down.\\n     *\\n     * Inspired by Henry S. Warren, Jr.'s \\\"Hacker's Delight\\\" (Chapter 11).\\n     */\\n    function sqrt(uint256 a) internal pure returns (uint256) {\\n        if (a == 0) {\\n            return 0;\\n        }\\n\\n        // For our first guess, we get the biggest power of 2 which is smaller than the square root of the target.\\n        //\\n        // We know that the \\\"msb\\\" (most significant bit) of our target number `a` is a power of 2 such that we have\\n        // `msb(a) <= a < 2*msb(a)`. This value can be written `msb(a)=2**k` with `k=log2(a)`.\\n        //\\n        // This can be rewritten `2**log2(a) <= a < 2**(log2(a) + 1)`\\n        // \\u2192 `sqrt(2**k) <= sqrt(a) < sqrt(2**(k+1))`\\n        // \\u2192 `2**(k/2) <= sqrt(a) < 2**((k+1)/2) <= 2**(k/2 + 1)`\\n        //\\n        // Consequently, `2**(log2(a) / 2)` is a good first approximation of `sqrt(a)` with at least 1 correct bit.\\n        uint256 result = 1 << (log2(a) >> 1);\\n\\n        // At this point `result` is an estimation with one bit of precision. We know the true value is a uint128,\\n        // since it is the square root of a uint256. Newton's method converges quadratically (precision doubles at\\n        // every iteration). We thus need at most 7 iteration to turn our partial result with one bit of precision\\n        // into the expected uint128 result.\\n        unchecked {\\n            result = (result + a / result) >> 1;\\n            result = (result + a / result) >> 1;\\n            result = (result + a / result) >> 1;\\n            result = (result + a / result) >> 1;\\n            result = (result + a / result) >> 1;\\n            result = (result + a / result) >> 1;\\n            result = (result + a / result) >> 1;\\n            return min(result, a / result);\\n        }\\n    }\\n\\n    /**\\n     * @notice Calculates sqrt(a), following the selected rounding direction.\\n     */\\n    function sqrt(uint256 a, Rounding rounding) internal pure returns (uint256) {\\n        unchecked {\\n            uint256 result = sqrt(a);\\n            return result + (rounding == Rounding.Up && result * result < a ? 1 : 0);\\n        }\\n    }\\n\\n    /**\\n     * @dev Return the log in base 2, rounded down, of a positive value.\\n     * Returns 0 if given 0.\\n     */\\n    function log2(uint256 value) internal pure returns (uint256) {\\n        uint256 result = 0;\\n        unchecked {\\n            if (value >> 128 > 0) {\\n                value >>= 128;\\n                result += 128;\\n            }\\n            if (value >> 64 > 0) {\\n                value >>= 64;\\n                result += 64;\\n            }\\n            if (value >> 32 > 0) {\\n                value >>= 32;\\n                result += 32;\\n            }\\n            if (value >> 16 > 0) {\\n                value >>= 16;\\n                result += 16;\\n            }\\n            if (value >> 8 > 0) {\\n                value >>= 8;\\n                result += 8;\\n            }\\n            if (value >> 4 > 0) {\\n                value >>= 4;\\n                result += 4;\\n            }\\n            if (value >> 2 > 0) {\\n                value >>= 2;\\n                result += 2;\\n            }\\n            if (value >> 1 > 0) {\\n                result += 1;\\n            }\\n        }\\n        return result;\\n    }\\n\\n    /**\\n     * @dev Return the log in base 2, following the selected rounding direction, of a positive value.\\n     * Returns 0 if given 0.\\n     */\\n    function log2(uint256 value, Rounding rounding) internal pure returns (uint256) {\\n        unchecked {\\n            uint256 result = log2(value);\\n            return result + (rounding == Rounding.Up && 1 << result < value ? 1 : 0);\\n        }\\n    }\\n\\n    /**\\n     * @dev Return the log in base 10, rounded down, of a positive value.\\n     * Returns 0 if given 0.\\n     */\\n    function log10(uint256 value) internal pure returns (uint256) {\\n        uint256 result = 0;\\n        unchecked {\\n            if (value >= 10**64) {\\n                value /= 10**64;\\n                result += 64;\\n            }\\n            if (value >= 10**32) {\\n                value /= 10**32;\\n                result += 32;\\n            }\\n            if (value >= 10**16) {\\n                value /= 10**16;\\n                result += 16;\\n            }\\n            if (value >= 10**8) {\\n                value /= 10**8;\\n                result += 8;\\n            }\\n            if (value >= 10**4) {\\n                value /= 10**4;\\n                result += 4;\\n            }\\n            if (value >= 10**2) {\\n                value /= 10**2;\\n                result += 2;\\n            }\\n            if (value >= 10**1) {\\n                result += 1;\\n            }\\n        }\\n        return result;\\n    }\\n\\n    /**\\n     * @dev Return the log in base 10, following the selected rounding direction, of a positive value.\\n     * Returns 0 if given 0.\\n     */\\n    function log10(uint256 value, Rounding rounding) internal pure returns (uint256) {\\n        unchecked {\\n            uint256 result = log10(value);\\n            return result + (rounding == Rounding.Up && 10**result < value ? 1 : 0);\\n        }\\n    }\\n\\n    /**\\n     * @dev Return the log in base 256, rounded down, of a positive value.\\n     * Returns 0 if given 0.\\n     *\\n     * Adding one to the result gives the number of pairs of hex symbols needed to represent `value` as a hex string.\\n     */\\n    function log256(uint256 value) internal pure returns (uint256) {\\n        uint256 result = 0;\\n        unchecked {\\n            if (value >> 128 > 0) {\\n                value >>= 128;\\n                result += 16;\\n            }\\n            if (value >> 64 > 0) {\\n                value >>= 64;\\n                result += 8;\\n            }\\n            if (value >> 32 > 0) {\\n                value >>= 32;\\n                result += 4;\\n            }\\n            if (value >> 16 > 0) {\\n                value >>= 16;\\n                result += 2;\\n            }\\n            if (value >> 8 > 0) {\\n                result += 1;\\n            }\\n        }\\n        return result;\\n    }\\n\\n    /**\\n     * @dev Return the log in base 10, following the selected rounding direction, of a positive value.\\n     * Returns 0 if given 0.\\n     */\\n    function log256(uint256 value, Rounding rounding) internal pure returns (uint256) {\\n        unchecked {\\n            uint256 result = log256(value);\\n            return result + (rounding == Rounding.Up && 1 << (result * 8) < value ? 1 : 0);\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0xa1e8e83cd0087785df04ac79fb395d9f3684caeaf973d9e2c71caef723a3a5d6\",\"license\":\"MIT\"},\"lib/solmate/src/utils/FixedPointMathLib.sol\":{\"content\":\"// SPDX-License-Identifier: AGPL-3.0-only\\npragma solidity >=0.8.0;\\n\\n/// @notice Arithmetic library with operations for fixed-point numbers.\\n/// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/utils/FixedPointMathLib.sol)\\n/// @author Inspired by USM (https://github.com/usmfum/USM/blob/master/contracts/WadMath.sol)\\nlibrary FixedPointMathLib {\\n    /*//////////////////////////////////////////////////////////////\\n                    SIMPLIFIED FIXED POINT OPERATIONS\\n    //////////////////////////////////////////////////////////////*/\\n\\n    uint256 internal constant MAX_UINT256 = 2**256 - 1;\\n\\n    uint256 internal constant WAD = 1e18; // The scalar of ETH and most ERC20s.\\n\\n    function mulWadDown(uint256 x, uint256 y) internal pure returns (uint256) {\\n        return mulDivDown(x, y, WAD); // Equivalent to (x * y) / WAD rounded down.\\n    }\\n\\n    function mulWadUp(uint256 x, uint256 y) internal pure returns (uint256) {\\n        return mulDivUp(x, y, WAD); // Equivalent to (x * y) / WAD rounded up.\\n    }\\n\\n    function divWadDown(uint256 x, uint256 y) internal pure returns (uint256) {\\n        return mulDivDown(x, WAD, y); // Equivalent to (x * WAD) / y rounded down.\\n    }\\n\\n    function divWadUp(uint256 x, uint256 y) internal pure returns (uint256) {\\n        return mulDivUp(x, WAD, y); // Equivalent to (x * WAD) / y rounded up.\\n    }\\n\\n    /*//////////////////////////////////////////////////////////////\\n                    LOW LEVEL FIXED POINT OPERATIONS\\n    //////////////////////////////////////////////////////////////*/\\n\\n    function mulDivDown(\\n        uint256 x,\\n        uint256 y,\\n        uint256 denominator\\n    ) internal pure returns (uint256 z) {\\n        /// @solidity memory-safe-assembly\\n        assembly {\\n            // Equivalent to require(denominator != 0 && (y == 0 || x <= type(uint256).max / y))\\n            if iszero(mul(denominator, iszero(mul(y, gt(x, div(MAX_UINT256, y)))))) {\\n                revert(0, 0)\\n            }\\n\\n            // Divide x * y by the denominator.\\n            z := div(mul(x, y), denominator)\\n        }\\n    }\\n\\n    function mulDivUp(\\n        uint256 x,\\n        uint256 y,\\n        uint256 denominator\\n    ) internal pure returns (uint256 z) {\\n        /// @solidity memory-safe-assembly\\n        assembly {\\n            // Equivalent to require(denominator != 0 && (y == 0 || x <= type(uint256).max / y))\\n            if iszero(mul(denominator, iszero(mul(y, gt(x, div(MAX_UINT256, y)))))) {\\n                revert(0, 0)\\n            }\\n\\n            // If x * y modulo the denominator is strictly greater than 0,\\n            // 1 is added to round up the division of x * y by the denominator.\\n            z := add(gt(mod(mul(x, y), denominator), 0), div(mul(x, y), denominator))\\n        }\\n    }\\n\\n    function rpow(\\n        uint256 x,\\n        uint256 n,\\n        uint256 scalar\\n    ) internal pure returns (uint256 z) {\\n        /// @solidity memory-safe-assembly\\n        assembly {\\n            switch x\\n            case 0 {\\n                switch n\\n                case 0 {\\n                    // 0 ** 0 = 1\\n                    z := scalar\\n                }\\n                default {\\n                    // 0 ** n = 0\\n                    z := 0\\n                }\\n            }\\n            default {\\n                switch mod(n, 2)\\n                case 0 {\\n                    // If n is even, store scalar in z for now.\\n                    z := scalar\\n                }\\n                default {\\n                    // If n is odd, store x in z for now.\\n                    z := x\\n                }\\n\\n                // Shifting right by 1 is like dividing by 2.\\n                let half := shr(1, scalar)\\n\\n                for {\\n                    // Shift n right by 1 before looping to halve it.\\n                    n := shr(1, n)\\n                } n {\\n                    // Shift n right by 1 each iteration to halve it.\\n                    n := shr(1, n)\\n                } {\\n                    // Revert immediately if x ** 2 would overflow.\\n                    // Equivalent to iszero(eq(div(xx, x), x)) here.\\n                    if shr(128, x) {\\n                        revert(0, 0)\\n                    }\\n\\n                    // Store x squared.\\n                    let xx := mul(x, x)\\n\\n                    // Round to the nearest number.\\n                    let xxRound := add(xx, half)\\n\\n                    // Revert if xx + half overflowed.\\n                    if lt(xxRound, xx) {\\n                        revert(0, 0)\\n                    }\\n\\n                    // Set x to scaled xxRound.\\n                    x := div(xxRound, scalar)\\n\\n                    // If n is even:\\n                    if mod(n, 2) {\\n                        // Compute z * x.\\n                        let zx := mul(z, x)\\n\\n                        // If z * x overflowed:\\n                        if iszero(eq(div(zx, x), z)) {\\n                            // Revert if x is non-zero.\\n                            if iszero(iszero(x)) {\\n                                revert(0, 0)\\n                            }\\n                        }\\n\\n                        // Round to the nearest number.\\n                        let zxRound := add(zx, half)\\n\\n                        // Revert if zx + half overflowed.\\n                        if lt(zxRound, zx) {\\n                            revert(0, 0)\\n                        }\\n\\n                        // Return properly scaled zxRound.\\n                        z := div(zxRound, scalar)\\n                    }\\n                }\\n            }\\n        }\\n    }\\n\\n    /*//////////////////////////////////////////////////////////////\\n                        GENERAL NUMBER UTILITIES\\n    //////////////////////////////////////////////////////////////*/\\n\\n    function sqrt(uint256 x) internal pure returns (uint256 z) {\\n        /// @solidity memory-safe-assembly\\n        assembly {\\n            let y := x // We start y at x, which will help us make our initial estimate.\\n\\n            z := 181 // The \\\"correct\\\" value is 1, but this saves a multiplication later.\\n\\n            // This segment is to get a reasonable initial estimate for the Babylonian method. With a bad\\n            // start, the correct # of bits increases ~linearly each iteration instead of ~quadratically.\\n\\n            // We check y >= 2^(k + 8) but shift right by k bits\\n            // each branch to ensure that if x >= 256, then y >= 256.\\n            if iszero(lt(y, 0x10000000000000000000000000000000000)) {\\n                y := shr(128, y)\\n                z := shl(64, z)\\n            }\\n            if iszero(lt(y, 0x1000000000000000000)) {\\n                y := shr(64, y)\\n                z := shl(32, z)\\n            }\\n            if iszero(lt(y, 0x10000000000)) {\\n                y := shr(32, y)\\n                z := shl(16, z)\\n            }\\n            if iszero(lt(y, 0x1000000)) {\\n                y := shr(16, y)\\n                z := shl(8, z)\\n            }\\n\\n            // Goal was to get z*z*y within a small factor of x. More iterations could\\n            // get y in a tighter range. Currently, we will have y in [256, 256*2^16).\\n            // We ensured y >= 256 so that the relative difference between y and y+1 is small.\\n            // That's not possible if x < 256 but we can just verify those cases exhaustively.\\n\\n            // Now, z*z*y <= x < z*z*(y+1), and y <= 2^(16+8), and either y >= 256, or x < 256.\\n            // Correctness can be checked exhaustively for x < 256, so we assume y >= 256.\\n            // Then z*sqrt(y) is within sqrt(257)/sqrt(256) of sqrt(x), or about 20bps.\\n\\n            // For s in the range [1/256, 256], the estimate f(s) = (181/1024) * (s+1) is in the range\\n            // (1/2.84 * sqrt(s), 2.84 * sqrt(s)), with largest error when s = 1 and when s = 256 or 1/256.\\n\\n            // Since y is in [256, 256*2^16), let a = y/65536, so that a is in [1/256, 256). Then we can estimate\\n            // sqrt(y) using sqrt(65536) * 181/1024 * (a + 1) = 181/4 * (y + 65536)/65536 = 181 * (y + 65536)/2^18.\\n\\n            // There is no overflow risk here since y < 2^136 after the first branch above.\\n            z := shr(18, mul(z, add(y, 65536))) // A mul() is saved from starting z at 181.\\n\\n            // Given the worst case multiplicative error of 2.84 above, 7 iterations should be enough.\\n            z := shr(1, add(z, div(x, z)))\\n            z := shr(1, add(z, div(x, z)))\\n            z := shr(1, add(z, div(x, z)))\\n            z := shr(1, add(z, div(x, z)))\\n            z := shr(1, add(z, div(x, z)))\\n            z := shr(1, add(z, div(x, z)))\\n            z := shr(1, add(z, div(x, z)))\\n\\n            // If x+1 is a perfect square, the Babylonian method cycles between\\n            // floor(sqrt(x)) and ceil(sqrt(x)). This statement ensures we return floor.\\n            // See: https://en.wikipedia.org/wiki/Integer_square_root#Using_only_integer_division\\n            // Since the ceil is rare, we save gas on the assignment and repeat division in the rare case.\\n            // If you don't care whether the floor or ceil square root is returned, you can remove this statement.\\n            z := sub(z, lt(div(x, z), z))\\n        }\\n    }\\n\\n    function unsafeMod(uint256 x, uint256 y) internal pure returns (uint256 z) {\\n        /// @solidity memory-safe-assembly\\n        assembly {\\n            // Mod x by y. Note this will return\\n            // 0 instead of reverting if y is zero.\\n            z := mod(x, y)\\n        }\\n    }\\n\\n    function unsafeDiv(uint256 x, uint256 y) internal pure returns (uint256 r) {\\n        /// @solidity memory-safe-assembly\\n        assembly {\\n            // Divide x by y. Note this will return\\n            // 0 instead of reverting if y is zero.\\n            r := div(x, y)\\n        }\\n    }\\n\\n    function unsafeDivUp(uint256 x, uint256 y) internal pure returns (uint256 z) {\\n        /// @solidity memory-safe-assembly\\n        assembly {\\n            // Add 1 to x * y if x % y > 0. Note this will\\n            // return 0 instead of reverting if y is zero.\\n            z := add(gt(mod(x, y), 0), div(x, y))\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0x1b62af9baf5b8e991ed7531bc87f45550ba9d61e8dbff5caf237ccaf3a3fd843\",\"license\":\"AGPL-3.0-only\"},\"lib/solmate/src/utils/ReentrancyGuard.sol\":{\"content\":\"// SPDX-License-Identifier: AGPL-3.0-only\\npragma solidity >=0.8.0;\\n\\n/// @notice Gas optimized reentrancy protection for smart contracts.\\n/// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/utils/ReentrancyGuard.sol)\\n/// @author Modified from OpenZeppelin (https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/security/ReentrancyGuard.sol)\\nabstract contract ReentrancyGuard {\\n    uint256 private locked = 1;\\n\\n    modifier nonReentrant() virtual {\\n        require(locked == 1, \\\"REENTRANCY\\\");\\n\\n        locked = 2;\\n\\n        _;\\n\\n        locked = 1;\\n    }\\n}\\n\",\"keccak256\":\"0xb282dd78aa7375d6b200b9a5d8dd214b2e5df1004f8217a4b4c2b07f0c5bfd01\",\"license\":\"AGPL-3.0-only\"}},\"version\":1}",
+  "bytecode": "0x60a0604052600180553480156200001557600080fd5b506040516200307338038062003073833981016040819052620000389162000468565b6001600160a01b03838116608052600680546001600160a01b031916918416919091179055801515806200006e57506127108111155b620000965760405162461bcd60e51b81526004016200008d90620004f7565b60405180910390fd5b6005819055620000a8600033620000dd565b620000d47fbd162f0ed5d9ba0d62460e28548c2d494e547f6a13b10c140ac720c9196c50f933620000ed565b505050620006d9565b620000e982826200011b565b5050565b6000828152602081905260409020600101546200010a81620001a3565b6200011683836200011b565b505050565b620001278282620001b2565b620000e9576000828152602081815260408083206001600160a01b03851684529091529020805460ff191660011790556200015f3390565b6001600160a01b0316816001600160a01b0316837f2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d60405160405180910390a45050565b620001af8133620001dd565b50565b6000828152602081815260408083206001600160a01b038516845290915290205460ff165b92915050565b620001e98282620001b2565b620000e95762000204816200025560201b620013861760201c565b6200021a8360206200139862000268821b17811c565b6040516020016200022d92919062000554565b60408051601f198184030181529082905262461bcd60e51b82526200008d91600401620005ed565b6060620001d76001600160a01b03831660145b606060006200027983600262000616565b6200028690600262000638565b6001600160401b03811115620002a057620002a06200064e565b6040519080825280601f01601f191660200182016040528015620002cb576020820181803683370190505b509050600360fc1b81600081518110620002e957620002e962000664565b60200101906001600160f81b031916908160001a905350600f60fb1b816001815181106200031b576200031b62000664565b60200101906001600160f81b031916908160001a90535060006200034184600262000616565b6200034e90600162000638565b90505b6001811115620003d0576f181899199a1a9b1b9c1cb0b131b232b360811b85600f166010811062000386576200038662000664565b1a60f81b8282815181106200039f576200039f62000664565b60200101906001600160f81b031916908160001a90535060049490941c93620003c8816200067a565b905062000351565b508315620003f25760405162461bcd60e51b81526004016200008d90620006c7565b9392505050565b60006001600160a01b038216620001d7565b6000620001d782620003f9565b62000423816200040b565b8114620001af57600080fd5b8051620001d78162000418565b6200042381620003f9565b8051620001d7816200043c565b8062000423565b8051620001d78162000454565b600080600060608486031215620004825762000482600080fd5b60006200049086866200042f565b9350506020620004a38682870162000447565b9250506040620004b6868287016200045b565b9150509250925092565b601a81526000602082017f424153455f524551554952454d454e54535f4f564552464c4f57000000000000815291505b5060200190565b60208082528101620001d781620004c0565b60005b83811015620005265781810151838201526020016200050c565b50506000910152565b60006200053a825190565b6200054a81856020860162000509565b9290920192915050565b7f416363657373436f6e74726f6c3a206163636f756e7420000000000000000000815260170160006200058882856200052f565b7001034b99036b4b9b9b4b733903937b6329607d1b81526011019150620005b082846200052f565b949350505050565b6000620005c3825190565b808452602084019350620005dc81856020860162000509565b601f01601f19169290920192915050565b60208082528101620003f28184620005b8565b634e487b7160e01b600052601160045260246000fd5b81810280821583820485141762000631576200063162000600565b5092915050565b80820180821115620001d757620001d762000600565b634e487b7160e01b600052604160045260246000fd5b634e487b7160e01b600052603260045260246000fd5b6000816200068c576200068c62000600565b506000190190565b60208082527f537472696e67733a20686578206c656e67746820696e73756666696369656e7491019081526000620004f0565b60208082528101620001d78162000694565b60805161295b6200071860003960008181610183015281816112ca01528181611940015281816119f501528181611c690152611cef015261295b6000f3fe6080604052600436106101325760003560e01c806301ffc9a71461013b57806309448a8614610171578063248a9ca3146101b25780632a800e88146101df5780632e1a7d4d146101ff5780632f2ff15d1461021f578063335f18391461023f57806336568abe1461025f5780634184acd51461027f5780634eaf14a6146102ac5780636ef2dafc1461030d5780637b103999146103465780637efedebe146103665780638199b6681461039a57806391d14854146103b0578063a217fddf146103d0578063ab7b4993146103e5578063bea914e514610405578063c7d3ebf814610425578063c8025dda14610445578063ce09611014610465578063d0e30db014610492578063d547741f1461049a578063e1f1c4a7146104ba578063e460512e146104d0578063fec257141461050657005b3661013957005b005b34801561014757600080fd5b5061015b610156366004611ec3565b610526565b6040516101689190611eee565b60405180910390f35b34801561017d57600080fd5b506101a57f000000000000000000000000000000000000000000000000000000000000000081565b6040516101689190611f40565b3480156101be57600080fd5b506101d26101cd366004611f5f565b61055d565b6040516101689190611f86565b3480156101eb57600080fd5b506101396101fa366004611fae565b610572565b34801561020b57600080fd5b5061013961021a366004611f5f565b61072a565b34801561022b57600080fd5b5061013961023a36600461200a565b61098b565b34801561024b57600080fd5b5061013961025a366004611fae565b6109ac565b34801561026b57600080fd5b5061013961027a36600461200a565b610aec565b34801561028b57600080fd5b506101d261029a36600461203d565b60036020526000908152604090205481565b3480156102b857600080fd5b506102ff6102c736600461203d565b6001600160401b0316600090815260026020908152604091829020825180840190935280548084526001909101549290910182905291565b60405161016892919061205e565b34801561031957600080fd5b506101d261032836600461203d565b6001600160401b031660009081526002602052604090206001015490565b34801561035257600080fd5b506006546101a5906001600160a01b031681565b34801561037257600080fd5b506102ff61038136600461203d565b6002602052600090815260409020805460019091015482565b3480156103a657600080fd5b506101d260055481565b3480156103bc57600080fd5b5061015b6103cb36600461200a565b610b1e565b3480156103dc57600080fd5b506101d2600081565b3480156103f157600080fd5b50610139610400366004612079565b610b47565b34801561041157600080fd5b5061013961042036600461203d565b610c1b565b34801561043157600080fd5b50610139610440366004611f5f565b610d40565b34801561045157600080fd5b506101d261046036600461203d565b610deb565b34801561047157600080fd5b506101d261048036600461203d565b60046020526000908152604090205481565b610139610efa565b3480156104a657600080fd5b506101396104b536600461200a565b611083565b3480156104c657600080fd5b506101d261271081565b3480156104dc57600080fd5b506101d26104eb36600461203d565b6001600160401b031660009081526002602052604090205490565b34801561051257600080fd5b50610139610521366004611fae565b61109f565b60006001600160e01b03198216637965db0b60e01b148061055757506301ffc9a760e01b6001600160e01b03198316145b92915050565b60009081526020819052604090206001015490565b60065460405163154caabb60e01b815283916001600160a01b03169063154caabb906105a29084906004016120a9565b602060405180830381865afa1580156105bf573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906105e391906120ca565b6106085760405162461bcd60e51b81526004016105ff9061211e565b60405180910390fd5b600654604051638097354f60e01b81526001600160a01b0390911690638097354f90610638903390600401612137565b602060405180830381865afa158015610655573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061067991906120ca565b6106955760405162461bcd60e51b81526004016105ff9061216a565b600082116106b55760405162461bcd60e51b81526004016105ff906121a0565b6106bf838361150a565b600654604051634978e4b760e01b81526001600160a01b0390911690634978e4b7906106f3908690869042906004016121b0565b600060405180830381600087803b15801561070d57600080fd5b505af1158015610721573d6000803e3d6000fd5b50505050505050565b60015460011461074c5760405162461bcd60e51b81526004016105ff906121f9565b60026001558061076e5760405162461bcd60e51b81526004016105ff9061222b565b60006107793361173b565b9050600080610790836001600160a01b0316611782565b91509150816107b15760405162461bcd60e51b81526004016105ff90612263565b60065460405163154caabb60e01b81526001600160a01b039091169063154caabb906107e19084906004016120a9565b602060405180830381865afa1580156107fe573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061082291906120ca565b61083e5760405162461bcd60e51b81526004016105ff9061211e565b600080600061084c846117f3565b91945092509050600061085f8385612289565b905060008189116108705788610872565b815b90506000831561090457610886868361229c565b6001600160401b0388166000908152600260205260409020600101549091506108b090879061229c565b6001600160401b03881660009081526002602052604090206001810191909155546108dc90829061229c565b6001600160401b0388166000908152600260205260409020556108ff3383611926565b610942565b6001600160401b03871660009081526002602052604090205461092890839061229c565b6001600160401b0388166000908152600260205260409020555b7fe4b3039f013ad4f4d16ea3537d0ee0ae75dad7fb7c97f1ff24fd9f10bd85b89b87836040516109739291906122af565b60405180910390a15050600180555050505050505050565b6109948261055d565b61099d81611a70565b6109a78383611a7d565b505050565b6109c46000805160206128c683398151915233610b1e565b806109d957506006546001600160a01b031633145b6109f55760405162461bcd60e51b81526004016105ff9061216a565b80600003610a47576005546001600160401b0383166000908152600460205260408082208390555160008051602061290683398151915292610a3b9286929091906122d2565b60405180910390a15050565b6001600160401b038216600090815260046020526040902054612710821115610a825760405162461bcd60e51b81526004016105ff9061231f565b808203610aa15760405162461bcd60e51b81526004016105ff90612362565b6001600160401b038316600090815260046020526040908190208390555160008051602061290683398151915290610ade908590849086906121b0565b60405180910390a1505b5050565b6001600160a01b0381163314610b145760405162461bcd60e51b81526004016105ff90612372565b610ae88282611b01565b6000918252602082815260408084206001600160a01b0393909316845291905290205460ff1690565b610b5f6000805160206128c683398151915233610b1e565b610b7b5760405162461bcd60e51b81526004016105ff9061216a565b6001600160a01b038116610ba15760405162461bcd60e51b81526004016105ff906123eb565b6006546001600160a01b039081169082168103610bd05760405162461bcd60e51b81526004016105ff9061241e565b600680546001600160a01b0319166001600160a01b0384161790556040517f3e06c035fbf29a3956dd07cbab527255f029751c95add41cc26990b28ed7179b90610a3b908490612137565b60065460405163154caabb60e01b815282916001600160a01b03169063154caabb90610c4b9084906004016120a9565b602060405180830381865afa158015610c68573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610c8c91906120ca565b610ca85760405162461bcd60e51b81526004016105ff9061211e565b600654604051638097354f60e01b81526001600160a01b0390911690638097354f90610cd8903390600401612137565b602060405180830381865afa158015610cf5573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610d1991906120ca565b610d355760405162461bcd60e51b81526004016105ff9061216a565b610ae882600061150a565b610d586000805160206128c683398151915233610b1e565b610d745760405162461bcd60e51b81526004016105ff9061216a565b60008111610d945760405162461bcd60e51b81526004016105ff90612459565b600554808203610db65760405162461bcd60e51b81526004016105ff90612491565b60058290556040517fe49b6558d30d6f2b9c3bb53bb6bedb636cf1dd53419057f0ab65812a7739639e90610a3b908490611f86565b60065460405163172a4a0f60e11b8152600091829182916001600160a01b031690632e54941e90610e209087906004016120a9565b60c060405180830381865afa158015610e3d573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610e6191906124ac565b6001600160401b038a16600090815260046020526040812054949850909650929450919250610e969150859050848385611b66565b6001600160401b0387166000908152600260209081526040808320815180830190925280548252600101549181018290529293508190610ed69085611bbc565b9150915080610eeb5750979650505050505050565b50600098975050505050505050565b600154600114610f1c5760405162461bcd60e51b81526004016105ff906121f9565b60026001553480610f3f5760405162461bcd60e51b81526004016105ff9061255b565b6000610f4a3361173b565b9050600080610f61836001600160a01b0316611782565b9150915081610f825760405162461bcd60e51b81526004016105ff90612263565b60065460405163154caabb60e01b81526001600160a01b039091169063154caabb90610fb29084906004016120a9565b602060405180830381865afa158015610fcf573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610ff391906120ca565b61100f5760405162461bcd60e51b81526004016105ff9061211e565b6001600160401b03811660009081526002602052604090208054611034908690612289565b815561103f30611c62565b7f73dee9c602a838e7139b8ea81aab0fa49d1da28733bb0481f9ea4b512bdfda7d82866040516110709291906122af565b60405180910390a1505060018055505050565b61108c8261055d565b61109581611a70565b6109a78383611b01565b60065460405163154caabb60e01b815283916001600160a01b03169063154caabb906110cf9084906004016120a9565b602060405180830381865afa1580156110ec573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061111091906120ca565b61112c5760405162461bcd60e51b81526004016105ff9061211e565b600654604051638097354f60e01b81526001600160a01b0390911690638097354f9061115c903390600401612137565b602060405180830381865afa158015611179573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061119d91906120ca565b6111b95760405162461bcd60e51b81526004016105ff9061216a565b6001600160401b03831660009081526002602090815260409182902082518084019093528054835260010154908201819052831161120b57828160200151611201919061229c565b602082015261126e565b8051602082015160009161121e91612289565b9050808411156112405760405162461bcd60e51b81526004016105ff90612597565b6000826020015185611252919061229c565b60006020850152835190915061126990829061229c565b835250505b6001600160401b038416600090815260026020908152604080832084518155828501516001909101556003909152812080548592906112ae908490612289565b909155505060405163a9059cbb60e01b81526001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000169063a9059cbb9061130190339087906004016125a7565b6020604051808303816000875af1158015611320573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061134491906120ca565b507f243212650e99fb205ebebf8fcde07325988e08f3f0501f252c2dc0aaef6f39cb848433604051611378939291906125b5565b60405180910390a150505050565b60606105576001600160a01b03831660145b606060006113a78360026125dd565b6113b2906002612289565b6001600160401b038111156113c9576113c96125fc565b6040519080825280601f01601f1916602001820160405280156113f3576020820181803683370190505b509050600360fc1b8160008151811061140e5761140e612612565b60200101906001600160f81b031916908160001a905350600f60fb1b8160018151811061143d5761143d612612565b60200101906001600160f81b031916908160001a90535060006114618460026125dd565b61146c906001612289565b90505b60018111156114e4576f181899199a1a9b1b9c1cb0b131b232b360811b85600f16601081106114a0576114a0612612565b1a60f81b8282815181106114b6576114b6612612565b60200101906001600160f81b031916908160001a90535060049490941c936114dd81612628565b905061146f565b5083156115035760405162461bcd60e51b81526004016105ff90612671565b9392505050565b60065460405163172a4a0f60e11b8152600091829182916001600160a01b031690632e54941e9061153f9088906004016120a9565b60c060405180830381865afa15801561155c573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061158091906124ac565b95505050935050925060008411156115bb578261159d8584612289565b11156115bb5760405162461bcd60e51b81526004016105ff906126ab565b6001600160401b038516600090815260046020526040812054906115e184848885611b66565b6001600160401b03881660009081526002602090815260409182902082518084019093528054808452600190910154918301829052929350909161162491612289565b8211156116435760405162461bcd60e51b81526004016105ff906126e9565b600080611654836020015185611bbc565b91509150806116b35781836020015161166d9190612289565b6020840152825161167f90839061229c565b83526040516000805160206128e6833981519152906116a6908c90859060009086906126f9565b60405180910390a1611705565b8183602001516116c3919061229c565b602084015282516116d5908390612289565b83526040516000805160206128e6833981519152906116fc908c906000908690869061272e565b60405180910390a15b50506001600160401b03909716600090815260026020908152604090912088518155970151600190970196909655505050505050565b600080600061174984611d6c565b915091508161175a57509192915050565b60008061176683611d9e565b9150915081611779575093949350505050565b95945050505050565b60008061178e83611d6c565b9092509050811561179e57915091565b8260501b61040a60f01b178060005260206000601660006001607f60991b015afa92506000516001600160401b03169150508115806117de57503d602014155b156117ee57506000928392509050565b915091565b60065460405163172a4a0f60e11b815260009182918291829182916001600160a01b031690632e54941e9061182c9089906004016120a9565b60c060405180830381865afa158015611849573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061186d91906124ac565b6001600160401b038c166000908152600460205260408120549498509096509294509192506118a29150859050848385611b66565b6001600160401b03891660009081526002602090815260408083208151808301909252805482526001015491810182905292935081906118e29085611bbc565b915091508061190c5782516118f890839061229c565b60009a509850965061191f95505050505050565b91519098509650945061191f9350505050565b9193909250565b6040516370a0823160e01b81526000906001600160a01b037f000000000000000000000000000000000000000000000000000000000000000016906370a0823190611975903090600401612137565b602060405180830381865afa158015611992573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906119b69190612756565b9050818110156119d85760405162461bcd60e51b81526004016105ff906127a0565b80156109a757604051632e1a7d4d60e01b81526001600160a01b037f00000000000000000000000000000000000000000000000000000000000000001690632e1a7d4d90611a2a908590600401611f86565b600060405180830381600087803b158015611a4457600080fd5b505af1158015611a58573d6000803e3d6000fd5b506109a7925050506001600160a01b03841683611dff565b611a7a8133611e2a565b50565b611a878282610b1e565b610ae8576000828152602081815260408083206001600160a01b03851684529091529020805460ff19166001179055611abd3390565b6001600160a01b0316816001600160a01b0316837f2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d60405160405180910390a45050565b611b0b8282610b1e565b15610ae8576000828152602081815260408083206001600160a01b0385168085529252808320805460ff1916905551339285917ff6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b9190a45050565b60008060008411611b775785611b81565b611b818487612289565b90506000611b8f868361229c565b90508015611bad57611ba48185612710611e83565b92505050611bb4565b6000925050505b949350505050565b600080600084118015611bcf5750600083115b15611c065782841115611bf157611be6838561229c565b600191509150611c5b565b611bfb848461229c565b600091509150611c5b565b600084118015611c14575082155b15611c2457508290506001611c5b565b83158015611c325750600083115b15611c4257508190506000611c5b565b83158015611c4e575082155b15611c5b57506000905060015b9250929050565b60003490507f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031663d0e30db0826040518263ffffffff1660e01b81526004016000604051808303818588803b158015611cc257600080fd5b505af1158015611cd6573d6000803e3d6000fd5b505060405163a9059cbb60e01b81526001600160a01b037f000000000000000000000000000000000000000000000000000000000000000016935063a9059cbb9250611d299150859085906004016125a7565b6020604051808303816000875af1158015611d48573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906109a791906120ca565b600080600160401b600160a01b03831660ff60981b8103611d9857600192506001600160401b03841691505b50915091565b600080826000526016600a602060006002607f60991b015afa9150600051806001600160a01b031691508060a01c61ffff1661040a8114611de25760009350600092505b50508115806117de57503d6016146117ee57506000928392509050565b600080600080600085875af19050806109a75760405162461bcd60e51b81526004016105ff906127da565b611e348282610b1e565b610ae857611e4181611386565b611e4c836020611398565b604051602001611e5d929190612830565b60408051601f198184030181529082905262461bcd60e51b82526105ff916004016128b4565b6000826000190484118302158202611e9a57600080fd5b5091020490565b6001600160e01b031981165b8114611a7a57600080fd5b803561055781611ea1565b600060208284031215611ed857611ed8600080fd5b6000611bb48484611eb8565b8015155b82525050565b602081016105578284611ee4565b6001600160a01b031690565b6000610557611f1c611f1984611efc565b90565b611efc565b600061055782611f08565b600061055782611f21565b611ee881611f2c565b602081016105578284611f37565b80611ead565b803561055781611f4e565b600060208284031215611f7457611f74600080fd5b6000611bb48484611f54565b80611ee8565b602081016105578284611f80565b6001600160401b038116611ead565b803561055781611f94565b60008060408385031215611fc457611fc4600080fd5b6000611fd08585611fa3565b9250506020611fe185828601611f54565b9150509250929050565b600061055782611efc565b611ead81611feb565b803561055781611ff6565b6000806040838503121561202057612020600080fd5b600061202c8585611f54565b9250506020611fe185828601611fff565b60006020828403121561205257612052600080fd5b6000611bb48484611fa3565b6040810161206c8285611f80565b6115036020830184611f80565b60006020828403121561208e5761208e600080fd5b6000611bb48484611fff565b6001600160401b038116611ee8565b60208101610557828461209a565b801515611ead565b8051610557816120b7565b6000602082840312156120df576120df600080fd5b6000611bb484846120bf565b601981526000602082017824a720a1aa24ab22afa9aa27a920a3a2afa82927ab24a222a960391b815291505b5060200190565b60208082528101610557816120eb565b611ee881611feb565b60208101610557828461212e565b600e81526000602082016d494e56414c49445f41434345535360901b81529150612117565b6020808252810161055781612145565b600f81526000602082016e2d22a927afa0a62627a1a0aa24a7a760891b81529150612117565b602080825281016105578161217a565b606081016121be828661209a565b6121cb6020830185611f80565b611bb46040830184611f80565b600a8152600060208201695245454e5452414e435960b01b81529150612117565b60208082528101610557816121d8565b600b81526000602082016a16915493d7d05353d5539560aa1b81529150612117565b6020808252810161055781612209565b601181526000602082017012539050d512559157d050d513d497d251607a1b81529150612117565b602080825281016105578161223b565b634e487b7160e01b600052601160045260246000fd5b8082018082111561055757610557612273565b8181038181111561055757610557612273565b6040810161206c828561209a565b6000610557611f198381565b611ee8816122bd565b606081016122e0828661209a565b6121cb60208301856122c9565b60208082527f434f4c4c41544552414c5f524551554952454d454e54535f4f564552464c4f5791019081526000612117565b60208082528101610557816122ed565b601c81526000602082017b53414d455f434f4c4c41544552414c5f524551554952454d454e545360201b81529150612117565b602080825281016105578161232f565b6020808252810161055781602f81527f416363657373436f6e74726f6c3a2063616e206f6e6c792072656e6f756e636560208201526e103937b632b9903337b91039b2b63360891b604082015260600190565b600f81526000602082016e494e56414c49445f4144445245535360881b81529150612117565b60208082528101610557816123c5565b600c81526000602082016b53414d455f4144445245535360a01b81529150612117565b60208082528101610557816123fb565b6014815260006020820173494e56414c49445f524551554952454d454e545360601b81529150612117565b602080825281016105578161242e565b601181526000602082017053414d455f524551554952454d454e545360781b81529150612117565b6020808252810161055781612469565b805161055781611f4e565b60008060008060008060c087890312156124c8576124c8600080fd5b60006124d489896124a1565b96505060206124e589828a016124a1565b95505060406124f689828a016124a1565b945050606061250789828a016124a1565b935050608061251889828a016124a1565b92505060a061252989828a016124a1565b9150509295509295509295565b600e81526000602082016d1253959053125117d05353d5539560921b81529150612117565b6020808252810161055781612536565b60158152600060208201741393d517d15393d551d217d0d3d313105511549053605a1b81529150612117565b602080825281016105578161256b565b6040810161206c828561212e565b606081016125c3828661209a565b6125d06020830185611f80565b611bb4604083018461212e565b8181028082158382048514176125f5576125f5612273565b5092915050565b634e487b7160e01b600052604160045260246000fd5b634e487b7160e01b600052603260045260246000fd5b60008161263757612637612273565b506000190190565b60208082527f537472696e67733a20686578206c656e67746820696e73756666696369656e7491019081526000612117565b602080825281016105578161263f565b6013815260006020820172414c4c4f434154494f4e5f4f564552464c4f5760681b81529150612117565b6020808252810161055781612681565b6017815260006020820176125394d551919250d251539517d0d3d313105511549053604a1b81529150612117565b60208082528101610557816126bb565b60808101612707828761209a565b6127146020830186611f80565b61272160408301856122c9565b6117796060830184611ee4565b6080810161273c828761209a565b61274960208301866122c9565b6127216040830185611f80565b60006020828403121561276b5761276b600080fd5b6000611bb484846124a1565b6012815260006020820171496e73756666696369656e7420574554483960701b81529150612117565b6020808252810161055781612777565b601381526000602082017211551217d514905394d1915497d19052531151606a1b81529150612117565b60208082528101610557816127b0565b60005b838110156128055781810151838201526020016127ed565b50506000910152565b6000612818825190565b6128268185602086016127ea565b9290920192915050565b76020b1b1b2b9b9a1b7b73a3937b61d1030b1b1b7bab73a1604d1b8152601701600061285c828561280e565b7001034b99036b4b9b9b4b733903937b6329607d1b81526011019150611bb4828461280e565b600061288c825190565b8084526020840193506128a38185602086016127ea565b601f01601f19169290920192915050565b60208082528101611503818461288256febd162f0ed5d9ba0d62460e28548c2d494e547f6a13b10c140ac720c9196c50f9772d8d1c74df48b2a983c30ed06fb65bb4819c7e61c7d97766a825bbee5a596f91147ad9b4ecd1955cddf8d3a9c61eb67a1b97c9411912f17865e356b304bd6da2646970667358221220586bb0415884ba289bbb2ded7635c086d1b9a00c2e19b2f179b62f9689990e1164736f6c63430008110033",
+  "deployedBytecode": "0x6080604052600436106101325760003560e01c806301ffc9a71461013b57806309448a8614610171578063248a9ca3146101b25780632a800e88146101df5780632e1a7d4d146101ff5780632f2ff15d1461021f578063335f18391461023f57806336568abe1461025f5780634184acd51461027f5780634eaf14a6146102ac5780636ef2dafc1461030d5780637b103999146103465780637efedebe146103665780638199b6681461039a57806391d14854146103b0578063a217fddf146103d0578063ab7b4993146103e5578063bea914e514610405578063c7d3ebf814610425578063c8025dda14610445578063ce09611014610465578063d0e30db014610492578063d547741f1461049a578063e1f1c4a7146104ba578063e460512e146104d0578063fec257141461050657005b3661013957005b005b34801561014757600080fd5b5061015b610156366004611ec3565b610526565b6040516101689190611eee565b60405180910390f35b34801561017d57600080fd5b506101a57f000000000000000000000000000000000000000000000000000000000000000081565b6040516101689190611f40565b3480156101be57600080fd5b506101d26101cd366004611f5f565b61055d565b6040516101689190611f86565b3480156101eb57600080fd5b506101396101fa366004611fae565b610572565b34801561020b57600080fd5b5061013961021a366004611f5f565b61072a565b34801561022b57600080fd5b5061013961023a36600461200a565b61098b565b34801561024b57600080fd5b5061013961025a366004611fae565b6109ac565b34801561026b57600080fd5b5061013961027a36600461200a565b610aec565b34801561028b57600080fd5b506101d261029a36600461203d565b60036020526000908152604090205481565b3480156102b857600080fd5b506102ff6102c736600461203d565b6001600160401b0316600090815260026020908152604091829020825180840190935280548084526001909101549290910182905291565b60405161016892919061205e565b34801561031957600080fd5b506101d261032836600461203d565b6001600160401b031660009081526002602052604090206001015490565b34801561035257600080fd5b506006546101a5906001600160a01b031681565b34801561037257600080fd5b506102ff61038136600461203d565b6002602052600090815260409020805460019091015482565b3480156103a657600080fd5b506101d260055481565b3480156103bc57600080fd5b5061015b6103cb36600461200a565b610b1e565b3480156103dc57600080fd5b506101d2600081565b3480156103f157600080fd5b50610139610400366004612079565b610b47565b34801561041157600080fd5b5061013961042036600461203d565b610c1b565b34801561043157600080fd5b50610139610440366004611f5f565b610d40565b34801561045157600080fd5b506101d261046036600461203d565b610deb565b34801561047157600080fd5b506101d261048036600461203d565b60046020526000908152604090205481565b610139610efa565b3480156104a657600080fd5b506101396104b536600461200a565b611083565b3480156104c657600080fd5b506101d261271081565b3480156104dc57600080fd5b506101d26104eb36600461203d565b6001600160401b031660009081526002602052604090205490565b34801561051257600080fd5b50610139610521366004611fae565b61109f565b60006001600160e01b03198216637965db0b60e01b148061055757506301ffc9a760e01b6001600160e01b03198316145b92915050565b60009081526020819052604090206001015490565b60065460405163154caabb60e01b815283916001600160a01b03169063154caabb906105a29084906004016120a9565b602060405180830381865afa1580156105bf573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906105e391906120ca565b6106085760405162461bcd60e51b81526004016105ff9061211e565b60405180910390fd5b600654604051638097354f60e01b81526001600160a01b0390911690638097354f90610638903390600401612137565b602060405180830381865afa158015610655573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061067991906120ca565b6106955760405162461bcd60e51b81526004016105ff9061216a565b600082116106b55760405162461bcd60e51b81526004016105ff906121a0565b6106bf838361150a565b600654604051634978e4b760e01b81526001600160a01b0390911690634978e4b7906106f3908690869042906004016121b0565b600060405180830381600087803b15801561070d57600080fd5b505af1158015610721573d6000803e3d6000fd5b50505050505050565b60015460011461074c5760405162461bcd60e51b81526004016105ff906121f9565b60026001558061076e5760405162461bcd60e51b81526004016105ff9061222b565b60006107793361173b565b9050600080610790836001600160a01b0316611782565b91509150816107b15760405162461bcd60e51b81526004016105ff90612263565b60065460405163154caabb60e01b81526001600160a01b039091169063154caabb906107e19084906004016120a9565b602060405180830381865afa1580156107fe573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061082291906120ca565b61083e5760405162461bcd60e51b81526004016105ff9061211e565b600080600061084c846117f3565b91945092509050600061085f8385612289565b905060008189116108705788610872565b815b90506000831561090457610886868361229c565b6001600160401b0388166000908152600260205260409020600101549091506108b090879061229c565b6001600160401b03881660009081526002602052604090206001810191909155546108dc90829061229c565b6001600160401b0388166000908152600260205260409020556108ff3383611926565b610942565b6001600160401b03871660009081526002602052604090205461092890839061229c565b6001600160401b0388166000908152600260205260409020555b7fe4b3039f013ad4f4d16ea3537d0ee0ae75dad7fb7c97f1ff24fd9f10bd85b89b87836040516109739291906122af565b60405180910390a15050600180555050505050505050565b6109948261055d565b61099d81611a70565b6109a78383611a7d565b505050565b6109c46000805160206128c683398151915233610b1e565b806109d957506006546001600160a01b031633145b6109f55760405162461bcd60e51b81526004016105ff9061216a565b80600003610a47576005546001600160401b0383166000908152600460205260408082208390555160008051602061290683398151915292610a3b9286929091906122d2565b60405180910390a15050565b6001600160401b038216600090815260046020526040902054612710821115610a825760405162461bcd60e51b81526004016105ff9061231f565b808203610aa15760405162461bcd60e51b81526004016105ff90612362565b6001600160401b038316600090815260046020526040908190208390555160008051602061290683398151915290610ade908590849086906121b0565b60405180910390a1505b5050565b6001600160a01b0381163314610b145760405162461bcd60e51b81526004016105ff90612372565b610ae88282611b01565b6000918252602082815260408084206001600160a01b0393909316845291905290205460ff1690565b610b5f6000805160206128c683398151915233610b1e565b610b7b5760405162461bcd60e51b81526004016105ff9061216a565b6001600160a01b038116610ba15760405162461bcd60e51b81526004016105ff906123eb565b6006546001600160a01b039081169082168103610bd05760405162461bcd60e51b81526004016105ff9061241e565b600680546001600160a01b0319166001600160a01b0384161790556040517f3e06c035fbf29a3956dd07cbab527255f029751c95add41cc26990b28ed7179b90610a3b908490612137565b60065460405163154caabb60e01b815282916001600160a01b03169063154caabb90610c4b9084906004016120a9565b602060405180830381865afa158015610c68573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610c8c91906120ca565b610ca85760405162461bcd60e51b81526004016105ff9061211e565b600654604051638097354f60e01b81526001600160a01b0390911690638097354f90610cd8903390600401612137565b602060405180830381865afa158015610cf5573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610d1991906120ca565b610d355760405162461bcd60e51b81526004016105ff9061216a565b610ae882600061150a565b610d586000805160206128c683398151915233610b1e565b610d745760405162461bcd60e51b81526004016105ff9061216a565b60008111610d945760405162461bcd60e51b81526004016105ff90612459565b600554808203610db65760405162461bcd60e51b81526004016105ff90612491565b60058290556040517fe49b6558d30d6f2b9c3bb53bb6bedb636cf1dd53419057f0ab65812a7739639e90610a3b908490611f86565b60065460405163172a4a0f60e11b8152600091829182916001600160a01b031690632e54941e90610e209087906004016120a9565b60c060405180830381865afa158015610e3d573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610e6191906124ac565b6001600160401b038a16600090815260046020526040812054949850909650929450919250610e969150859050848385611b66565b6001600160401b0387166000908152600260209081526040808320815180830190925280548252600101549181018290529293508190610ed69085611bbc565b9150915080610eeb5750979650505050505050565b50600098975050505050505050565b600154600114610f1c5760405162461bcd60e51b81526004016105ff906121f9565b60026001553480610f3f5760405162461bcd60e51b81526004016105ff9061255b565b6000610f4a3361173b565b9050600080610f61836001600160a01b0316611782565b9150915081610f825760405162461bcd60e51b81526004016105ff90612263565b60065460405163154caabb60e01b81526001600160a01b039091169063154caabb90610fb29084906004016120a9565b602060405180830381865afa158015610fcf573d6000803e3d6000fd5b505050506040513d601f19601f82011682018060405250810190610ff391906120ca565b61100f5760405162461bcd60e51b81526004016105ff9061211e565b6001600160401b03811660009081526002602052604090208054611034908690612289565b815561103f30611c62565b7f73dee9c602a838e7139b8ea81aab0fa49d1da28733bb0481f9ea4b512bdfda7d82866040516110709291906122af565b60405180910390a1505060018055505050565b61108c8261055d565b61109581611a70565b6109a78383611b01565b60065460405163154caabb60e01b815283916001600160a01b03169063154caabb906110cf9084906004016120a9565b602060405180830381865afa1580156110ec573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061111091906120ca565b61112c5760405162461bcd60e51b81526004016105ff9061211e565b600654604051638097354f60e01b81526001600160a01b0390911690638097354f9061115c903390600401612137565b602060405180830381865afa158015611179573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061119d91906120ca565b6111b95760405162461bcd60e51b81526004016105ff9061216a565b6001600160401b03831660009081526002602090815260409182902082518084019093528054835260010154908201819052831161120b57828160200151611201919061229c565b602082015261126e565b8051602082015160009161121e91612289565b9050808411156112405760405162461bcd60e51b81526004016105ff90612597565b6000826020015185611252919061229c565b60006020850152835190915061126990829061229c565b835250505b6001600160401b038416600090815260026020908152604080832084518155828501516001909101556003909152812080548592906112ae908490612289565b909155505060405163a9059cbb60e01b81526001600160a01b037f0000000000000000000000000000000000000000000000000000000000000000169063a9059cbb9061130190339087906004016125a7565b6020604051808303816000875af1158015611320573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061134491906120ca565b507f243212650e99fb205ebebf8fcde07325988e08f3f0501f252c2dc0aaef6f39cb848433604051611378939291906125b5565b60405180910390a150505050565b60606105576001600160a01b03831660145b606060006113a78360026125dd565b6113b2906002612289565b6001600160401b038111156113c9576113c96125fc565b6040519080825280601f01601f1916602001820160405280156113f3576020820181803683370190505b509050600360fc1b8160008151811061140e5761140e612612565b60200101906001600160f81b031916908160001a905350600f60fb1b8160018151811061143d5761143d612612565b60200101906001600160f81b031916908160001a90535060006114618460026125dd565b61146c906001612289565b90505b60018111156114e4576f181899199a1a9b1b9c1cb0b131b232b360811b85600f16601081106114a0576114a0612612565b1a60f81b8282815181106114b6576114b6612612565b60200101906001600160f81b031916908160001a90535060049490941c936114dd81612628565b905061146f565b5083156115035760405162461bcd60e51b81526004016105ff90612671565b9392505050565b60065460405163172a4a0f60e11b8152600091829182916001600160a01b031690632e54941e9061153f9088906004016120a9565b60c060405180830381865afa15801561155c573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061158091906124ac565b95505050935050925060008411156115bb578261159d8584612289565b11156115bb5760405162461bcd60e51b81526004016105ff906126ab565b6001600160401b038516600090815260046020526040812054906115e184848885611b66565b6001600160401b03881660009081526002602090815260409182902082518084019093528054808452600190910154918301829052929350909161162491612289565b8211156116435760405162461bcd60e51b81526004016105ff906126e9565b600080611654836020015185611bbc565b91509150806116b35781836020015161166d9190612289565b6020840152825161167f90839061229c565b83526040516000805160206128e6833981519152906116a6908c90859060009086906126f9565b60405180910390a1611705565b8183602001516116c3919061229c565b602084015282516116d5908390612289565b83526040516000805160206128e6833981519152906116fc908c906000908690869061272e565b60405180910390a15b50506001600160401b03909716600090815260026020908152604090912088518155970151600190970196909655505050505050565b600080600061174984611d6c565b915091508161175a57509192915050565b60008061176683611d9e565b9150915081611779575093949350505050565b95945050505050565b60008061178e83611d6c565b9092509050811561179e57915091565b8260501b61040a60f01b178060005260206000601660006001607f60991b015afa92506000516001600160401b03169150508115806117de57503d602014155b156117ee57506000928392509050565b915091565b60065460405163172a4a0f60e11b815260009182918291829182916001600160a01b031690632e54941e9061182c9089906004016120a9565b60c060405180830381865afa158015611849573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061186d91906124ac565b6001600160401b038c166000908152600460205260408120549498509096509294509192506118a29150859050848385611b66565b6001600160401b03891660009081526002602090815260408083208151808301909252805482526001015491810182905292935081906118e29085611bbc565b915091508061190c5782516118f890839061229c565b60009a509850965061191f95505050505050565b91519098509650945061191f9350505050565b9193909250565b6040516370a0823160e01b81526000906001600160a01b037f000000000000000000000000000000000000000000000000000000000000000016906370a0823190611975903090600401612137565b602060405180830381865afa158015611992573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906119b69190612756565b9050818110156119d85760405162461bcd60e51b81526004016105ff906127a0565b80156109a757604051632e1a7d4d60e01b81526001600160a01b037f00000000000000000000000000000000000000000000000000000000000000001690632e1a7d4d90611a2a908590600401611f86565b600060405180830381600087803b158015611a4457600080fd5b505af1158015611a58573d6000803e3d6000fd5b506109a7925050506001600160a01b03841683611dff565b611a7a8133611e2a565b50565b611a878282610b1e565b610ae8576000828152602081815260408083206001600160a01b03851684529091529020805460ff19166001179055611abd3390565b6001600160a01b0316816001600160a01b0316837f2f8788117e7eff1d82e926ec794901d17c78024a50270940304540a733656f0d60405160405180910390a45050565b611b0b8282610b1e565b15610ae8576000828152602081815260408083206001600160a01b0385168085529252808320805460ff1916905551339285917ff6391f5c32d9c69d2a47ea670b442974b53935d1edc7fd64eb21e047a839171b9190a45050565b60008060008411611b775785611b81565b611b818487612289565b90506000611b8f868361229c565b90508015611bad57611ba48185612710611e83565b92505050611bb4565b6000925050505b949350505050565b600080600084118015611bcf5750600083115b15611c065782841115611bf157611be6838561229c565b600191509150611c5b565b611bfb848461229c565b600091509150611c5b565b600084118015611c14575082155b15611c2457508290506001611c5b565b83158015611c325750600083115b15611c4257508190506000611c5b565b83158015611c4e575082155b15611c5b57506000905060015b9250929050565b60003490507f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031663d0e30db0826040518263ffffffff1660e01b81526004016000604051808303818588803b158015611cc257600080fd5b505af1158015611cd6573d6000803e3d6000fd5b505060405163a9059cbb60e01b81526001600160a01b037f000000000000000000000000000000000000000000000000000000000000000016935063a9059cbb9250611d299150859085906004016125a7565b6020604051808303816000875af1158015611d48573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906109a791906120ca565b600080600160401b600160a01b03831660ff60981b8103611d9857600192506001600160401b03841691505b50915091565b600080826000526016600a602060006002607f60991b015afa9150600051806001600160a01b031691508060a01c61ffff1661040a8114611de25760009350600092505b50508115806117de57503d6016146117ee57506000928392509050565b600080600080600085875af19050806109a75760405162461bcd60e51b81526004016105ff906127da565b611e348282610b1e565b610ae857611e4181611386565b611e4c836020611398565b604051602001611e5d929190612830565b60408051601f198184030181529082905262461bcd60e51b82526105ff916004016128b4565b6000826000190484118302158202611e9a57600080fd5b5091020490565b6001600160e01b031981165b8114611a7a57600080fd5b803561055781611ea1565b600060208284031215611ed857611ed8600080fd5b6000611bb48484611eb8565b8015155b82525050565b602081016105578284611ee4565b6001600160a01b031690565b6000610557611f1c611f1984611efc565b90565b611efc565b600061055782611f08565b600061055782611f21565b611ee881611f2c565b602081016105578284611f37565b80611ead565b803561055781611f4e565b600060208284031215611f7457611f74600080fd5b6000611bb48484611f54565b80611ee8565b602081016105578284611f80565b6001600160401b038116611ead565b803561055781611f94565b60008060408385031215611fc457611fc4600080fd5b6000611fd08585611fa3565b9250506020611fe185828601611f54565b9150509250929050565b600061055782611efc565b611ead81611feb565b803561055781611ff6565b6000806040838503121561202057612020600080fd5b600061202c8585611f54565b9250506020611fe185828601611fff565b60006020828403121561205257612052600080fd5b6000611bb48484611fa3565b6040810161206c8285611f80565b6115036020830184611f80565b60006020828403121561208e5761208e600080fd5b6000611bb48484611fff565b6001600160401b038116611ee8565b60208101610557828461209a565b801515611ead565b8051610557816120b7565b6000602082840312156120df576120df600080fd5b6000611bb484846120bf565b601981526000602082017824a720a1aa24ab22afa9aa27a920a3a2afa82927ab24a222a960391b815291505b5060200190565b60208082528101610557816120eb565b611ee881611feb565b60208101610557828461212e565b600e81526000602082016d494e56414c49445f41434345535360901b81529150612117565b6020808252810161055781612145565b600f81526000602082016e2d22a927afa0a62627a1a0aa24a7a760891b81529150612117565b602080825281016105578161217a565b606081016121be828661209a565b6121cb6020830185611f80565b611bb46040830184611f80565b600a8152600060208201695245454e5452414e435960b01b81529150612117565b60208082528101610557816121d8565b600b81526000602082016a16915493d7d05353d5539560aa1b81529150612117565b6020808252810161055781612209565b601181526000602082017012539050d512559157d050d513d497d251607a1b81529150612117565b602080825281016105578161223b565b634e487b7160e01b600052601160045260246000fd5b8082018082111561055757610557612273565b8181038181111561055757610557612273565b6040810161206c828561209a565b6000610557611f198381565b611ee8816122bd565b606081016122e0828661209a565b6121cb60208301856122c9565b60208082527f434f4c4c41544552414c5f524551554952454d454e54535f4f564552464c4f5791019081526000612117565b60208082528101610557816122ed565b601c81526000602082017b53414d455f434f4c4c41544552414c5f524551554952454d454e545360201b81529150612117565b602080825281016105578161232f565b6020808252810161055781602f81527f416363657373436f6e74726f6c3a2063616e206f6e6c792072656e6f756e636560208201526e103937b632b9903337b91039b2b63360891b604082015260600190565b600f81526000602082016e494e56414c49445f4144445245535360881b81529150612117565b60208082528101610557816123c5565b600c81526000602082016b53414d455f4144445245535360a01b81529150612117565b60208082528101610557816123fb565b6014815260006020820173494e56414c49445f524551554952454d454e545360601b81529150612117565b602080825281016105578161242e565b601181526000602082017053414d455f524551554952454d454e545360781b81529150612117565b6020808252810161055781612469565b805161055781611f4e565b60008060008060008060c087890312156124c8576124c8600080fd5b60006124d489896124a1565b96505060206124e589828a016124a1565b95505060406124f689828a016124a1565b945050606061250789828a016124a1565b935050608061251889828a016124a1565b92505060a061252989828a016124a1565b9150509295509295509295565b600e81526000602082016d1253959053125117d05353d5539560921b81529150612117565b6020808252810161055781612536565b60158152600060208201741393d517d15393d551d217d0d3d313105511549053605a1b81529150612117565b602080825281016105578161256b565b6040810161206c828561212e565b606081016125c3828661209a565b6125d06020830185611f80565b611bb4604083018461212e565b8181028082158382048514176125f5576125f5612273565b5092915050565b634e487b7160e01b600052604160045260246000fd5b634e487b7160e01b600052603260045260246000fd5b60008161263757612637612273565b506000190190565b60208082527f537472696e67733a20686578206c656e67746820696e73756666696369656e7491019081526000612117565b602080825281016105578161263f565b6013815260006020820172414c4c4f434154494f4e5f4f564552464c4f5760681b81529150612117565b6020808252810161055781612681565b6017815260006020820176125394d551919250d251539517d0d3d313105511549053604a1b81529150612117565b60208082528101610557816126bb565b60808101612707828761209a565b6127146020830186611f80565b61272160408301856122c9565b6117796060830184611ee4565b6080810161273c828761209a565b61274960208301866122c9565b6127216040830185611f80565b60006020828403121561276b5761276b600080fd5b6000611bb484846124a1565b6012815260006020820171496e73756666696369656e7420574554483960701b81529150612117565b6020808252810161055781612777565b601381526000602082017211551217d514905394d1915497d19052531151606a1b81529150612117565b60208082528101610557816127b0565b60005b838110156128055781810151838201526020016127ed565b50506000910152565b6000612818825190565b6128268185602086016127ea565b9290920192915050565b76020b1b1b2b9b9a1b7b73a3937b61d1030b1b1b7bab73a1604d1b8152601701600061285c828561280e565b7001034b99036b4b9b9b4b733903937b6329607d1b81526011019150611bb4828461280e565b600061288c825190565b8084526020840193506128a38185602086016127ea565b601f01601f19169290920192915050565b60208082528101611503818461288256febd162f0ed5d9ba0d62460e28548c2d494e547f6a13b10c140ac720c9196c50f9772d8d1c74df48b2a983c30ed06fb65bb4819c7e61c7d97766a825bbee5a596f91147ad9b4ecd1955cddf8d3a9c61eb67a1b97c9411912f17865e356b304bd6da2646970667358221220586bb0415884ba289bbb2ded7635c086d1b9a00c2e19b2f179b62f9689990e1164736f6c63430008110033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {
+      "constructor": {
+        "details": "Contract constructor function.",
+        "params": {
+          "_wFIL": "WFIL token implementation"
+        }
+      },
+      "deposit()": {
+        "details": "Deposit `msg.value` FIL funds by the msg.sender into collateral"
+      },
+      "fit(uint64)": {
+        "details": "Fits collateral amounts based on SP pledge usage, distributed rewards and pledge paybacks",
+        "params": {
+          "_ownerId": "Storage provider owner ID"
+        }
+      },
+      "getRoleAdmin(bytes32)": {
+        "details": "Returns the admin role that controls `role`. See {grantRole} and {revokeRole}. To change a role's admin, use {_setRoleAdmin}."
+      },
+      "grantRole(bytes32,address)": {
+        "details": "Grants `role` to `account`. If `account` had not been already granted `role`, emits a {RoleGranted} event. Requirements: - the caller must have ``role``'s admin role. May emit a {RoleGranted} event."
+      },
+      "hasRole(bytes32,address)": {
+        "details": "Returns `true` if `account` has been granted `role`."
+      },
+      "lock(uint64,uint256)": {
+        "details": "Locks required collateral amount based on `_allocated` FIL to pledge",
+        "params": {
+          "_allocated": "FIL amount that is going to be pledged for Storage Provider",
+          "_ownerId": "Storage provider owner ID"
+        }
+      },
+      "renounceRole(bytes32,address)": {
+        "details": "Revokes `role` from the calling account. Roles are often managed via {grantRole} and {revokeRole}: this function's purpose is to provide a mechanism for accounts to lose their privileges if they are compromised (such as when a trusted device is misplaced). If the calling account had been revoked `role`, emits a {RoleRevoked} event. Requirements: - the caller must be `account`. May emit a {RoleRevoked} event."
+      },
+      "revokeRole(bytes32,address)": {
+        "details": "Revokes `role` from `account`. If `account` had been granted `role`, emits a {RoleRevoked} event. Requirements: - the caller must have ``role``'s admin role. May emit a {RoleRevoked} event."
+      },
+      "setRegistryAddress(address)": {
+        "params": {
+          "newAddr": "StorageProviderRegistry contract address"
+        }
+      },
+      "slash(uint64,uint256)": {
+        "details": "Slashes SP for a `_slashingAmt` and delivers WFIL amount to the `msg.sender` LSP",
+        "params": {
+          "_ownerId": "Storage provider owner ID",
+          "_slashingAmt": "Slashing amount for SP"
+        }
+      },
+      "supportsInterface(bytes4)": {
+        "details": "See {IERC165-supportsInterface}."
+      },
+      "updateBaseCollateralRequirements(uint256)": {
+        "params": {
+          "requirements": "New base collateral requirements for SP"
+        }
+      },
+      "updateCollateralRequirements(uint64,uint256)": {
+        "details": "Updates collateral requirements for SP with `_ownerId` by `requirements` percentage",
+        "params": {
+          "_ownerId": "Storage provider owner ID",
+          "requirements": "Percentage of collateral requirements"
+        }
+      },
+      "withdraw(uint256)": {
+        "details": "Withdraw `_amount` of FIL funds by the `msg.sender` from the collateral system"
+      }
+    },
+    "title": "Storage Provider Collateral stores collateral for covering potential slashing risks by SPs (Storage Providers) in liquid staking protocol. The basis coverage is expected to be around 15% of the total FIL allocation requested by SP. Over time as SPs earn FIL rewards, a locked portion of rewards would be exchanged for the collateral provided upfront. Therefore locked SPs collateral becomes accessible for withdrawals by stakers. This mechanism doesn't create additional slashing risks as SPs are slashed by the locked rewards first, making it a good option for collateralization in the system.",
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {
+      "deposit()": {
+        "notice": "Wrapps of FIL into WFIL token internally"
+      },
+      "fit(uint64)": {
+        "notice": "Rebalances the total locked and available collateral amounts"
+      },
+      "getAvailableCollateral(uint64)": {
+        "notice": "Return Storage Provider Available Collateral information with `_provider` address"
+      },
+      "getCollateral(uint64)": {
+        "notice": "Return Storage Provider Collateral information with `_provider` address"
+      },
+      "getLockedCollateral(uint64)": {
+        "notice": "Return Storage Provider Locked Collateral information with `_provider` address"
+      },
+      "lock(uint64,uint256)": {
+        "notice": "Increases the total amount of locked collateral for storage provider"
+      },
+      "setRegistryAddress(address)": {
+        "notice": "Updates StorageProviderRegistry contract address"
+      },
+      "slash(uint64,uint256)": {
+        "notice": "Doesn't perform a rebalancing checks"
+      },
+      "updateBaseCollateralRequirements(uint256)": {
+        "notice": "Updates base collateral requirements amount for Storage Providers"
+      },
+      "updateCollateralRequirements(uint64,uint256)": {
+        "notice": "Only triggered by Collateral admin or registry contract while registering SP"
+      },
+      "withdraw(uint256)": {
+        "notice": "Unwraps of FIL into WFIL token internally and delivers maximum amount of FIL available for withdrawal if `_amount` is bigger."
+      }
+    },
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 18284,
+        "contract": "contracts/StorageProviderCollateral.sol:StorageProviderCollateral",
+        "label": "_roles",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_mapping(t_bytes32,t_struct(RoleData)18279_storage)"
+      },
+      {
+        "astId": 18239,
+        "contract": "contracts/StorageProviderCollateral.sol:StorageProviderCollateral",
+        "label": "locked",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 1579,
+        "contract": "contracts/StorageProviderCollateral.sol:StorageProviderCollateral",
+        "label": "collaterals",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_mapping(t_uint64,t_struct(SPCollateral)1608_storage)"
+      },
+      {
+        "astId": 1583,
+        "contract": "contracts/StorageProviderCollateral.sol:StorageProviderCollateral",
+        "label": "slashings",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_mapping(t_uint64,t_uint256)"
+      },
+      {
+        "astId": 1587,
+        "contract": "contracts/StorageProviderCollateral.sol:StorageProviderCollateral",
+        "label": "collateralRequirements",
+        "offset": 0,
+        "slot": "4",
+        "type": "t_mapping(t_uint64,t_uint256)"
+      },
+      {
+        "astId": 1594,
+        "contract": "contracts/StorageProviderCollateral.sol:StorageProviderCollateral",
+        "label": "baseRequirements",
+        "offset": 0,
+        "slot": "5",
+        "type": "t_uint256"
+      },
+      {
+        "astId": 1600,
+        "contract": "contracts/StorageProviderCollateral.sol:StorageProviderCollateral",
+        "label": "registry",
+        "offset": 0,
+        "slot": "6",
+        "type": "t_contract(IStorageProviderRegistryClient)5130"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_bool": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_bytes32": {
+        "encoding": "inplace",
+        "label": "bytes32",
+        "numberOfBytes": "32"
+      },
+      "t_contract(IStorageProviderRegistryClient)5130": {
+        "encoding": "inplace",
+        "label": "contract IStorageProviderRegistryClient",
+        "numberOfBytes": "20"
+      },
+      "t_mapping(t_address,t_bool)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => bool)",
+        "numberOfBytes": "32",
+        "value": "t_bool"
+      },
+      "t_mapping(t_bytes32,t_struct(RoleData)18279_storage)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => struct AccessControl.RoleData)",
+        "numberOfBytes": "32",
+        "value": "t_struct(RoleData)18279_storage"
+      },
+      "t_mapping(t_uint64,t_struct(SPCollateral)1608_storage)": {
+        "encoding": "mapping",
+        "key": "t_uint64",
+        "label": "mapping(uint64 => struct StorageProviderCollateral.SPCollateral)",
+        "numberOfBytes": "32",
+        "value": "t_struct(SPCollateral)1608_storage"
+      },
+      "t_mapping(t_uint64,t_uint256)": {
+        "encoding": "mapping",
+        "key": "t_uint64",
+        "label": "mapping(uint64 => uint256)",
+        "numberOfBytes": "32",
+        "value": "t_uint256"
+      },
+      "t_struct(RoleData)18279_storage": {
+        "encoding": "inplace",
+        "label": "struct AccessControl.RoleData",
+        "members": [
+          {
+            "astId": 18276,
+            "contract": "contracts/StorageProviderCollateral.sol:StorageProviderCollateral",
+            "label": "members",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_mapping(t_address,t_bool)"
+          },
+          {
+            "astId": 18278,
+            "contract": "contracts/StorageProviderCollateral.sol:StorageProviderCollateral",
+            "label": "adminRole",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_bytes32"
+          }
+        ],
+        "numberOfBytes": "64"
+      },
+      "t_struct(SPCollateral)1608_storage": {
+        "encoding": "inplace",
+        "label": "struct StorageProviderCollateral.SPCollateral",
+        "members": [
+          {
+            "astId": 1605,
+            "contract": "contracts/StorageProviderCollateral.sol:StorageProviderCollateral",
+            "label": "availableCollateral",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint256"
+          },
+          {
+            "astId": 1607,
+            "contract": "contracts/StorageProviderCollateral.sol:StorageProviderCollateral",
+            "label": "lockedCollateral",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint256"
+          }
+        ],
+        "numberOfBytes": "64"
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      },
+      "t_uint64": {
+        "encoding": "inplace",
+        "label": "uint64",
+        "numberOfBytes": "8"
+      }
+    }
+  }
+}

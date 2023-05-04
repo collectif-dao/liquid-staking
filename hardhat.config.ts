@@ -65,6 +65,13 @@ const config: HardhatUserConfig = {
       url: 'http://0.0.0.0:8545',
       chainId: 1337,
     },
+    filecoin: {
+      url: `${process.env.FILECOIN_MAINNET_RPC_URL}`,
+      chainId: 314,
+      accounts: [process.env.PRIVATE_KEY],
+      live: true,
+      saveDeployments: true,
+    },
     hyperspace: {
       url: `${process.env.HYPERSPACE_RPC_URL}`,
       chainId: 3141,
@@ -74,6 +81,13 @@ const config: HardhatUserConfig = {
       gasPrice: 100000000,
       gasMultiplier: 8000,
     },
+    calibration: {
+      url: `${process.env.CALIBRATION_RPC_URL}`,
+      chainId: 314159,
+      accounts: [process.env.PRIVATE_KEY],
+      live: true,
+      saveDeployments: true,
+    }
   },
   preprocess: {
     eachLine: (hre) => ({
