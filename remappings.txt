@@ -1,8 +1,8 @@
 ds-test/=lib/forge-std/lib/ds-test/src/
 forge-std/=lib/forge-std/src/
 solmate/=lib/solmate/src/
-fei-protocol/erc4626=lib/ERC4626/src/
-@openzeppelin/contracts=lib/openzeppelin-contracts/contracts/
+fei-protocol/erc4626/=lib/ERC4626/src/
+@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/
 filecoin-solidity/=lib/filecoin-solidity/
 solidity-cborutils/contracts/=lib/solidity-cborutils/contracts/
 @ensdomains/buffer=lib/buffer

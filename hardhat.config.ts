@@ -4,6 +4,11 @@ import "@nomicfoundation/hardhat-toolbox";
 import "hardhat-preprocessor";
 import "hardhat-deploy";
 import "@nomiclabs/hardhat-ethers";
+import * as dotenv from 'dotenv';
+dotenv.config();
+
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
+const url = process.env.HYPERSPACE_RPC_URL;
 
 function getRemappings() {
   return fs
@@ -24,6 +29,7 @@ const config: HardhatUserConfig = {
       },
     ],
   },
+  defaultNetwork: "hyperspace",
   networks: {
     hardhat: {},
     development: {
@@ -33,7 +39,7 @@ const config: HardhatUserConfig = {
     hyperspace: {
       url: `${process.env.HYPERSPACE_RPC_URL}`,
       chainId: 3141,
-      accounts: [process.env.PRIVATE_KEY],
+      accounts: [PRIVATE_KEY],
       live: true,
       saveDeployments: true,
       gasPrice: 100000000,
