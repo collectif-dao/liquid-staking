@@ -8,6 +8,7 @@ import "hardhat-deploy";
 import "@nomiclabs/hardhat-ethers";
 import "@nomicfoundation/hardhat-foundry";
 import * as path from 'path';
+import "./tasks";
 
 import * as dotenv from 'dotenv'
 dotenv.config();
@@ -59,6 +60,7 @@ const config: HardhatUserConfig = {
       },
     ],
   },
+  defaultNetwork: "hyperspace",
   networks: {
     hardhat: {},
     development: {
