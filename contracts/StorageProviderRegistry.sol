@@ -92,7 +92,8 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 		uint256 _allocationLimit,
 		uint256 _dailyAllocation
 	) public virtual override nonReentrant {
-		require(_allocationLimit <= maxAllocation, "INVALID_ALLOCATION");
+		require(_allocationLimit > 0 && _allocationLimit <= maxAllocation, "INCORRECT_ALLOCATION");
+		require(_dailyAllocation > 0 && _dailyAllocation <= _allocationLimit, "INCORRECT_DAILY_ALLOCATION");
 		require(pools[_targetPool], "INVALID_TARGET_POOL");
 
 		RegisterLocalVars memory vars;
@@ -154,8 +155,10 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 		int64 _lastEpoch
 	) public virtual nonReentrant {
 		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
+		require(_allocationLimit > 0 && _allocationLimit <= maxAllocation, "INCORRECT_ALLOCATION");
+		require(_dailyAllocation > 0 && _dailyAllocation <= _allocationLimit, "INCORRECT_DAILY_ALLOCATION");
 		require(_repayment > _allocationLimit, "INCORRECT_REPAYMENT");
-		require(_allocationLimit <= maxAllocation, "INCORRECT_ALLOCATION");
+
 		CommonTypes.FilActorId actorId = CommonTypes.FilActorId.wrap(_minerId);
 
 		MinerTypes.GetOwnerReturn memory ownerReturn = MinerAPI.getOwner(actorId);
@@ -266,6 +269,8 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 	 * @dev Only triggered by Storage Provider owner
 	 */
 	function requestAllocationLimitUpdate(uint256 _allocationLimit, uint256 _dailyAllocation) public virtual override {
+		require(_allocationLimit > 0 && _allocationLimit <= maxAllocation, "INCORRECT_ALLOCATION");
+		require(_dailyAllocation > 0 && _dailyAllocation <= _allocationLimit, "INCORRECT_DAILY_ALLOCATION");
 		address ownerAddr = msg.sender.normalize();
 		(bool isID, uint64 ownerId) = ownerAddr.getActorID();
 		require(isID, "INACTIVE_ACTOR_ID");
@@ -302,10 +307,17 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 		uint256 _repaymentAmount
 	) public virtual override activeStorageProvider(_ownerId) nonReentrant {
 		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS"); // 0xFf0000000000000000009bd -> ID: 2455 -> t02455
+		require(_allocationLimit > 0 && _allocationLimit <= maxAllocation, "INCORRECT_ALLOCATION");
+		require(_dailyAllocation > 0 && _dailyAllocation <= _allocationLimit, "INCORRECT_DAILY_ALLOCATION");
+		require(_repaymentAmount > _allocationLimit, "INCORRECT_REPAYMENT");
 
 		StorageProviderTypes.AllocationRequest memory allocationRequest = allocationRequests[_ownerId];
-		require(allocationRequest.allocationLimit == _allocationLimit, "INVALID_ALLOCATION");
-		require(allocationRequest.dailyAllocation == _dailyAllocation, "INVALID_DAILY_ALLOCATION");
+
+		if (allocationRequest.allocationLimit > 0) {
+			// If SP requested allocation update should fulfil their request first
+			require(allocationRequest.allocationLimit == _allocationLimit, "INVALID_ALLOCATION");
+			require(allocationRequest.dailyAllocation == _dailyAllocation, "INVALID_DAILY_ALLOCATION");
+		}
 
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_ownerId];
 

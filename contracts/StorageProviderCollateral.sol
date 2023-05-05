@@ -269,16 +269,18 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 
 		(uint256 adjAmt, bool isUnlock) = calcCollateralAdjustment(collateral.lockedCollateral, totalRequirements);
 
-		if (!isUnlock) {
-			collateral.lockedCollateral = collateral.lockedCollateral + adjAmt;
-			collateral.availableCollateral = collateral.availableCollateral - adjAmt;
+		if (adjAmt > 0) {
+			if (!isUnlock) {
+				collateral.lockedCollateral = collateral.lockedCollateral + adjAmt;
+				collateral.availableCollateral = collateral.availableCollateral - adjAmt;
 
-			emit StorageProviderCollateralRebalance(_ownerId, adjAmt, 0, isUnlock);
-		} else {
-			collateral.lockedCollateral = collateral.lockedCollateral - adjAmt;
-			collateral.availableCollateral = collateral.availableCollateral + adjAmt;
+				emit StorageProviderCollateralRebalance(_ownerId, adjAmt, 0, isUnlock);
+			} else {
+				collateral.lockedCollateral = collateral.lockedCollateral - adjAmt;
+				collateral.availableCollateral = collateral.availableCollateral + adjAmt;
 
-			emit StorageProviderCollateralRebalance(_ownerId, 0, adjAmt, isUnlock);
+				emit StorageProviderCollateralRebalance(_ownerId, 0, adjAmt, isUnlock);
+			}
 		}
 
 		collaterals[_ownerId] = collateral;
@@ -328,7 +330,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 			return (_lockedCollateral, true);
 		} else if (_lockedCollateral == 0 && _collateralRequirements > 0) {
 			return (_collateralRequirements, false);
-		} else if (_lockedCollateral == 0 && _collateralRequirements == 0) {
+		} else {
 			return (0, true);
 		}
 	}

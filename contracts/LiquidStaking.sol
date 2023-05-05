@@ -177,6 +177,8 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 	 */
 	function withdrawPledge(uint64 ownerId, uint256 amount) external virtual nonReentrant {
 		require(hasRole(FEE_DISTRIBUTOR, msg.sender), "INVALID_ACCESS");
+		require(amount > 0, "INVALID_AMOUNT");
+
 		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
 		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
 
@@ -210,6 +212,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 	 */
 	function reportSlashing(uint64 _ownerId, uint256 _slashingAmt) external virtual nonReentrant {
 		require(hasRole(SLASHING_AGENT, msg.sender), "INVALID_ACCESS");
+		require(_slashingAmt > 0, "INVALID_AMOUNT");
 		(, , uint64 minerId, ) = registry.getStorageProvider(_ownerId);
 
 		collateral.slash(_ownerId, _slashingAmt);
