@@ -1,4 +1,5 @@
 import { HardhatUserConfig } from "hardhat/config";
+import '@openzeppelin/hardhat-upgrades';
 import * as fs from "fs";
 import {subtask} from "hardhat/config";
  import {TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS} from "hardhat/builtin-tasks/task-names";
@@ -9,7 +10,7 @@ import "@nomiclabs/hardhat-ethers";
 import "@nomicfoundation/hardhat-foundry";
 import * as path from 'path';
 
-import * as dotenv from 'dotenv'
+import * as dotenv from 'dotenv';
 dotenv.config();
 
 subtask(
@@ -20,7 +21,7 @@ subtask(
     return paths
       .filter(solidityFilePath => {
         const relativePath = path.relative(config.paths.sources, solidityFilePath)
-        return !relativePath.includes('test/') && !relativePath.includes('router/');
+        return !relativePath.includes('test/') && !relativePath.includes('router/') && !relativePath.includes('oracle/');
       })
   }
 );
@@ -49,7 +50,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 1,
+            runs: 0,
             details: {
               yul: false,
               constantOptimizer: true,

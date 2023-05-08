@@ -135,16 +135,6 @@ interface IStorageProviderRegistry {
 	function setRestaking(uint256 _restakingRatio, address _restakingAddress) external;
 
 	/**
-	 * @notice Return total number of storage providers in liquid staking
-	 */
-	function getTotalStorageProviders() external view returns (uint256);
-
-	/**
-	 * @notice Return total number of currently active storage providers
-	 */
-	function getTotalActiveStorageProviders() external view returns (uint256);
-
-	/**
 	 * @notice Return Storage Provider information with `_ownerId`
 	 */
 	function getStorageProvider(uint64 _ownerId) external view returns (bool, address, uint64, int64);

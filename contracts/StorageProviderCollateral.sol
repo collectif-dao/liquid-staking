@@ -3,13 +3,15 @@ pragma solidity ^0.8.17;
 
 import {IStorageProviderCollateral} from "./interfaces/IStorageProviderCollateral.sol";
 import {IStorageProviderRegistryClient} from "./interfaces/IStorageProviderRegistryClient.sol";
+import {IWFIL} from "./libraries/tokens/IWFIL.sol";
 import {SafeTransferLib} from "./libraries/SafeTransferLib.sol";
 import {StorageProviderTypes} from "./types/StorageProviderTypes.sol";
-import {IWFIL} from "./libraries/tokens/IWFIL.sol";
-import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {FilAddress} from "fevmate/utils/FilAddress.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 /**
  * @title Storage Provider Collateral stores collateral for covering potential
@@ -23,7 +25,13 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
  * making it a good option for collateralization in the system.
  *
  */
-contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl, ReentrancyGuard {
+contract StorageProviderCollateral is
+	IStorageProviderCollateral,
+	Initializable,
+	AccessControlUpgradeable,
+	ReentrancyGuardUpgradeable,
+	UUPSUpgradeable
+{
 	using SafeTransferLib for address;
 	using FixedPointMathLib for uint256;
 	using FilAddress for address;
@@ -41,8 +49,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	uint256 public baseRequirements; // Number in basis points (10000 = 100%)
 	uint256 public constant BASIS_POINTS = 10000;
 	IStorageProviderRegistryClient public registry;
-
-	IWFIL public immutable WFIL; // WFIL implementation
+	IWFIL public WFIL; // WFIL implementation
 
 	// Storage Provider parameters
 	struct SPCollateral {
@@ -55,12 +62,22 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 		_;
 	}
 
+	modifier onlyAdmin() {
+		require(hasRole(COLLATERAL_ADMIN, msg.sender), "INVALID_ACCESS");
+		_;
+	}
+
 	/**
-	 * @dev Contract constructor function.
+	 * @dev Contract initializer function.
 	 * @param _wFIL WFIL token implementation
-	 *
+	 * @param _registry StorageProviderRegister contract implementation
+	 * @param _baseRequirements Base collateral requirements for SPs
 	 */
-	constructor(IWFIL _wFIL, address _registry, uint256 _baseRequirements) {
+	function initialize(IWFIL _wFIL, address _registry, uint256 _baseRequirements) public virtual initializer {
+		__AccessControl_init();
+		__ReentrancyGuard_init();
+		__UUPSUpgradeable_init();
+
 		WFIL = _wFIL;
 		registry = IStorageProviderRegistryClient(_registry);
 
@@ -68,6 +85,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 		baseRequirements = _baseRequirements;
 
 		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+		_setRoleAdmin(COLLATERAL_ADMIN, DEFAULT_ADMIN_ROLE);
 		grantRole(COLLATERAL_ADMIN, msg.sender);
 	}
 
@@ -388,8 +406,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	 * @notice Updates base collateral requirements amount for Storage Providers
 	 * @param requirements New base collateral requirements for SP
 	 */
-	function updateBaseCollateralRequirements(uint256 requirements) public {
-		require(hasRole(COLLATERAL_ADMIN, msg.sender), "INVALID_ACCESS");
+	function updateBaseCollateralRequirements(uint256 requirements) public onlyAdmin {
 		require(requirements > 0, "INVALID_REQUIREMENTS");
 
 		uint256 prevRequirements = baseRequirements;
@@ -404,8 +421,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	 * @notice Updates StorageProviderRegistry contract address
 	 * @param newAddr StorageProviderRegistry contract address
 	 */
-	function setRegistryAddress(address newAddr) public {
-		require(hasRole(COLLATERAL_ADMIN, msg.sender), "INVALID_ACCESS");
+	function setRegistryAddress(address newAddr) public onlyAdmin {
 		require(newAddr != address(0), "INVALID_ADDRESS");
 
 		address prevRegistry = address(registry);
@@ -414,5 +430,15 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 		registry = IStorageProviderRegistryClient(newAddr);
 
 		emit SetRegistryAddress(newAddr);
+	}
+
+	function _authorizeUpgrade(address newImplementation) internal override onlyAdmin {}
+
+	function version() external pure virtual returns (string memory) {
+		return "v1";
+	}
+
+	function getImplementation() external view returns (address) {
+		return _getImplementation();
 	}
 }

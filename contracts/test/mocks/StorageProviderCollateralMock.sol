@@ -4,28 +4,36 @@ pragma solidity ^0.8.17;
 import "../../StorageProviderCollateral.sol";
 import {FilAddresses} from "filecoin-solidity/contracts/v0.8/utils/FilAddresses.sol";
 import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
-
-import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 /**
  * @title Storage Provider Registry Mock contract that works with mock Filecoin Miner API
  * @author Collective DAO
  */
 contract StorageProviderCollateralMock is StorageProviderCollateral {
-	using Counters for Counters.Counter;
-	using Address for address;
+	bytes32 private constant COLLATERAL_ADMIN = keccak256("COLLATERAL_ADMIN");
 
 	/**
-	 * @dev Contract constructor function.
+	 * @dev Contract initializer function.
 	 * @param _wFIL WFIL token implementation
-	 *
+	 * @param _registry StorageProviderRegister contract implementation
+	 * @param _baseRequirements Base collateral requirements for SPs
 	 */
-	constructor(
-		IWFIL _wFIL,
-		address _registry,
-		uint256 _baseCollateralRequirements
-	) StorageProviderCollateral(_wFIL, _registry, _baseCollateralRequirements) {}
+	function initialize(IWFIL _wFIL, address _registry, uint256 _baseRequirements) public override initializer {
+		__AccessControl_init();
+		__ReentrancyGuard_init();
+		__UUPSUpgradeable_init();
+
+		WFIL = _wFIL;
+		registry = IStorageProviderRegistryClient(_registry);
+
+		require(_baseRequirements > 0 || _baseRequirements <= 10000, "BASE_REQUIREMENTS_OVERFLOW");
+		baseRequirements = _baseRequirements;
+
+		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+		_setRoleAdmin(COLLATERAL_ADMIN, DEFAULT_ADMIN_ROLE);
+		grantRole(COLLATERAL_ADMIN, msg.sender);
+	}
 
 	/**
 	 * @dev Deposit `msg.value` FIL funds by the msg.sender into collateral

@@ -10,17 +10,19 @@ const deployFunction: DeployFunction = async function ({ deployments, ethers }: 
         maxFeePerGas: feeData.maxFeePerGas,
     }
 
+    // const signer = ethers.provider.getSigner();
+
     const registry = await deployments.get('StorageProviderRegistry');
-    const staking = await deployments.get('LiquidStaking');
+    // const staking = await deployments.get('LiquidStaking');
     const collateral = await deployments.get('StorageProviderCollateral');
 
     const registryContract = await ethers.getContractAt<StorageProviderRegistry>("StorageProviderRegistry", registry.address);
     var receipt = await ((await registryContract.setCollateralAddress(collateral.address, overrides)).wait());
-    receipt = await ((await registryContract.registerPool(staking.address, overrides)).wait());
+    // receipt = await ((await registryContract.registerPool(staking.address, overrides)).wait());
 
-    const stakingContract = await ethers.getContractAt<LiquidStaking>("LiquidStaking", staking.address);
-    receipt = await ((await stakingContract.setCollateralAddress(collateral.address, overrides)).wait());
-    receipt = await ((await stakingContract.setRegistryAddress(registry.address, overrides)).wait());
+    // const stakingContract = await ethers.getContractAt<LiquidStaking>("LiquidStaking", staking.address);
+    // receipt = await ((await stakingContract.setCollateralAddress(collateral.address, overrides)).wait());
+    // receipt = await ((await stakingContract.setRegistryAddress(registry.address, overrides)).wait());
 };
 
 export default deployFunction;

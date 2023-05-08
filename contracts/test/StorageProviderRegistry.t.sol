@@ -18,6 +18,8 @@ import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 
+import {ERC1967Proxy} from "@oz/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+
 contract StorageProviderRegistryTest is DSTestPlus {
 	StorageProviderRegistryMock public registry;
 	StorageProviderRegistryCallerMock public callerMock;
@@ -32,6 +34,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	uint64 public ownerId = 1508;
 	uint64 private oldMinerId = 1648;
 
+	address private proxyAdmin = address(0x777);
 	address private aliceOwnerAddr = address(0x12341214212);
 	uint256 private adminFee = 1000;
 	uint256 private profitShare = 2000;
@@ -54,7 +57,11 @@ contract StorageProviderRegistryTest is DSTestPlus {
 
 		bigIntsLib = new BigIntsClient();
 
-		staking = new LiquidStakingMock(
+		// hevm.startPrank(proxyAdmin);
+		LiquidStakingMock stakingImpl = new LiquidStakingMock();
+		ERC1967Proxy stakingProxy = new ERC1967Proxy(address(stakingImpl), "");
+		staking = LiquidStakingMock(payable(stakingProxy));
+		staking.initialize(
 			address(wfil),
 			address(0x21421),
 			aliceOwnerId,
@@ -66,14 +73,22 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			address(bigIntsLib)
 		);
 
-		registry = new StorageProviderRegistryMock(address(minerMockAPI), ownerId, MAX_ALLOCATION);
+		StorageProviderRegistryMock registryImpl = new StorageProviderRegistryMock();
+		ERC1967Proxy registryProxy = new ERC1967Proxy(address(registryImpl), "");
+		registry = StorageProviderRegistryMock(address(registryProxy));
+		registry.initialize(address(minerMockAPI), ownerId, MAX_ALLOCATION);
 
-		collateral = new StorageProviderCollateralMock(wfil, address(registry), 1500);
+		StorageProviderCollateralMock collateralImpl = new StorageProviderCollateralMock();
+		ERC1967Proxy collateralProxy = new ERC1967Proxy(address(collateralImpl), "");
+		collateral = StorageProviderCollateralMock(payable(collateralProxy));
+		collateral.initialize(wfil, address(registry), 1500);
+
 		registry.setCollateralAddress(address(collateral));
 		staking.setRegistryAddress(address(registry));
 		registry.registerPool(address(staking));
 
 		callerMock = new StorageProviderRegistryCallerMock(address(registry));
+		// hevm.stopPrank();
 	}
 
 	function testRegister(uint64 minerId, uint256 allocation, uint256 dailyAllocation) public {
@@ -112,7 +127,6 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		assertEq(lockedRewards, 0);
 		assertEq(lastEpoch, 0);
 		// assertEq(restakingRatio, 0);
-		assertEq(registry.getTotalActiveStorageProviders(), 0);
 		assertEq(registry.sectorSizes(ownerId), 34359738368);
 	}
 
@@ -172,7 +186,6 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		assertEq(vars.accruedRewards, 0);
 		assertEq(vars.lockedRewards, 0);
 		assertEq(vars.lastEpoch, _lastEpoch);
-		assertEq(registry.getTotalActiveStorageProviders(), 0);
 	}
 
 	function testOnboardStorageProviderReverts(uint64 _minerId, uint256 _repayment, int64 _lastEpoch) public {
@@ -234,7 +247,6 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		registry.acceptBeneficiaryAddress(ownerId);
 
 		assertBoolEq(registry.isActiveProvider(ownerId), true);
-		assertEq(registry.getTotalActiveStorageProviders(), 1);
 
 		MinerTypes.GetBeneficiaryReturn memory beneficiary = minerMockAPI.getBeneficiary();
 		(uint256 quota, bool err) = BigInts.toUint256(beneficiary.active.term.quota);
@@ -267,7 +279,6 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		registry.acceptBeneficiaryAddress(ownerId);
 
 		assertBoolEq(registry.isActiveProvider(ownerId), false);
-		assertEq(registry.getTotalActiveStorageProviders(), 0);
 	}
 
 	function testDeactivateStorageProvider(uint64 minerId, int64 lastEpoch) public {

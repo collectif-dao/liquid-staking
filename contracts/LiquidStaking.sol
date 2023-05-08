@@ -2,8 +2,10 @@
 pragma solidity ^0.8.17;
 
 import {ClFILToken} from "./ClFIL.sol";
-import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import {SafeTransferLib} from "./libraries/SafeTransferLib.sol";
 import {MinerAPI, CommonTypes, MinerTypes} from "filecoin-solidity/contracts/v0.8/MinerAPI.sol";
 import {FilAddresses} from "filecoin-solidity/contracts/v0.8/utils/FilAddresses.sol";
@@ -26,7 +28,14 @@ import {IBigInts} from "./libraries/BigInts.sol";
  * liquid staking pool and once new FIL is deposited. Please note that LiquidStaking contract
  * performs wrapping of the native FIL into Wrapped Filecoin (WFIL) token.
  */
-contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessControl {
+contract LiquidStaking is
+	ILiquidStaking,
+	Initializable,
+	ClFILToken,
+	ReentrancyGuardUpgradeable,
+	AccessControlUpgradeable,
+	UUPSUpgradeable
+{
 	using SafeTransferLib for *;
 	using FilAddress for address;
 
@@ -39,7 +48,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 
 	IStorageProviderCollateralClient internal collateral;
 	IStorageProviderRegistryClient internal registry;
-	IBigInts internal immutable BigInts;
+	IBigInts internal BigInts;
 
 	bytes32 private constant LIQUID_STAKING_ADMIN = keccak256("LIQUID_STAKING_ADMIN");
 	bytes32 private constant FEE_DISTRIBUTOR = keccak256("FEE_DISTRIBUTOR");
@@ -48,13 +57,31 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 	mapping(uint64 => uint256) public profitShares;
 	mapping(uint64 => bool) public activeSlashings;
 
-	constructor(
+	modifier onlyAdmin() {
+		require(hasRole(LIQUID_STAKING_ADMIN, msg.sender), "INVALID_ACCESS");
+		_;
+	}
+
+	/**
+	 * @dev Contract initializer function.
+	 * @param _wFIL WFIL token contract address
+	 * @param _adminFee Admin fee percentage
+	 * @param _baseProfitShare Base profit sharing percentage
+	 * @param _rewardCollector Rewards collector address
+	 * @param _bigIntsLib BigInts library address
+	 */
+	function initialize(
 		address _wFIL,
 		uint256 _adminFee,
 		uint256 _baseProfitShare,
 		address _rewardCollector,
 		address _bigIntsLib
-	) ClFILToken(_wFIL) {
+	) public initializer {
+		__AccessControl_init();
+		__ReentrancyGuard_init();
+		ClFILToken.initialize(_wFIL);
+		__UUPSUpgradeable_init();
+
 		require(_adminFee <= 10000, "INVALID_ADMIN_FEE");
 		require(_rewardCollector != address(0), "INVALID_REWARD_COLLECTOR");
 		adminFee = _adminFee;
@@ -65,8 +92,11 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 
 		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 		grantRole(LIQUID_STAKING_ADMIN, msg.sender);
+		_setRoleAdmin(LIQUID_STAKING_ADMIN, DEFAULT_ADMIN_ROLE);
 		grantRole(FEE_DISTRIBUTOR, msg.sender);
+		_setRoleAdmin(FEE_DISTRIBUTOR, DEFAULT_ADMIN_ROLE);
 		grantRole(SLASHING_AGENT, msg.sender);
+		_setRoleAdmin(SLASHING_AGENT, DEFAULT_ADMIN_ROLE);
 	}
 
 	receive() external payable virtual {}
@@ -81,65 +111,66 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 	 */
 	function stake() external payable nonReentrant returns (uint256 shares) {
 		uint256 assets = msg.value;
+		address receiver = msg.sender.normalize();
 
-		// Check for rounding error since we round down in previewDeposit.
+		require(assets <= maxDeposit(receiver), "ERC4626: deposit more than max");
 		require((shares = previewDeposit(assets)) != 0, "ZERO_SHARES");
 
 		_wrapWETH9(address(this));
 
-		_mint(msg.sender, shares);
+		_mint(receiver, shares);
 
-		emit Deposit(msg.sender, msg.sender, assets, shares);
-
-		afterDeposit(assets, shares);
+		emit Deposit(_msgSender(), receiver, assets, shares);
 	}
 
 	/**
 	 * @notice Unstake FIL from the Liquid Staking pool and burn clFIL tokens
 	 * @param shares Total clFIL amount to burn (unstake)
 	 * @param owner Original owner of clFIL tokens
+	 * @param owner Receiver of FIL assets
 	 * @dev Please note that unstake amount has to be clFIL shares (not FIL assets)
 	 */
 	function unstake(uint256 shares, address owner) external nonReentrant returns (uint256 assets) {
-		if (msg.sender != owner) {
-			uint256 allowed = allowances[owner][msg.sender]; // Saves gas for limited approvals.
+		require(shares <= maxRedeem(owner), "ERC4626: redeem more than max");
 
-			if (allowed != type(uint256).max) allowances[owner][msg.sender] = allowed - shares;
+		address receiver = msg.sender.normalize();
+		owner = owner.normalize();
+
+		assets = previewRedeem(shares);
+
+		if (receiver != owner) {
+			_spendAllowance(owner, receiver, shares);
 		}
-
-		// Check for rounding error since we round down in previewRedeem.
-		require((assets = previewRedeem(shares)) != 0, "ZERO_ASSETS");
-
-		beforeWithdraw(assets, shares);
 
 		_burn(owner, shares);
 
 		emit Unstaked(msg.sender, owner, assets, shares);
 
-		_unwrapWFIL(msg.sender, assets);
+		_unwrapWFIL(receiver, assets);
 	}
 
 	/**
 	 * @notice Unstake FIL from the Liquid Staking pool and burn clFIL tokens
 	 * @param assets Total FIL amount to unstake
 	 * @param owner Original owner of clFIL tokens
+	 * @param owner Receiver of FIL assets
 	 */
 	function unstakeAssets(uint256 assets, address owner) external nonReentrant returns (uint256 shares) {
-		shares = previewWithdraw(assets); // No need to check for rounding error, previewWithdraw rounds up.
+		require(assets <= maxWithdraw(owner), "ERC4626: withdraw more than max");
 
-		if (msg.sender != owner) {
-			uint256 allowed = allowances[owner][msg.sender]; // Saves gas for limited approvals.
+		address receiver = msg.sender.normalize();
+		owner = owner.normalize();
 
-			if (allowed != type(uint256).max) allowances[owner][msg.sender] = allowed - shares;
+		shares = previewWithdraw(assets);
+		if (receiver != owner) {
+			_spendAllowance(owner, receiver, shares);
 		}
-
-		beforeWithdraw(assets, shares);
 
 		_burn(owner, shares);
 
-		emit Unstaked(msg.sender, owner, assets, shares);
+		emit Unstaked(receiver, owner, assets, shares);
 
-		_unwrapWFIL(msg.sender, assets);
+		_unwrapWFIL(receiver, assets);
 	}
 
 	/**
@@ -324,16 +355,15 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 	/**
 	 * @notice Restakes `assets` for a specified `target` address
 	 * @param assets Amount of assets to restake
-	 * @param target f4 address to receive clFIL tokens
+	 * @param receiver f4 address to receive clFIL tokens
 	 */
-	function _restake(uint256 assets, address target) internal returns (uint256 shares) {
+	function _restake(uint256 assets, address receiver) internal returns (uint256 shares) {
+		require(assets <= maxDeposit(receiver), "ERC4626: deposit more than max");
 		require((shares = previewDeposit(assets)) != 0, "ZERO_SHARES");
 
-		_mint(target, shares);
+		_mint(receiver, shares);
 
-		emit Deposit(target, target, assets, shares);
-
-		afterDeposit(assets, shares);
+		emit Deposit(receiver, receiver, assets, shares);
 	}
 
 	/**
@@ -364,8 +394,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 	 * @notice Updates StorageProviderCollateral contract address
 	 * @param newAddr StorageProviderCollateral contract address
 	 */
-	function setCollateralAddress(address newAddr) public {
-		require(hasRole(LIQUID_STAKING_ADMIN, msg.sender), "INVALID_ACCESS");
+	function setCollateralAddress(address newAddr) external onlyAdmin {
 		require(newAddr != address(0), "INVALID_ADDRESS");
 
 		address prevCollateral = address(collateral);
@@ -380,15 +409,14 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 	 * @notice Returns the amount of WFIL available on the liquid staking contract
 	 */
 	function totalFilAvailable() public view returns (uint256) {
-		return asset.balanceOf(address(this));
+		return WFIL.balanceOf(address(this));
 	}
 
 	/**
 	 * @notice Updates StorageProviderRegistry contract address
 	 * @param newAddr StorageProviderRegistry contract address
 	 */
-	function setRegistryAddress(address newAddr) public {
-		require(hasRole(LIQUID_STAKING_ADMIN, msg.sender), "INVALID_ACCESS");
+	function setRegistryAddress(address newAddr) external onlyAdmin {
 		require(newAddr != address(0), "INVALID_ADDRESS");
 
 		address prevRegistry = address(registry);
@@ -404,8 +432,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 	 * @param fee New admin fee
 	 * @dev Make sure that admin fee is not greater than 20%
 	 */
-	function updateAdminFee(uint256 fee) public {
-		require(hasRole(LIQUID_STAKING_ADMIN, msg.sender), "INVALID_ACCESS");
+	function updateAdminFee(uint256 fee) external onlyAdmin {
 		require(fee <= 2000, "ADMIN_FEE_OVERFLOW");
 
 		uint256 prevFee = adminFee;
@@ -421,8 +448,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 	 * @param share New base profit sharing ratio
 	 * @dev Make sure that profit sharing is not greater than 80%
 	 */
-	function updateBaseProfitShare(uint256 share) public {
-		require(hasRole(LIQUID_STAKING_ADMIN, msg.sender), "INVALID_ACCESS");
+	function updateBaseProfitShare(uint256 share) external onlyAdmin {
 		require(share <= 8000 && share > 0, "PROFIT_SHARE_OVERFLOW");
 
 		uint256 prevShare = baseProfitShare;
@@ -437,8 +463,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 	 * @notice Updates reward collector address of the protocol revenue
 	 * @param collector New rewards collector address
 	 */
-	function updateRewardsCollector(address collector) public {
-		require(hasRole(LIQUID_STAKING_ADMIN, msg.sender), "INVALID_ACCESS");
+	function updateRewardsCollector(address collector) external onlyAdmin {
 		require(collector != address(0), "INVALID_ADDRESS");
 
 		address prevAddr = rewardCollector;
@@ -498,5 +523,15 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, ReentrancyGuard, AccessCon
 			WFIL.withdraw(_amount);
 			_recipient.safeTransferETH(_amount);
 		}
+	}
+
+	function _authorizeUpgrade(address newImplementation) internal override onlyAdmin {}
+
+	function version() external pure virtual returns (string memory) {
+		return "v1";
+	}
+
+	function getImplementation() external view returns (address) {
+		return _getImplementation();
 	}
 }

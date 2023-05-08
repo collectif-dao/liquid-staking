@@ -19,6 +19,7 @@ import {LiquidStaking} from "../LiquidStaking.sol";
 import {MinerActorMock} from "./mocks/MinerActorMock.sol";
 
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
+import {ERC1967Proxy} from "@oz/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 contract LiquidStakingTest is DSTestPlus {
 	LiquidStakingMock public staking;
@@ -69,7 +70,10 @@ contract LiquidStakingTest is DSTestPlus {
 
 		bigIntsLib = new BigIntsClient();
 
-		staking = new LiquidStakingMock(
+		LiquidStakingMock stakingImpl = new LiquidStakingMock();
+		ERC1967Proxy stakingProxy = new ERC1967Proxy(address(stakingImpl), "");
+		staking = LiquidStakingMock(payable(stakingProxy));
+		staking.initialize(
 			address(wfil),
 			address(minerActor),
 			aliceOwnerId,
@@ -81,9 +85,15 @@ contract LiquidStakingTest is DSTestPlus {
 			address(bigIntsLib)
 		);
 
-		registry = new StorageProviderRegistryMock(address(minerMockAPI), aliceOwnerId, MAX_ALLOCATION);
+		StorageProviderRegistryMock registryImpl = new StorageProviderRegistryMock();
+		ERC1967Proxy registryProxy = new ERC1967Proxy(address(registryImpl), "");
+		registry = StorageProviderRegistryMock(address(registryProxy));
+		registry.initialize(address(minerMockAPI), aliceOwnerId, MAX_ALLOCATION);
 
-		collateral = new StorageProviderCollateralMock(wfil, address(registry), baseCollateralRequirements);
+		StorageProviderCollateralMock collateralImpl = new StorageProviderCollateralMock();
+		ERC1967Proxy collateralProxy = new ERC1967Proxy(address(collateralImpl), "");
+		collateral = StorageProviderCollateralMock(payable(collateralProxy));
+		collateral.initialize(wfil, address(registry), baseCollateralRequirements);
 
 		// router = new StakingRouter("Collective DAO Router", wfil);
 

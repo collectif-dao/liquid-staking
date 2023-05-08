@@ -5,6 +5,7 @@ import "../../LiquidStaking.sol";
 import {IMinerActorMock} from "./MinerActorMock.sol";
 import {BigInts} from "filecoin-solidity/contracts/v0.8/utils/BigInts.sol";
 import {MinerMockAPI as MockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 /**
  * @title Liquid Staking Mock contract
@@ -12,6 +13,10 @@ import {MinerMockAPI as MockAPI} from "filecoin-solidity/contracts/v0.8/mocks/Mi
  */
 contract LiquidStakingMock is LiquidStaking {
 	using SafeTransferLib for *;
+
+	bytes32 private constant LIQUID_STAKING_ADMIN = keccak256("LIQUID_STAKING_ADMIN");
+	bytes32 private constant FEE_DISTRIBUTOR = keccak256("FEE_DISTRIBUTOR");
+	bytes32 private constant SLASHING_AGENT = keccak256("SLASHING_AGENT");
 
 	IMinerActorMock private minerActorMock;
 	MockAPI private mockAPI;
@@ -21,7 +26,7 @@ contract LiquidStakingMock is LiquidStaking {
 
 	uint256 private constant BASIS_POINTS = 10000;
 
-	constructor(
+	function initialize(
 		address _wFIL,
 		address minerActor,
 		uint64 _ownerId,
@@ -31,7 +36,28 @@ contract LiquidStakingMock is LiquidStaking {
 		address _ownerAddr,
 		address _minerApiMock,
 		address _bigIntsLib
-	) LiquidStaking(_wFIL, _adminFee, _profitShare, _rewardCollector, _bigIntsLib) {
+	) public initializer {
+		__AccessControl_init();
+		__ReentrancyGuard_init();
+		ClFILToken.initialize(_wFIL);
+		__UUPSUpgradeable_init();
+
+		require(_adminFee <= 10000, "INVALID_ADMIN_FEE");
+		require(_rewardCollector != address(0), "INVALID_REWARD_COLLECTOR");
+		adminFee = _adminFee;
+		baseProfitShare = _profitShare;
+		rewardCollector = _rewardCollector;
+
+		BigInts = IBigInts(_bigIntsLib);
+
+		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+		grantRole(LIQUID_STAKING_ADMIN, msg.sender);
+		_setRoleAdmin(LIQUID_STAKING_ADMIN, DEFAULT_ADMIN_ROLE);
+		grantRole(FEE_DISTRIBUTOR, msg.sender);
+		_setRoleAdmin(FEE_DISTRIBUTOR, DEFAULT_ADMIN_ROLE);
+		grantRole(SLASHING_AGENT, msg.sender);
+		_setRoleAdmin(SLASHING_AGENT, DEFAULT_ADMIN_ROLE);
+
 		minerActorMock = IMinerActorMock(minerActor);
 		ownerId = _ownerId;
 		ownerAddr = _ownerAddr;

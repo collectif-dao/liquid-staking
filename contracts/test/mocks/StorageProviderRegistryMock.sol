@@ -7,40 +7,35 @@ import {FilAddresses} from "filecoin-solidity/contracts/v0.8/utils/FilAddresses.
 import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 
-import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
-
 /**
  * @title Storage Provider Registry Mock contract that works with mock Filecoin Miner API
  * @author Collective DAO
  */
 contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
-	using Counters for Counters.Counter;
-	using Address for address;
-
 	bytes32 private constant REGISTRY_ADMIN = keccak256("REGISTRY_ADMIN");
 	uint64 public ownerId;
-	uint64 public sampleSectorSize = 32 << 30;
+	uint64 public sampleSectorSize;
 
 	MockAPI private mockAPI;
 
 	/**
-	 * @dev Contract constructor function.
-	 * @param _minerApiMock Address of Miner API mock contract
-	 * @param _ownerId Owner ID for SP used in testing cases
+	 * @dev Contract initializer function.
 	 * @param _maxAllocation Number of maximum FIL allocated to a single storage provider
-	 *
 	 */
-	constructor(
-		address _minerApiMock,
-		uint64 _ownerId,
-		uint256 _maxAllocation
-	) StorageProviderRegistry(_maxAllocation) {
-		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-		grantRole(REGISTRY_ADMIN, msg.sender);
-		ownerId = _ownerId;
+	function initialize(address _minerApiMock, uint64 _ownerId, uint256 _maxAllocation) public initializer {
+		__AccessControl_init();
+		__ReentrancyGuard_init();
+		__UUPSUpgradeable_init();
 
+		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+		_setRoleAdmin(REGISTRY_ADMIN, DEFAULT_ADMIN_ROLE);
+		grantRole(REGISTRY_ADMIN, msg.sender);
+		maxAllocation = _maxAllocation;
+
+		ownerId = _ownerId;
 		mockAPI = MockAPI(_minerApiMock);
+
+		sampleSectorSize = 32 << 30;
 	}
 
 	/**
@@ -78,9 +73,6 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 
 		sectorSizes[ownerId] = sampleSectorSize;
 
-		totalStorageProviders.increment();
-		totalInactiveStorageProviders.increment();
-
 		collateral.updateCollateralRequirements(ownerId, 0);
 		ILiquidStakingClient(_targetPool).updateProfitShare(ownerId, 0);
 
@@ -109,8 +101,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 		uint256 _dailyAllocation,
 		uint256 _repayment,
 		int64 _lastEpoch
-	) public virtual override {
-		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
+	) public virtual override onlyAdmin {
 		require(_repayment > _allocationLimit, "INCORRECT_REPAYMENT");
 		require(_allocationLimit <= maxAllocation, "INCORRECT_ALLOCATION");
 		MinerTypes.GetOwnerReturn memory ownerReturn = mockAPI.getOwner();
@@ -153,9 +144,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 	 * @param _ownerId Storage Provider owner ID
 	 * @dev Only triggered by owner contract
 	 */
-	function acceptBeneficiaryAddress(uint64 _ownerId) public override {
-		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
-
+	function acceptBeneficiaryAddress(uint64 _ownerId) public override onlyAdmin {
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_ownerId];
 		require(storageProvider.onboarded, "NON_ONBOARDED_SP");
 
@@ -167,7 +156,6 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 		);
 
 		storageProviders[_ownerId].active = true;
-		totalInactiveStorageProviders.decrement();
 
 		// MockAPI.changeBeneficiary(params);
 
@@ -211,9 +199,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 		uint256 _allocationLimit,
 		uint256 _dailyAllocation,
 		uint256 _repaymentAmount
-	) public virtual override activeStorageProvider(_ownerId) {
-		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
-
+	) public virtual override activeStorageProvider(_ownerId) onlyAdmin {
 		StorageProviderTypes.AllocationRequest memory allocationRequest = allocationRequests[_ownerId];
 		require(allocationRequest.allocationLimit == _allocationLimit, "INVALID_ALLOCATION");
 		require(allocationRequest.dailyAllocation == _dailyAllocation, "INVALID_DAILY_ALLOCATION");
@@ -260,8 +246,10 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 	 * @param _minerId Storage Provider new miner ID
 	 * @dev Only triggered by registry admin
 	 */
-	function setMinerAddress(uint64 _ownerId, uint64 _minerId) public override activeStorageProvider(_ownerId) {
-		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
+	function setMinerAddress(
+		uint64 _ownerId,
+		uint64 _minerId
+	) public override activeStorageProvider(_ownerId) onlyAdmin {
 		uint64 prevMiner = storageProviders[_ownerId].minerId;
 		require(prevMiner != _minerId, "SAME_MINER");
 
