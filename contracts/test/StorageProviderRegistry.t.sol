@@ -16,6 +16,7 @@ import {StorageProviderRegistryMock, StorageProviderRegistryCallerMock} from "./
 import {StorageProviderCollateralMock} from "./mocks/StorageProviderCollateralMock.sol";
 import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
+import {ClFILToken} from "../ClFIL.sol";
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 
 import {ERC1967Proxy} from "@oz/contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -25,6 +26,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	StorageProviderRegistryCallerMock public callerMock;
 	StorageProviderCollateralMock public collateral;
 	MinerMockAPI private minerMockAPI;
+	ClFILToken private clFIL;
 	BigIntsClient private bigIntsLib;
 
 	LiquidStakingMock public staking;
@@ -73,6 +75,11 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			address(bigIntsLib)
 		);
 
+		ClFILToken clFILImpl = new ClFILToken();
+		ERC1967Proxy tokenProxy = new ERC1967Proxy(address(clFILImpl), "");
+		clFIL = ClFILToken(address(tokenProxy));
+		clFIL.initialize(address(wfil), address(staking));
+
 		StorageProviderRegistryMock registryImpl = new StorageProviderRegistryMock();
 		ERC1967Proxy registryProxy = new ERC1967Proxy(address(registryImpl), "");
 		registry = StorageProviderRegistryMock(address(registryProxy));
@@ -85,6 +92,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 
 		registry.setCollateralAddress(address(collateral));
 		staking.setRegistryAddress(address(registry));
+		staking.setClFILToken(address(clFIL));
+		staking.setCollateralAddress(address(collateral));
 		registry.registerPool(address(staking));
 
 		callerMock = new StorageProviderRegistryCallerMock(address(registry));
@@ -98,7 +107,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 				minerId < 2115248121211227543 &&
 				allocation > 0 &&
 				allocation <= MAX_ALLOCATION &&
-				dailyAllocation <= maxDailyAllocation
+				dailyAllocation <= maxDailyAllocation &&
+				dailyAllocation > 0
 		);
 
 		registry.register(minerId, address(staking), allocation, dailyAllocation);
@@ -157,7 +167,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 				_repayment > _allocationLimit &&
 				_allocationLimit < MAX_ALLOCATION &&
 				_lastEpoch > 0 &&
-				_dailyAllocation <= maxDailyAllocation
+				_dailyAllocation <= maxDailyAllocation &&
+				_dailyAllocation > 0
 		);
 
 		registry.register(_minerId, address(staking), MAX_ALLOCATION, _dailyAllocation);
@@ -194,7 +205,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		);
 
 		registry.register(_minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
-		hevm.expectRevert("INCORRECT_ALLOCATION");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAllocation()"));
 		registry.onboardStorageProvider(_minerId, MAX_ALLOCATION * 2, SAMPLE_DAILY_ALLOCATION, _repayment, _lastEpoch);
 	}
 
@@ -206,7 +217,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		hevm.assume(_minerId > 1 && _minerId < 2115248121211227543 && _repayment < MAX_ALLOCATION && _lastEpoch > 0);
 
 		registry.register(_minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
-		hevm.expectRevert("INCORRECT_REPAYMENT");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidRepayment()"));
 		registry.onboardStorageProvider(_minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION, _repayment, _lastEpoch);
 	}
 
@@ -231,7 +242,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
 		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 
-		hevm.expectRevert("NON_ONBOARDED_SP");
+		hevm.expectRevert(abi.encodeWithSignature("InactiveSP()"));
 		registry.changeBeneficiaryAddress();
 	}
 
@@ -275,7 +286,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		registry.changeBeneficiaryAddress();
 
 		hevm.prank(provider);
-		hevm.expectRevert("INVALID_ACCESS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
 		registry.acceptBeneficiaryAddress(ownerId);
 
 		assertBoolEq(registry.isActiveProvider(ownerId), false);
@@ -327,7 +338,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		registry.acceptBeneficiaryAddress(ownerId);
 
 		hevm.prank(provider);
-		hevm.expectRevert("INVALID_ACCESS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
 		registry.deactivateStorageProvider(ownerId);
 	}
 
@@ -356,7 +367,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 
 		registry.register(oldMinerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 
-		hevm.expectRevert("INACTIVE_STORAGE_PROVIDER");
+		hevm.expectRevert(abi.encodeWithSignature("InactiveSP()"));
 		registry.setMinerAddress(ownerId, newMinerId);
 	}
 
@@ -376,7 +387,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		registry.changeBeneficiaryAddress();
 		registry.acceptBeneficiaryAddress(ownerId);
 
-		hevm.expectRevert("SAME_MINER");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
 		registry.setMinerAddress(ownerId, newMinerId);
 	}
 
@@ -394,7 +405,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 				minerId > 1 &&
 				minerId < 2115248121211227543 &&
 				lastEpoch > 0 &&
-				dailyAllocation <= maxDailyAlloc
+				dailyAllocation <= maxDailyAlloc &&
+				dailyAllocation > 0
 		);
 		registry.register(minerId, address(staking), MAX_ALLOCATION, dailyAllocation);
 		registry.onboardStorageProvider(minerId, MAX_ALLOCATION, dailyAllocation, MAX_ALLOCATION + 10, lastEpoch);
@@ -409,7 +421,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		hevm.assume(
 			allocation < MAX_ALLOCATION &&
 				allocation != MAX_ALLOCATION &&
-				allocation > 0 &&
+				allocation > SAMPLE_DAILY_ALLOCATION &&
 				minerId > 1 &&
 				minerId < 2115248121211227543 &&
 				lastEpoch > 0
@@ -425,7 +437,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 
 		registry.changeBeneficiaryAddress();
 
-		hevm.expectRevert("INACTIVE_STORAGE_PROVIDER");
+		hevm.expectRevert(abi.encodeWithSignature("InactiveSP()"));
 		registry.requestAllocationLimitUpdate(allocation, SAMPLE_DAILY_ALLOCATION);
 	}
 
@@ -443,7 +455,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		registry.changeBeneficiaryAddress();
 		registry.acceptBeneficiaryAddress(ownerId);
 
-		hevm.expectRevert("SAME_ALLOCATION_LIMIT");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
 		registry.requestAllocationLimitUpdate(MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 	}
 
@@ -462,7 +474,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		registry.changeBeneficiaryAddress();
 		registry.acceptBeneficiaryAddress(ownerId);
 
-		hevm.expectRevert("ALLOCATION_OVERFLOW");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAllocation()"));
 		registry.requestAllocationLimitUpdate(newAllocation, SAMPLE_DAILY_ALLOCATION);
 	}
 
@@ -470,7 +482,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		hevm.assume(
 			allocation < MAX_ALLOCATION &&
 				allocation != MAX_ALLOCATION &&
-				allocation > 0 &&
+				allocation > SAMPLE_DAILY_ALLOCATION &&
 				minerId > 1 &&
 				minerId < 2115248121211227543 &&
 				lastEpoch > 0
@@ -508,7 +520,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 
 		registry.requestAllocationLimitUpdate(newAllocation, SAMPLE_DAILY_ALLOCATION); // TODO: add alice prank here
 
-		hevm.expectRevert("INVALID_ALLOCATION");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAllocation()"));
 		registry.updateAllocationLimit(ownerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION, MAX_ALLOCATION + 10);
 	}
 
@@ -559,10 +571,10 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		registry.changeBeneficiaryAddress();
 		registry.acceptBeneficiaryAddress(ownerId);
 
-		hevm.expectRevert("INVALID_RESTAKING_RATIO");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
 		registry.setRestaking(restakingRatio, address(0x412412));
 
-		hevm.expectRevert("INVALID_ADDRESS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAddress()"));
 		registry.setRestaking(1500, address(0));
 
 		(uint256 ratio, address rAddr) = registry.restakings(ownerId);
@@ -582,10 +594,10 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		hevm.etch(collateralAddr, bytes("0x103789851206015297"));
 
 		hevm.prank(aliceOwnerAddr);
-		hevm.expectRevert("INVALID_ACCESS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
 		registry.setCollateralAddress(collateralAddr);
 
-		hevm.expectRevert("SAME_ADDRESS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAddress()"));
 		registry.setCollateralAddress(address(collateral));
 	}
 
@@ -600,19 +612,17 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	}
 
 	function testRegisterPoolReverts(address pool) public {
-		hevm.assume(pool != address(0));
+		hevm.assume(pool != address(0) && pool != address(staking) && pool != address(registry));
 		hevm.etch(pool, bytes("0x10148851206015297"));
 
-		if (pool == address(staking)) {
-			hevm.expectRevert("ALREADY_ACTIVE_POOL");
-			registry.registerPool(pool);
-			assertBoolEq(registry.isActivePool(pool), true);
-		} else {
-			hevm.prank(aliceOwnerAddr);
-			hevm.expectRevert("INVALID_ACCESS");
-			registry.registerPool(pool);
-			assertBoolEq(registry.isActivePool(pool), false);
-		}
+		hevm.prank(aliceOwnerAddr);
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
+		registry.registerPool(pool);
+		assertBoolEq(registry.isActivePool(pool), false);
+
+		hevm.expectRevert(abi.encodeWithSignature("ActivePool()"));
+		registry.registerPool(address(staking));
+		assertBoolEq(registry.isActivePool(address(staking)), true);
 	}
 
 	function testIncreaseRewards(uint64 minerId, uint256 _accruedRewards, int64 lastEpoch) public {
@@ -640,7 +650,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	function testIncreaseRewardsReverts(uint64 minerId, uint256 _accruedRewards, int64 lastEpoch) public {
 		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && _accruedRewards > 0 && lastEpoch > 0);
 
-		hevm.expectRevert("INVALID_ACCESS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
 		callerMock.increaseRewards(ownerId, _accruedRewards);
 
 		(, , , , uint256 accruedRewards, ) = registry.allocations(ownerId);
@@ -678,7 +688,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	function testIncreaseUsedAllocationReverts(uint64 minerId, uint256 allocated, int64 lastEpoch) public {
 		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0 && allocated > 0);
 
-		hevm.expectRevert("INVALID_ACCESS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
 		callerMock.increaseUsedAllocation(ownerId, allocated, block.timestamp);
 
 		(, , uint256 usedAllocation, , , ) = registry.allocations(ownerId);
@@ -718,7 +728,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	function testIncreasePledgeRepaymentReverts(uint64 minerId, uint256 _repaidPledge, int64 lastEpoch) public {
 		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && _repaidPledge > 0 && lastEpoch > 0);
 
-		hevm.expectRevert("INVALID_ACCESS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
 		callerMock.increasePledgeRepayment(ownerId, _repaidPledge);
 
 		(, , , , , uint256 repaidPledge) = registry.allocations(ownerId);
@@ -756,7 +766,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		uint256 _usedAllocation = _repaidPledge / 2;
 		callerMock.increaseUsedAllocation(ownerId, _usedAllocation, block.timestamp);
 
-		hevm.expectRevert("PLEDGE_REPAYMENT_OVERFLOW");
+		hevm.expectRevert(abi.encodeWithSignature("AllocationOverflow()"));
 		callerMock.increasePledgeRepayment(ownerId, _repaidPledge);
 
 		(, , uint256 usedAllocation, , , uint256 repaidPledge) = registry.allocations(ownerId);
@@ -770,14 +780,14 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	}
 
 	function testUpdateMaxAllocationReverts() public {
-		hevm.expectRevert("SAME_ALLOCATION");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAllocation()"));
 		registry.updateMaxAllocation(MAX_ALLOCATION);
 
 		hevm.prank(aliceOwnerAddr);
-		hevm.expectRevert("INVALID_ACCESS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
 		registry.updateMaxAllocation(1);
 
-		hevm.expectRevert("INVALID_ALLOCATION");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAllocation()"));
 		registry.updateMaxAllocation(0);
 	}
 }

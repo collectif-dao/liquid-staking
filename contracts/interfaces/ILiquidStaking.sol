@@ -5,6 +5,15 @@ interface ILiquidStaking {
 	/**
 	 * @notice Emitted when user is staked wFIL to the Liquid Staking
 	 * @param user User's address
+	 * @param owner Owner of clFIL tokens
+	 * @param assets Total wFIL amount staked
+	 * @param shares Total clFIL amount staked
+	 */
+	event Stake(address indexed user, address indexed owner, uint256 assets, uint256 shares);
+
+	/**
+	 * @notice Emitted when user is unstaked wFIL from the Liquid Staking
+	 * @param user User's address
 	 * @param owner Original owner of clFIL tokens
 	 * @param assets Total wFIL amount unstaked
 	 * @param shares Total clFIL amount unstaked

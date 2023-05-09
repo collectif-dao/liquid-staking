@@ -12,6 +12,7 @@ import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
 import {IStorageProviderCollateral, StorageProviderCollateralMock} from "./mocks/StorageProviderCollateralMock.sol";
 import {StorageProviderRegistryMock} from "./mocks/StorageProviderRegistryMock.sol";
 // import {IStakingRouter, StakingRouter} from "../StakingRouter.sol";
+import {ClFILToken} from "../ClFIL.sol";
 import {IERC4626RouterBase, ERC4626RouterBase, IERC4626, SelfPermit, PeripheryPayments} from "fei-protocol/erc4626/ERC4626RouterBase.sol";
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
 import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
@@ -30,6 +31,7 @@ contract LiquidStakingTest is DSTestPlus {
 	MinerActorMock public minerActor;
 	MinerMockAPI private minerMockAPI;
 	BigIntsClient private bigIntsLib;
+	ClFILToken private clFIL;
 
 	bytes public owner;
 	uint64 public aliceOwnerId = 1508;
@@ -85,6 +87,11 @@ contract LiquidStakingTest is DSTestPlus {
 			address(bigIntsLib)
 		);
 
+		ClFILToken clFILImpl = new ClFILToken();
+		ERC1967Proxy tokenProxy = new ERC1967Proxy(address(clFILImpl), "");
+		clFIL = ClFILToken(address(tokenProxy));
+		clFIL.initialize(address(wfil), address(staking));
+
 		StorageProviderRegistryMock registryImpl = new StorageProviderRegistryMock();
 		ERC1967Proxy registryProxy = new ERC1967Proxy(address(registryImpl), "");
 		registry = StorageProviderRegistryMock(address(registryProxy));
@@ -101,6 +108,7 @@ contract LiquidStakingTest is DSTestPlus {
 		registry.registerPool(address(staking));
 		staking.setCollateralAddress(address(collateral));
 		staking.setRegistryAddress(address(registry));
+		staking.setClFILToken(address(clFIL));
 
 		// prepare storage provider for getting FIL from liquid staking
 		hevm.prank(alice);
@@ -136,9 +144,9 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.deal(address(this), amount);
 
 		wfil.deposit{value: amount}();
-		wfil.approve(address(staking), amount);
+		wfil.approve(address(clFIL), amount);
 
-		staking.deposit(amount, address(this));
+		clFIL.deposit(amount, address(this));
 
 		require(staking.balanceOf(address(this)) == amount, "INVALID_BALANCE");
 		require(wfil.balanceOf(address(this)) == 0, "INVALID_BALANCE");
@@ -198,7 +206,7 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.assume(amount == 0);
 		hevm.deal(address(this), 1 ether);
 
-		hevm.expectRevert("ZERO_SHARES");
+		hevm.expectRevert(abi.encodeWithSignature("ERC4626ZeroShares()"));
 		staking.stake{value: amount}();
 	}
 
@@ -207,10 +215,10 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.deal(address(this), 1 ether);
 
 		wfil.deposit{value: amount}();
-		wfil.approve(address(staking), amount);
+		wfil.approve(address(clFIL), amount);
 
-		hevm.expectRevert("ZERO_SHARES");
-		staking.deposit(amount, address(this));
+		hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
+		clFIL.deposit(amount, address(this));
 	}
 
 	function testUnstake(uint128 amount) public {
@@ -247,7 +255,7 @@ contract LiquidStakingTest is DSTestPlus {
 
 		hevm.startPrank(alice);
 		staking.stake{value: amount}();
-		staking.redeem(amount, alice, alice);
+		clFIL.redeem(amount, alice, alice);
 		hevm.stopPrank();
 
 		require(staking.balanceOf(alice) == 0, "INVALID_BALANCE");
@@ -261,7 +269,7 @@ contract LiquidStakingTest is DSTestPlus {
 
 		hevm.startPrank(alice);
 		staking.stake{value: amount}();
-		staking.withdraw(amount, alice, alice);
+		clFIL.withdraw(amount, alice, alice);
 		hevm.stopPrank();
 
 		require(staking.balanceOf(alice) == 0, "INVALID_BALANCE");
@@ -287,7 +295,7 @@ contract LiquidStakingTest is DSTestPlus {
 
 		require(wfil.balanceOf(address(this)) == 0, "INVALID_BALANCE");
 		require(address(minerActor).balance == amount, "INVALID_BALANCE");
-		require(staking.totalAssets() == amount, "INVALID_BALANCE");
+		require(clFIL.totalAssets() == amount, "INVALID_BALANCE");
 	}
 
 	function testWithdrawRewards(uint256 amount) public {
@@ -314,7 +322,7 @@ contract LiquidStakingTest is DSTestPlus {
 		staking.pledge(dailyAllocation);
 
 		require(address(minerActor).balance == withdrawAmount + dailyAllocation, "INVALID_BALANCE");
-		require(staking.totalAssets() == amount, "INVALID_BALANCE");
+		require(clFIL.totalAssets() == amount, "INVALID_BALANCE");
 
 		staking.withdrawRewards(aliceOwnerId, withdrawAmount);
 
@@ -325,7 +333,7 @@ contract LiquidStakingTest is DSTestPlus {
 		require(address(minerActor).balance == dailyAllocation, "INVALID_BALANCE");
 		require(aliceOwnerAddr.balance == spShare, "INVALID_BALANCE");
 		require(wfil.balanceOf(rewardCollector) == protocolFees, "INVALID_BALANCE");
-		require(staking.totalAssets() == amount + stakingShare, "INVALID_BALANCE");
+		require(clFIL.totalAssets() == amount + stakingShare, "INVALID_BALANCE");
 
 		collateralAmount = (dailyAllocation * baseCollateralRequirements) / BASIS_POINTS;
 		require(collateral.getLockedCollateral(aliceOwnerId) == collateralAmount, "INVALID_LOCKED_COLLATERAL");
@@ -352,13 +360,13 @@ contract LiquidStakingTest is DSTestPlus {
 		staking.pledge(dailyAllocation);
 
 		require(address(minerActor).balance == dailyAllocation, "INVALID_BALANCE");
-		require(staking.totalAssets() == amount, "INVALID_BALANCE");
+		require(clFIL.totalAssets() == amount, "INVALID_BALANCE");
 
 		staking.withdrawPledge(aliceOwnerId, dailyAllocation);
 
 		require(address(minerActor).balance == 0, "INVALID_BALANCE");
 		require(wfil.balanceOf(address(staking)) == amount, "INVALID_BALANCE");
-		require(staking.totalAssets() == amount, "INVALID_BALANCE");
+		require(clFIL.totalAssets() == amount, "INVALID_BALANCE");
 
 		hevm.prank(address(minerActor));
 		collateral.withdraw(aliceOwnerId, collateralAmount);
@@ -385,7 +393,7 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.prank(address(minerActor));
 		staking.pledge(dailyAllocation);
 
-		hevm.expectRevert("PLEDGE_REPAYMENT_OVERFLOW");
+		hevm.expectRevert(abi.encodeWithSignature("AllocationOverflow()"));
 		staking.withdrawPledge(aliceOwnerId, dailyAllocation + 1);
 	}
 
@@ -484,7 +492,7 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.prank(alice);
 		staking.pledge(amount);
 
-		hevm.expectRevert("NOT_ENOUGH_COLLATERAL");
+		hevm.expectRevert(abi.encodeWithSignature("InsufficientCollateral()"));
 		staking.reportSlashing(aliceOwnerId, collateralAmount + 1);
 	}
 
@@ -504,7 +512,7 @@ contract LiquidStakingTest is DSTestPlus {
 		staking.pledge(amount);
 
 		hevm.prank(alice);
-		hevm.expectRevert("INVALID_ACCESS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
 		staking.reportSlashing(aliceOwnerId, collateralAmount + 1);
 	}
 
@@ -519,14 +527,14 @@ contract LiquidStakingTest is DSTestPlus {
 	function testUpdateProfitShareReverts(uint256 share) public {
 		hevm.assume(share > 10000);
 
-		hevm.expectRevert("PROFIT_SHARE_OVERFLOW");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
 		staking.updateProfitShare(aliceOwnerId, share);
 	}
 
 	function testUpdateProfitShareRevertsWithSameRequirements() public {
 		staking.updateProfitShare(aliceOwnerId, 0);
 
-		hevm.expectRevert("SAME_PROFIT_SHARE");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
 		staking.updateProfitShare(aliceOwnerId, profitShare);
 	}
 
@@ -564,7 +572,7 @@ contract LiquidStakingTest is DSTestPlus {
 		assertEq(collateral.slashings(aliceOwnerId), slashingAmt);
 		assertBoolEq(staking.activeSlashings(aliceOwnerId), true);
 
-		hevm.expectRevert("ACTIVE_SLASHING");
+		hevm.expectRevert(abi.encodeWithSignature("ActiveSlashing()"));
 		staking.pledge(pledgeAmt);
 	}
 
@@ -597,7 +605,7 @@ contract LiquidStakingTest is DSTestPlus {
 	function testReportRecoveryReverts(uint128 amount) public {
 		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
 
-		hevm.expectRevert("NO_ACTIVE_SLASHINGS");
+		hevm.expectRevert(abi.encodeWithSignature("InactiveSlashing()"));
 		staking.reportRecovery(aliceOwnerId);
 	}
 
@@ -605,7 +613,7 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
 
 		hevm.prank(alice);
-		hevm.expectRevert("INVALID_ACCESS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
 		staking.reportRecovery(aliceOwnerId);
 	}
 
@@ -621,10 +629,10 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.etch(collateralAddr, bytes("0x103789851206015297"));
 
 		hevm.prank(alice);
-		hevm.expectRevert("INVALID_ACCESS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
 		staking.setCollateralAddress(collateralAddr);
 
-		hevm.expectRevert("SAME_ADDRESS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAddress()"));
 		staking.setCollateralAddress(address(collateral));
 	}
 
@@ -639,10 +647,10 @@ contract LiquidStakingTest is DSTestPlus {
 		address registryAddr = address(0x94812417984127);
 
 		hevm.prank(alice);
-		hevm.expectRevert("INVALID_ACCESS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
 		staking.setRegistryAddress(registryAddr);
 
-		hevm.expectRevert("SAME_ADDRESS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAddress()"));
 		staking.setRegistryAddress(address(registry));
 	}
 
@@ -656,14 +664,14 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.assume(fee > 2000 || fee == adminFee);
 
 		if (fee == adminFee) {
-			hevm.expectRevert("SAME_ADMIN_FEE");
+			hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
 			staking.updateAdminFee(fee);
 		} else {
 			hevm.prank(alice);
-			hevm.expectRevert("INVALID_ACCESS");
+			hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
 			staking.updateAdminFee(fee);
 
-			hevm.expectRevert("ADMIN_FEE_OVERFLOW");
+			hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
 			staking.updateAdminFee(fee);
 		}
 	}
@@ -678,14 +686,14 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.assume(share > 8000 || share == profitShare);
 
 		if (share == profitShare) {
-			hevm.expectRevert("SAME_PROFIT_SHARE");
+			hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
 			staking.updateBaseProfitShare(profitShare);
 		} else {
 			hevm.prank(alice);
-			hevm.expectRevert("INVALID_ACCESS");
+			hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
 			staking.updateBaseProfitShare(share);
 
-			hevm.expectRevert("PROFIT_SHARE_OVERFLOW");
+			hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
 			staking.updateBaseProfitShare(share);
 		}
 	}
@@ -696,14 +704,14 @@ contract LiquidStakingTest is DSTestPlus {
 	}
 
 	function testUpdateRewardsCollectorReverts() public {
-		hevm.expectRevert("SAME_COLLECTOR_ADDRESS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAddress()"));
 		staking.updateRewardsCollector(rewardCollector);
 
 		hevm.prank(alice);
-		hevm.expectRevert("INVALID_ACCESS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
 		staking.updateRewardsCollector(address(0));
 
-		hevm.expectRevert("INVALID_ADDRESS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAddress()"));
 		staking.updateRewardsCollector(address(0));
 	}
 }

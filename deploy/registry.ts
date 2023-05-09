@@ -1,7 +1,6 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import '@nomiclabs/hardhat-ethers';
-import * as dotenv from 'dotenv';
 
 const deployFunction: DeployFunction = async function ({ deployments, getNamedAccounts, ethers, upgrades }: HardhatRuntimeEnvironment) {
     const { deployer } = await getNamedAccounts();

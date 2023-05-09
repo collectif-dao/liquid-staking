@@ -15,6 +15,7 @@ import {StorageProviderRegistryMock} from "./mocks/StorageProviderRegistryMock.s
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
 import {MinerActorMock} from "./mocks/MinerActorMock.sol";
 import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
+import {ClFILToken} from "../ClFIL.sol";
 
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 import {ERC1967Proxy} from "@oz/contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -29,6 +30,7 @@ contract IntegrationTest is DSTestPlus {
 	MinerActorMock public minerActor;
 	MinerMockAPI private minerMockAPI;
 	BigIntsClient private bigIntsLib;
+	ClFILToken private clFIL;
 
 	bytes public owner;
 	uint64 public aliceOwnerId = 1508;
@@ -87,6 +89,11 @@ contract IntegrationTest is DSTestPlus {
 			address(minerMockAPI),
 			address(bigIntsLib)
 		);
+
+		ClFILToken clFILImpl = new ClFILToken();
+		ERC1967Proxy tokenProxy = new ERC1967Proxy(address(clFILImpl), "");
+		clFIL = ClFILToken(address(tokenProxy));
+		clFIL.initialize(address(wfil), address(staking));
 
 		StorageProviderRegistryMock registryImpl = new StorageProviderRegistryMock();
 		ERC1967Proxy registryProxy = new ERC1967Proxy(address(registryImpl), "");
@@ -284,7 +291,7 @@ contract IntegrationTest is DSTestPlus {
 
 			if (i == ALICE_ALLOCATION_PERIOD) {
 				hevm.prank(alice);
-				hevm.expectRevert("ALLOCATION_OVERFLOW");
+				hevm.expectRevert(abi.encodeWithSignature("AllocationOverflow()"));
 				staking.pledge(vars.dailyAllocation);
 			} else {
 				hevm.prank(alice);
@@ -313,7 +320,7 @@ contract IntegrationTest is DSTestPlus {
 
 			if (i == 50) {
 				hevm.prank(alice);
-				hevm.expectRevert("DAILY_ALLOCATION_OVERFLOW");
+				hevm.expectRevert(abi.encodeWithSignature("AllocationOverflow()"));
 				staking.pledge(1); // trying to pledge 1 wei after pledging daily allocation
 			}
 
@@ -432,7 +439,7 @@ contract IntegrationTest is DSTestPlus {
 
 				// Try to pledge daily allocation after slashing
 				hevm.prank(alice);
-				hevm.expectRevert("ACTIVE_SLASHING");
+				hevm.expectRevert(abi.encodeWithSignature("ActiveSlashing()"));
 				staking.pledge(vars.dailyAllocation);
 
 				// Recover SP after recovering sectors
@@ -706,7 +713,7 @@ contract IntegrationTest is DSTestPlus {
 			);
 
 			if (i > 0) {
-				rVars.clFILTotalSupply = staking.totalSupply();
+				rVars.clFILTotalSupply = clFIL.totalSupply();
 				rVars.totalStakingAssets = totalAllocation + (rVars.restakingAmt * i) + (vars.revenuePerDay * i);
 
 				rVars.clFILShares = rVars.restakingAmt.mulDivDown(rVars.clFILTotalSupply, rVars.totalStakingAssets);

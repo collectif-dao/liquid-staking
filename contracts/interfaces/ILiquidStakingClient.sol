@@ -9,6 +9,11 @@ interface ILiquidStakingClient {
 	function totalFees(uint64 _ownerId) external view returns (uint256);
 
 	/**
+	 * @notice Returns the total amount of FIL pledged by SPs
+	 */
+	function totalFilPledged() external view returns (uint256);
+
+	/**
 	 * @dev Updates profit sharing requirements for SP with `_ownerId` by `_profitShare` percentage
 	 * @notice Only triggered by Liquid Staking admin or registry contract while registering SP
 	 * @param _ownerId Storage provider owner ID

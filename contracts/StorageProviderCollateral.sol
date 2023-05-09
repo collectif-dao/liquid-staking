@@ -12,6 +12,7 @@ import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/se
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {FilAddress} from "fevmate/utils/FilAddress.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
+import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 
 /**
  * @title Storage Provider Collateral stores collateral for covering potential
@@ -26,6 +27,7 @@ import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
  *
  */
 contract StorageProviderCollateral is
+	DSTestPlus,
 	IStorageProviderCollateral,
 	Initializable,
 	AccessControlUpgradeable,
@@ -35,6 +37,14 @@ contract StorageProviderCollateral is
 	using SafeTransferLib for address;
 	using FixedPointMathLib for uint256;
 	using FilAddress for address;
+
+	error AllocationOverflow();
+	error InvalidParams();
+	error InactiveActor();
+	error InactiveSP();
+	error InvalidAccess();
+	error InsufficientFunds();
+	error InsufficientCollateral();
 
 	// Mapping of storage provider collateral information to their owner ID
 	mapping(uint64 => SPCollateral) public collaterals;
@@ -58,12 +68,12 @@ contract StorageProviderCollateral is
 	}
 
 	modifier activeStorageProvider(uint64 _ownerId) {
-		require(registry.isActiveProvider(_ownerId), "INACTIVE_STORAGE_PROVIDER");
+		if (!registry.isActiveProvider(_ownerId)) revert InactiveSP();
 		_;
 	}
 
 	modifier onlyAdmin() {
-		require(hasRole(COLLATERAL_ADMIN, msg.sender), "INVALID_ACCESS");
+		if (!hasRole(COLLATERAL_ADMIN, msg.sender)) revert InvalidAccess();
 		_;
 	}
 
@@ -81,7 +91,7 @@ contract StorageProviderCollateral is
 		WFIL = _wFIL;
 		registry = IStorageProviderRegistryClient(_registry);
 
-		require(_baseRequirements > 0 || _baseRequirements <= 10000, "BASE_REQUIREMENTS_OVERFLOW");
+		if (_baseRequirements == 0 || _baseRequirements > 10000) revert InvalidParams();
 		baseRequirements = _baseRequirements;
 
 		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -99,12 +109,12 @@ contract StorageProviderCollateral is
 	 */
 	function deposit() public payable nonReentrant {
 		uint256 amount = msg.value;
-		require(amount > 0, "INVALID_AMOUNT");
+		if (amount == 0) revert InvalidParams();
 
 		address ownerAddr = msg.sender.normalize();
 		(bool isID, uint64 ownerId) = ownerAddr.getActorID();
-		require(isID, "INACTIVE_ACTOR_ID");
-		require(registry.isActiveProvider(ownerId), "INACTIVE_STORAGE_PROVIDER");
+		if (!isID) revert InactiveActor();
+		if (!registry.isActiveProvider(ownerId)) revert InactiveSP();
 
 		SPCollateral storage collateral = collaterals[ownerId];
 		collateral.availableCollateral = collateral.availableCollateral + amount;
@@ -120,12 +130,12 @@ contract StorageProviderCollateral is
 	 * delivers maximum amount of FIL available for withdrawal if `_amount` is bigger.
 	 */
 	function withdraw(uint256 _amount) public nonReentrant {
-		require(_amount > 0, "ZERO_AMOUNT");
+		if (_amount == 0) revert InvalidParams();
 
 		address ownerAddr = msg.sender.normalize();
 		(bool isID, uint64 ownerId) = ownerAddr.getActorID();
-		require(isID, "INACTIVE_ACTOR_ID");
-		require(registry.isActiveProvider(ownerId), "INACTIVE_STORAGE_PROVIDER");
+		if (!isID) revert InactiveActor();
+		if (!registry.isActiveProvider(ownerId)) revert InactiveSP();
 
 		(uint256 lockedWithdraw, uint256 availableWithdraw, bool isUnlock) = calcMaximumWithdraw(ownerId);
 		uint256 maxWithdraw = lockedWithdraw + availableWithdraw;
@@ -152,8 +162,8 @@ contract StorageProviderCollateral is
 	 * @param _allocated FIL amount that is going to be pledged for Storage Provider
 	 */
 	function lock(uint64 _ownerId, uint256 _allocated) external activeStorageProvider(_ownerId) {
-		require(registry.isActivePool(msg.sender), "INVALID_ACCESS");
-		require(_allocated > 0, "ZERO_ALLOCATION");
+		if (!registry.isActivePool(msg.sender)) revert InvalidAccess();
+		if (_allocated == 0) revert InvalidParams();
 
 		_rebalance(_ownerId, _allocated);
 		registry.increaseUsedAllocation(_ownerId, _allocated, block.timestamp);
@@ -165,7 +175,7 @@ contract StorageProviderCollateral is
 	 * @param _ownerId Storage provider owner ID
 	 */
 	function fit(uint64 _ownerId) external activeStorageProvider(_ownerId) {
-		require(registry.isActivePool(msg.sender), "INVALID_ACCESS");
+		if (!registry.isActivePool(msg.sender)) revert InvalidAccess();
 
 		_rebalance(_ownerId, 0);
 	}
@@ -177,14 +187,14 @@ contract StorageProviderCollateral is
 	 * @param _slashingAmt Slashing amount for SP
 	 */
 	function slash(uint64 _ownerId, uint256 _slashingAmt) external activeStorageProvider(_ownerId) {
-		require(registry.isActivePool(msg.sender), "INVALID_ACCESS");
+		if (!registry.isActivePool(msg.sender)) revert InvalidAccess();
 
 		SPCollateral memory collateral = collaterals[_ownerId];
 		if (_slashingAmt <= collateral.lockedCollateral) {
 			collateral.lockedCollateral = collateral.lockedCollateral - _slashingAmt;
 		} else {
 			uint256 totalCollateral = collateral.lockedCollateral + collateral.availableCollateral;
-			require(_slashingAmt <= totalCollateral, "NOT_ENOUGH_COLLATERAL"); // TODO: introduce debt for SP to cover worst case scenario
+			if (_slashingAmt > totalCollateral) revert InsufficientCollateral(); // TODO: introduce debt for SP to cover worst case scenario
 			uint256 delta = _slashingAmt - collateral.lockedCollateral;
 
 			collateral.lockedCollateral = 0;
@@ -269,7 +279,7 @@ contract StorageProviderCollateral is
 		(uint256 allocationLimit, , uint256 usedAllocation, , , uint256 repaidPledge) = registry.allocations(_ownerId);
 
 		if (_allocated > 0) {
-			require(usedAllocation + _allocated <= allocationLimit, "ALLOCATION_OVERFLOW");
+			if (usedAllocation + _allocated > allocationLimit) revert AllocationOverflow();
 		}
 		uint256 _collateralRequirements = collateralRequirements[_ownerId];
 		uint256 totalRequirements = calcCollateralRequirements(
@@ -280,10 +290,8 @@ contract StorageProviderCollateral is
 		);
 
 		SPCollateral memory collateral = collaterals[_ownerId];
-		require(
-			totalRequirements <= collateral.lockedCollateral + collateral.availableCollateral,
-			"INSUFFICIENT_COLLATERAL"
-		);
+		if (totalRequirements > collateral.lockedCollateral + collateral.availableCollateral)
+			revert InsufficientCollateral();
 
 		(uint256 adjAmt, bool isUnlock) = calcCollateralAdjustment(collateral.lockedCollateral, totalRequirements);
 
@@ -360,7 +368,8 @@ contract StorageProviderCollateral is
 	 * @param requirements Percentage of collateral requirements
 	 */
 	function updateCollateralRequirements(uint64 _ownerId, uint256 requirements) external {
-		require(hasRole(COLLATERAL_ADMIN, msg.sender) || msg.sender == address(registry), "INVALID_ACCESS");
+		// require(hasRole(COLLATERAL_ADMIN, msg.sender) || msg.sender == address(registry), "INVALID_ACCESS");
+		if (msg.sender != address(registry) && !hasRole(COLLATERAL_ADMIN, msg.sender)) revert InvalidAccess();
 
 		if (requirements == 0) {
 			collateralRequirements[_ownerId] = baseRequirements;
@@ -368,8 +377,7 @@ contract StorageProviderCollateral is
 			emit StorageProviderCollateralUpdate(_ownerId, 0, baseRequirements);
 		} else {
 			uint256 prevRequirements = collateralRequirements[_ownerId];
-			require(requirements <= 10000, "COLLATERAL_REQUIREMENTS_OVERFLOW");
-			require(requirements != prevRequirements, "SAME_COLLATERAL_REQUIREMENTS");
+			if (requirements > 10000 || requirements == prevRequirements) revert InvalidParams();
 
 			collateralRequirements[_ownerId] = requirements;
 
@@ -394,7 +402,7 @@ contract StorageProviderCollateral is
 	 */
 	function _unwrapWFIL(address _recipient, uint256 _amount) internal {
 		uint256 balanceWETH9 = WFIL.balanceOf(address(this));
-		require(balanceWETH9 >= _amount, "Insufficient WETH9");
+		if (balanceWETH9 < _amount) revert InsufficientFunds();
 
 		if (balanceWETH9 > 0) {
 			WFIL.withdraw(_amount);
@@ -407,10 +415,8 @@ contract StorageProviderCollateral is
 	 * @param requirements New base collateral requirements for SP
 	 */
 	function updateBaseCollateralRequirements(uint256 requirements) public onlyAdmin {
-		require(requirements > 0, "INVALID_REQUIREMENTS");
-
 		uint256 prevRequirements = baseRequirements;
-		require(requirements != prevRequirements, "SAME_REQUIREMENTS");
+		if (requirements == 0 || requirements == prevRequirements) revert InvalidParams();
 
 		baseRequirements = requirements;
 
@@ -422,10 +428,8 @@ contract StorageProviderCollateral is
 	 * @param newAddr StorageProviderRegistry contract address
 	 */
 	function setRegistryAddress(address newAddr) public onlyAdmin {
-		require(newAddr != address(0), "INVALID_ADDRESS");
-
 		address prevRegistry = address(registry);
-		require(prevRegistry != newAddr, "SAME_ADDRESS");
+		if (newAddr == address(0) || prevRegistry == newAddr) revert InvalidParams();
 
 		registry = IStorageProviderRegistryClient(newAddr);
 

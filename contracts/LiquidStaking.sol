@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {ClFILToken} from "./ClFIL.sol";
+import {IClFILTokenClient} from "./interfaces/IClFILClient.sol";
+import {IWFIL} from "./libraries/tokens/IWFIL.sol";
+
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
@@ -16,6 +18,7 @@ import {ILiquidStaking} from "./interfaces/ILiquidStaking.sol";
 import {IStorageProviderCollateralClient} from "./interfaces/IStorageProviderCollateralClient.sol";
 import {IStorageProviderRegistryClient} from "./interfaces/IStorageProviderRegistryClient.sol";
 import {IBigInts} from "./libraries/BigInts.sol";
+import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 
 /**
  * @title LiquidStaking contract allows users to stake/unstake FIL to earn
@@ -29,15 +32,30 @@ import {IBigInts} from "./libraries/BigInts.sol";
  * performs wrapping of the native FIL into Wrapped Filecoin (WFIL) token.
  */
 contract LiquidStaking is
+	DSTestPlus,
 	ILiquidStaking,
 	Initializable,
-	ClFILToken,
 	ReentrancyGuardUpgradeable,
 	AccessControlUpgradeable,
 	UUPSUpgradeable
 {
 	using SafeTransferLib for *;
 	using FilAddress for address;
+
+	error InvalidAccess();
+	error InvalidParams();
+	error InvalidCall();
+	error InvalidAddress();
+	error ERC4626ZeroShares();
+	error ERC4626Overflow();
+	error ERC4626Underflow();
+	error AllowanceUnderflow();
+	error InactiveActor();
+	error ActiveSlashing();
+	error InactiveSlashing();
+	error IncorrectWithdrawal();
+	error BigNumConversion();
+	error InsufficientFunds();
 
 	/// @notice The current total amount of FIL that is allocated to SPs.
 	uint256 public totalFilPledged;
@@ -46,9 +64,11 @@ contract LiquidStaking is
 	uint256 public baseProfitShare;
 	address public rewardCollector;
 
-	IStorageProviderCollateralClient internal collateral;
-	IStorageProviderRegistryClient internal registry;
-	IBigInts internal BigInts;
+	IWFIL public WFIL; // WFIL implementation
+	IStorageProviderCollateralClient public collateral;
+	IStorageProviderRegistryClient public registry;
+	IBigInts public BigInts;
+	IClFILTokenClient public clFIL;
 
 	bytes32 private constant LIQUID_STAKING_ADMIN = keccak256("LIQUID_STAKING_ADMIN");
 	bytes32 private constant FEE_DISTRIBUTOR = keccak256("FEE_DISTRIBUTOR");
@@ -58,7 +78,7 @@ contract LiquidStaking is
 	mapping(uint64 => bool) public activeSlashings;
 
 	modifier onlyAdmin() {
-		require(hasRole(LIQUID_STAKING_ADMIN, msg.sender), "INVALID_ACCESS");
+		if (!hasRole(LIQUID_STAKING_ADMIN, msg.sender)) revert InvalidAccess();
 		_;
 	}
 
@@ -79,11 +99,11 @@ contract LiquidStaking is
 	) public initializer {
 		__AccessControl_init();
 		__ReentrancyGuard_init();
-		ClFILToken.initialize(_wFIL);
 		__UUPSUpgradeable_init();
+		if (_adminFee > 2000 || _rewardCollector == address(0)) revert InvalidParams();
+		if (_wFIL == address(0)) revert InvalidParams();
 
-		require(_adminFee <= 10000, "INVALID_ADMIN_FEE");
-		require(_rewardCollector != address(0), "INVALID_REWARD_COLLECTOR");
+		WFIL = IWFIL(_wFIL);
 		adminFee = _adminFee;
 		baseProfitShare = _baseProfitShare;
 		rewardCollector = _rewardCollector;
@@ -113,14 +133,16 @@ contract LiquidStaking is
 		uint256 assets = msg.value;
 		address receiver = msg.sender.normalize();
 
-		require(assets <= maxDeposit(receiver), "ERC4626: deposit more than max");
-		require((shares = previewDeposit(assets)) != 0, "ZERO_SHARES");
+		if (assets > clFIL.maxDeposit(receiver)) revert ERC4626Overflow();
 
-		_wrapWETH9(address(this));
+		shares = clFIL.previewDeposit(assets);
 
-		_mint(receiver, shares);
+		if (shares == 0) revert ERC4626ZeroShares();
 
-		emit Deposit(_msgSender(), receiver, assets, shares);
+		WFIL.deposit{value: assets}();
+		clFIL.mintShares(receiver, shares);
+
+		emit Stake(_msgSender(), receiver, assets, shares);
 	}
 
 	/**
@@ -131,18 +153,18 @@ contract LiquidStaking is
 	 * @dev Please note that unstake amount has to be clFIL shares (not FIL assets)
 	 */
 	function unstake(uint256 shares, address owner) external nonReentrant returns (uint256 assets) {
-		require(shares <= maxRedeem(owner), "ERC4626: redeem more than max");
+		if (shares > clFIL.maxRedeem(owner)) revert ERC4626Overflow();
 
 		address receiver = msg.sender.normalize();
 		owner = owner.normalize();
 
-		assets = previewRedeem(shares);
+		assets = clFIL.previewRedeem(shares);
 
 		if (receiver != owner) {
-			_spendAllowance(owner, receiver, shares);
+			clFIL.spendAllowance(owner, receiver, shares);
 		}
 
-		_burn(owner, shares);
+		clFIL.burnShares(owner, shares);
 
 		emit Unstaked(msg.sender, owner, assets, shares);
 
@@ -156,17 +178,17 @@ contract LiquidStaking is
 	 * @param owner Receiver of FIL assets
 	 */
 	function unstakeAssets(uint256 assets, address owner) external nonReentrant returns (uint256 shares) {
-		require(assets <= maxWithdraw(owner), "ERC4626: withdraw more than max");
+		if (assets > clFIL.maxWithdraw(owner)) revert ERC4626Overflow();
 
 		address receiver = msg.sender.normalize();
 		owner = owner.normalize();
 
-		shares = previewWithdraw(assets);
+		shares = clFIL.previewWithdraw(assets);
 		if (receiver != owner) {
-			_spendAllowance(owner, receiver, shares);
+			clFIL.spendAllowance(owner, receiver, shares);
 		}
 
-		_burn(owner, shares);
+		clFIL.burnShares(owner, shares);
 
 		emit Unstaked(receiver, owner, assets, shares);
 
@@ -178,17 +200,16 @@ contract LiquidStaking is
 	 * @param amount Amount of FIL to pledge from Liquid Staking Pool
 	 */
 	function pledge(uint256 amount) external virtual nonReentrant {
-		require(amount <= totalAssets(), "PLEDGE_WITHDRAWAL_OVERFLOW");
+		if (amount > clFIL.totalAssets()) revert InvalidParams();
 
 		address ownerAddr = msg.sender.normalize();
 		(bool isID, uint64 ownerId) = ownerAddr.getActorID();
-		require(isID, "INACTIVE_ACTOR_ID");
-		require(!activeSlashings[ownerId], "ACTIVE_SLASHING");
+		if (!isID) revert InactiveActor();
+		if (activeSlashings[ownerId]) revert ActiveSlashing();
 
 		collateral.lock(ownerId, amount);
 
 		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
-		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
 
 		emit Pledge(ownerId, minerId, amount);
 
@@ -196,7 +217,7 @@ contract LiquidStaking is
 
 		totalFilPledged += amount;
 
-		SendAPI.send(minerActorId, amount); // send FIL to the miner actor
+		SendAPI.send(CommonTypes.FilActorId.wrap(minerId), amount); // send FIL to the miner actor
 	}
 
 	/**
@@ -207,17 +228,19 @@ contract LiquidStaking is
 	 * @dev Please note that pledge amount withdrawn couldn't exceed used allocation by SP
 	 */
 	function withdrawPledge(uint64 ownerId, uint256 amount) external virtual nonReentrant {
-		require(hasRole(FEE_DISTRIBUTOR, msg.sender), "INVALID_ACCESS");
-		require(amount > 0, "INVALID_AMOUNT");
+		if (!hasRole(FEE_DISTRIBUTOR, msg.sender)) revert InvalidAccess();
+		if (amount == 0) revert InvalidParams();
 
 		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
-		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
 
-		CommonTypes.BigInt memory withdrawnBInt = MinerAPI.withdrawBalance(minerActorId, BigInts.fromUint256(amount));
+		CommonTypes.BigInt memory withdrawnBInt = MinerAPI.withdrawBalance(
+			CommonTypes.FilActorId.wrap(minerId),
+			BigInts.fromUint256(amount)
+		);
 
 		(uint256 withdrawn, bool abort) = BigInts.toUint256(withdrawnBInt);
-		require(!abort, "INCORRECT_BIG_NUM");
-		require(withdrawn == amount, "INCORRECT_WITHDRAWAL_AMOUNT");
+		if (abort) revert BigNumConversion();
+		if (withdrawn != amount) revert IncorrectWithdrawal();
 
 		WFIL.deposit{value: withdrawn}();
 
@@ -242,8 +265,8 @@ contract LiquidStaking is
 	 * which is the remaining pledge for a terminated sector.
 	 */
 	function reportSlashing(uint64 _ownerId, uint256 _slashingAmt) external virtual nonReentrant {
-		require(hasRole(SLASHING_AGENT, msg.sender), "INVALID_ACCESS");
-		require(_slashingAmt > 0, "INVALID_AMOUNT");
+		if (!hasRole(SLASHING_AGENT, msg.sender)) revert InvalidAccess();
+		if (_slashingAmt == 0) revert InvalidParams();
 		(, , uint64 minerId, ) = registry.getStorageProvider(_ownerId);
 
 		collateral.slash(_ownerId, _slashingAmt);
@@ -258,8 +281,8 @@ contract LiquidStaking is
 	 * @param _ownerId Storage provider owner ID
 	 */
 	function reportRecovery(uint64 _ownerId) external virtual {
-		require(hasRole(SLASHING_AGENT, msg.sender), "INVALID_ACCESS");
-		require(activeSlashings[_ownerId], "NO_ACTIVE_SLASHINGS");
+		if (!hasRole(SLASHING_AGENT, msg.sender)) revert InvalidAccess();
+		if (!activeSlashings[_ownerId]) revert InactiveSlashing();
 		(, , uint64 minerId, ) = registry.getStorageProvider(_ownerId);
 
 		activeSlashings[_ownerId] = false;
@@ -278,8 +301,6 @@ contract LiquidStaking is
 		uint256 restakingAmt;
 		uint256 protocolShare;
 		uint256 spShare;
-		CommonTypes.FilActorId minerActorId;
-		CommonTypes.BigInt withdrawnBInt;
 	}
 
 	/**
@@ -289,17 +310,20 @@ contract LiquidStaking is
 	 * @param amount Withdrawal amount
 	 */
 	function withdrawRewards(uint64 ownerId, uint256 amount) external virtual nonReentrant {
-		require(hasRole(FEE_DISTRIBUTOR, msg.sender), "INVALID_ACCESS");
+		if (!hasRole(FEE_DISTRIBUTOR, msg.sender)) revert InvalidAccess();
+
 		WithdrawRewardsLocalVars memory vars;
 
 		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
-		vars.minerActorId = CommonTypes.FilActorId.wrap(minerId);
 
-		vars.withdrawnBInt = MinerAPI.withdrawBalance(vars.minerActorId, BigInts.fromUint256(amount));
+		CommonTypes.BigInt memory withdrawnBInt = MinerAPI.withdrawBalance(
+			CommonTypes.FilActorId.wrap(minerId),
+			BigInts.fromUint256(amount)
+		);
 
-		(vars.withdrawn, vars.abort) = BigInts.toUint256(vars.withdrawnBInt);
-		require(!vars.abort, "INCORRECT_BIG_NUM");
-		require(vars.withdrawn == amount, "INCORRECT_WITHDRAWAL_AMOUNT");
+		(vars.withdrawn, vars.abort) = BigInts.toUint256(withdrawnBInt);
+		if (vars.abort) revert BigNumConversion();
+		if (vars.withdrawn != amount) revert IncorrectWithdrawal();
 
 		vars.stakingProfit = (vars.withdrawn * profitShares[ownerId]) / BASIS_POINTS;
 		vars.protocolFees = (vars.withdrawn * adminFee) / BASIS_POINTS;
@@ -335,7 +359,7 @@ contract LiquidStaking is
 	 * @param _profitShare Percentage of profit sharing
 	 */
 	function updateProfitShare(uint64 _ownerId, uint256 _profitShare) external {
-		require(hasRole(LIQUID_STAKING_ADMIN, msg.sender) || msg.sender == address(registry), "INVALID_ACCESS");
+		if (!hasRole(LIQUID_STAKING_ADMIN, msg.sender) && msg.sender != address(registry)) revert InvalidAccess();
 
 		if (_profitShare == 0) {
 			profitShares[_ownerId] = baseProfitShare;
@@ -343,8 +367,7 @@ contract LiquidStaking is
 			emit ProfitShareUpdate(_ownerId, 0, baseProfitShare);
 		} else {
 			uint256 prevShare = profitShares[_ownerId];
-			require(_profitShare <= 8000, "PROFIT_SHARE_OVERFLOW");
-			require(_profitShare != prevShare, "SAME_PROFIT_SHARE");
+			if (_profitShare > 8000 || _profitShare == prevShare) revert InvalidParams();
 
 			profitShares[_ownerId] = _profitShare;
 
@@ -358,20 +381,28 @@ contract LiquidStaking is
 	 * @param receiver f4 address to receive clFIL tokens
 	 */
 	function _restake(uint256 assets, address receiver) internal returns (uint256 shares) {
-		require(assets <= maxDeposit(receiver), "ERC4626: deposit more than max");
-		require((shares = previewDeposit(assets)) != 0, "ZERO_SHARES");
+		if (assets > clFIL.maxDeposit(receiver)) revert ERC4626Overflow();
+		shares = clFIL.previewDeposit(assets);
+		if (shares == 0) revert ERC4626ZeroShares();
 
-		_mint(receiver, shares);
+		clFIL.mintShares(receiver, shares);
 
-		emit Deposit(receiver, receiver, assets, shares);
+		emit Stake(receiver, receiver, assets, shares);
 	}
 
 	/**
 	 * @notice Returns total amount of assets backing clFIL, that includes
 	 * buffered capital in the pool and pledged capital to the SPs.
 	 */
-	function totalAssets() public view virtual override returns (uint256) {
-		return totalFilAvailable() + totalFilPledged;
+	function totalAssets() public view virtual returns (uint256) {
+		return clFIL.totalAssets();
+	}
+
+	/**
+	 * @notice Returns balance of clFIL tokens for `owner`
+	 */
+	function balanceOf(address owner) public view virtual returns (uint256) {
+		return clFIL.balanceOf(owner);
 	}
 
 	/**
@@ -386,7 +417,7 @@ contract LiquidStaking is
 	 * @notice Returns pool usage ratio to determine what percentage of FIL
 	 * is pledged compared to the total amount of FIL staked.
 	 */
-	function getUsageRatio() public view virtual returns (uint256) {
+	function getUsageRatio() external view virtual returns (uint256) {
 		return (totalFilPledged * BASIS_POINTS) / (totalFilAvailable() + totalFilPledged);
 	}
 
@@ -395,10 +426,8 @@ contract LiquidStaking is
 	 * @param newAddr StorageProviderCollateral contract address
 	 */
 	function setCollateralAddress(address newAddr) external onlyAdmin {
-		require(newAddr != address(0), "INVALID_ADDRESS");
-
 		address prevCollateral = address(collateral);
-		require(prevCollateral != newAddr, "SAME_ADDRESS");
+		if (newAddr == address(0) || prevCollateral == newAddr) revert InvalidAddress();
 
 		collateral = IStorageProviderCollateralClient(newAddr);
 
@@ -417,14 +446,23 @@ contract LiquidStaking is
 	 * @param newAddr StorageProviderRegistry contract address
 	 */
 	function setRegistryAddress(address newAddr) external onlyAdmin {
-		require(newAddr != address(0), "INVALID_ADDRESS");
-
 		address prevRegistry = address(registry);
-		require(prevRegistry != newAddr, "SAME_ADDRESS");
+		if (newAddr == address(0) || prevRegistry == newAddr) revert InvalidAddress();
 
 		registry = IStorageProviderRegistryClient(newAddr);
 
 		emit SetRegistryAddress(newAddr);
+	}
+
+	/**
+	 * @notice Updates clFIL token contract address
+	 * @param token clFILToken contract address
+	 */
+	function setClFILToken(address token) external onlyAdmin {
+		address prevToken = address(clFIL);
+		if (token == address(0) || prevToken == token) revert InvalidAddress();
+
+		clFIL = IClFILTokenClient(token);
 	}
 
 	/**
@@ -433,10 +471,8 @@ contract LiquidStaking is
 	 * @dev Make sure that admin fee is not greater than 20%
 	 */
 	function updateAdminFee(uint256 fee) external onlyAdmin {
-		require(fee <= 2000, "ADMIN_FEE_OVERFLOW");
-
 		uint256 prevFee = adminFee;
-		require(fee != prevFee, "SAME_ADMIN_FEE");
+		if (fee > 2000 || fee == prevFee) revert InvalidParams();
 
 		adminFee = fee;
 
@@ -449,10 +485,8 @@ contract LiquidStaking is
 	 * @dev Make sure that profit sharing is not greater than 80%
 	 */
 	function updateBaseProfitShare(uint256 share) external onlyAdmin {
-		require(share <= 8000 && share > 0, "PROFIT_SHARE_OVERFLOW");
-
 		uint256 prevShare = baseProfitShare;
-		require(share != prevShare, "SAME_PROFIT_SHARE");
+		if (share > 8000 || share == 0 || share == prevShare) revert InvalidParams();
 
 		baseProfitShare = share;
 
@@ -464,10 +498,8 @@ contract LiquidStaking is
 	 * @param collector New rewards collector address
 	 */
 	function updateRewardsCollector(address collector) external onlyAdmin {
-		require(collector != address(0), "INVALID_ADDRESS");
-
 		address prevAddr = rewardCollector;
-		require(collector != prevAddr, "SAME_COLLECTOR_ADDRESS");
+		if (collector == address(0) || prevAddr == collector) revert InvalidAddress();
 
 		rewardCollector = collector;
 
@@ -487,10 +519,8 @@ contract LiquidStaking is
 		uint256 quota,
 		int64 expiration
 	) external virtual {
-		require(msg.sender == address(registry), "INVALID_ACCESS");
-		require(targetPool == address(this), "INCORRECT_ADDRESS");
-
-		CommonTypes.FilActorId filMinerId = CommonTypes.FilActorId.wrap(minerId);
+		if (msg.sender != address(registry)) revert InvalidAccess();
+		if (targetPool != address(this)) revert InvalidAddress();
 
 		MinerTypes.ChangeBeneficiaryParams memory params;
 
@@ -498,17 +528,7 @@ contract LiquidStaking is
 		params.new_quota = BigInts.fromUint256(quota);
 		params.new_expiration = CommonTypes.ChainEpoch.wrap(expiration);
 
-		MinerAPI.changeBeneficiary(filMinerId, params);
-	}
-
-	/**
-	 * @notice Wraps FIL into WFIL and transfers it to the `_recipient` address
-	 * @param _recipient WFIL recipient address
-	 */
-	function _wrapWETH9(address _recipient) internal {
-		uint256 amount = msg.value;
-		WFIL.deposit{value: amount}();
-		WFIL.transfer(_recipient, amount);
+		MinerAPI.changeBeneficiary(CommonTypes.FilActorId.wrap(minerId), params);
 	}
 
 	/**
@@ -517,7 +537,7 @@ contract LiquidStaking is
 	 */
 	function _unwrapWFIL(address _recipient, uint256 _amount) internal {
 		uint256 balanceWETH9 = WFIL.balanceOf(address(this));
-		require(balanceWETH9 >= _amount, "Insufficient WETH9");
+		if (balanceWETH9 < _amount) revert InsufficientFunds();
 
 		if (balanceWETH9 > 0) {
 			WFIL.withdraw(_amount);
@@ -525,12 +545,22 @@ contract LiquidStaking is
 		}
 	}
 
+	/**
+	 * @notice UUPS Upgradeable function to update the liquid staking pool implementation
+	 * @dev Only triggered by contract admin
+	 */
 	function _authorizeUpgrade(address newImplementation) internal override onlyAdmin {}
 
+	/**
+	 * @notice Returns the version of clFIL token contract
+	 */
 	function version() external pure virtual returns (string memory) {
 		return "v1";
 	}
 
+	/**
+	 * @notice Returns the implementation contract
+	 */
 	function getImplementation() external view returns (address) {
 		return _getImplementation();
 	}

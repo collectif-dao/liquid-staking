@@ -3,7 +3,6 @@ pragma solidity ^0.8.17;
 
 import "../../LiquidStaking.sol";
 import {IMinerActorMock} from "./MinerActorMock.sol";
-import {BigInts} from "filecoin-solidity/contracts/v0.8/utils/BigInts.sol";
 import {MinerMockAPI as MockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
@@ -39,11 +38,13 @@ contract LiquidStakingMock is LiquidStaking {
 	) public initializer {
 		__AccessControl_init();
 		__ReentrancyGuard_init();
-		ClFILToken.initialize(_wFIL);
 		__UUPSUpgradeable_init();
 
-		require(_adminFee <= 10000, "INVALID_ADMIN_FEE");
-		require(_rewardCollector != address(0), "INVALID_REWARD_COLLECTOR");
+		if (_adminFee > 2000 || _rewardCollector == address(0)) revert InvalidParams();
+		if (_wFIL == address(0)) revert InvalidParams();
+
+		WFIL = IWFIL(_wFIL);
+
 		adminFee = _adminFee;
 		baseProfitShare = _profitShare;
 		rewardCollector = _rewardCollector;
@@ -70,8 +71,8 @@ contract LiquidStakingMock is LiquidStaking {
 	 * @param amount Amount of FIL to be pledged from Liquid Staking Pool
 	 */
 	function pledge(uint256 amount) external virtual override nonReentrant {
-		require(amount <= totalAssets(), "PLEDGE_WITHDRAWAL_OVERFLOW");
-		require(!activeSlashings[ownerId], "ACTIVE_SLASHING");
+		if (amount > clFIL.totalAssets()) revert InvalidParams();
+		if (activeSlashings[ownerId]) revert ActiveSlashing();
 
 		collateral.lock(ownerId, amount);
 
@@ -93,6 +94,7 @@ contract LiquidStakingMock is LiquidStaking {
 	 * @param amount Initial pledge amount
 	 */
 	function withdrawPledge(uint64 ownerId, uint256 amount) external virtual override nonReentrant {
+		if (!hasRole(FEE_DISTRIBUTOR, msg.sender)) revert InvalidAccess();
 		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
 		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
 
@@ -102,8 +104,8 @@ contract LiquidStakingMock is LiquidStaking {
 		);
 
 		(uint256 withdrawn, bool abort) = BigInts.toUint256(withdrawnBInt);
-		require(!abort, "INCORRECT_BIG_NUM");
-		require(withdrawn == amount, "INCORRECT_WITHDRAWAL_AMOUNT");
+		if (abort) revert BigNumConversion();
+		if (withdrawn != amount) revert IncorrectWithdrawal();
 
 		WFIL.deposit{value: withdrawn}();
 
@@ -123,16 +125,18 @@ contract LiquidStakingMock is LiquidStaking {
 	 * @param amount Withdrawal amount
 	 */
 	function withdrawRewards(uint64 ownerId, uint256 amount) external virtual override nonReentrant {
+		if (!hasRole(FEE_DISTRIBUTOR, msg.sender)) revert InvalidAccess();
 		WithdrawRewardsLocalVars memory vars;
 
 		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
-		vars.minerActorId = CommonTypes.FilActorId.wrap(minerId);
+		CommonTypes.BigInt memory withdrawnBInt = minerActorMock.withdrawBalance(
+			CommonTypes.FilActorId.wrap(minerId),
+			BigInts.fromUint256(amount)
+		);
 
-		vars.withdrawnBInt = minerActorMock.withdrawBalance(vars.minerActorId, BigInts.fromUint256(amount));
-
-		(vars.withdrawn, vars.abort) = BigInts.toUint256(vars.withdrawnBInt);
-		require(!vars.abort, "INCORRECT_BIG_NUM");
-		require(vars.withdrawn == amount, "INCORRECT_WITHDRAWAL_AMOUNT");
+		(vars.withdrawn, vars.abort) = BigInts.toUint256(withdrawnBInt);
+		if (vars.abort) revert BigNumConversion();
+		if (vars.withdrawn != amount) revert IncorrectWithdrawal();
 
 		uint256 profitShare = profitShares[ownerId];
 		vars.stakingProfit = (vars.withdrawn * profitShare) / BASIS_POINTS;
@@ -176,8 +180,8 @@ contract LiquidStakingMock is LiquidStaking {
 		uint256 quota,
 		int64 expiration
 	) external override {
-		require(msg.sender == address(registry), "INVALID_ACCESS");
-		require(targetPool == address(this), "INCORRECT_ADDRESS");
+		if (msg.sender != address(registry)) revert InvalidAccess();
+		if (targetPool != address(this)) revert InvalidAddress();
 
 		CommonTypes.FilActorId filMinerId = CommonTypes.FilActorId.wrap(minerId);
 

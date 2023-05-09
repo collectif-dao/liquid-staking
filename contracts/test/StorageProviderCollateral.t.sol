@@ -9,6 +9,7 @@ import {Buffer} from "@ensdomains/buffer/contracts/Buffer.sol";
 import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
+import {ClFILToken} from "../ClFIL.sol";
 import {StorageProviderCollateralMock, IStorageProviderCollateral, StorageProviderCollateralCallerMock} from "./mocks/StorageProviderCollateralMock.sol";
 import {StorageProviderRegistryMock, StorageProviderRegistryCallerMock} from "./mocks/StorageProviderRegistryMock.sol";
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
@@ -26,6 +27,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	IWFIL public wfil;
 	MinerMockAPI private minerMockAPI;
 	BigIntsClient private bigIntsLib;
+	ClFILToken private clFIL;
 
 	bytes public owner;
 	uint64 public aliceOwnerId = 1508;
@@ -73,6 +75,11 @@ contract StorageProviderCollateralTest is DSTestPlus {
 			address(bigIntsLib)
 		);
 
+		ClFILToken clFILImpl = new ClFILToken();
+		ERC1967Proxy tokenProxy = new ERC1967Proxy(address(clFILImpl), "");
+		clFIL = ClFILToken(address(tokenProxy));
+		clFIL.initialize(address(wfil), address(staking));
+
 		StorageProviderRegistryMock registryImpl = new StorageProviderRegistryMock();
 		ERC1967Proxy registryProxy = new ERC1967Proxy(address(registryImpl), "");
 		registry = StorageProviderRegistryMock(address(registryProxy));
@@ -88,6 +95,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 
 		registry.setCollateralAddress(address(collateral));
 		staking.setRegistryAddress(address(registry));
+		staking.setClFILToken(address(clFIL));
 		registry.registerPool(address(staking));
 
 		hevm.prank(alice);
@@ -129,7 +137,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		hevm.deal(bob, amount);
 
 		hevm.prank(bob);
-		hevm.expectRevert("INACTIVE_STORAGE_PROVIDER");
+		hevm.expectRevert(abi.encodeWithSignature("InactiveSP()"));
 		collateral.deposit{value: amount}(bobOwnerId);
 
 		require(wfil.balanceOf(address(collateral)) == 0, "INVALID_BALANCE");
@@ -290,7 +298,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		hevm.prank(alice);
 		collateral.deposit{value: amount}(aliceOwnerId);
 
-		hevm.expectRevert("ALLOCATION_OVERFLOW");
+		hevm.expectRevert(abi.encodeWithSignature("AllocationOverflow()"));
 		callerMock.lock(aliceOwnerId, amount);
 
 		assertEq(collateral.getAvailableCollateral(aliceOwnerId), amount);
@@ -304,7 +312,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		hevm.prank(alice);
 		collateral.deposit{value: amount}(aliceOwnerId);
 
-		hevm.expectRevert("INVALID_ACCESS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
 		collateral.lock(aliceOwnerId, amount); // direct calls are prohibited
 	}
 
@@ -371,7 +379,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		require(wfil.balanceOf(address(collateral)) == lockedAmount, "INVALID_BALANCE");
 		require(wfil.balanceOf(alice) == 0, "INVALID_BALANCE");
 
-		hevm.expectRevert("NOT_ENOUGH_COLLATERAL");
+		hevm.expectRevert(abi.encodeWithSignature("InsufficientCollateral()"));
 		callerMock.slash(aliceOwnerId, amount + 1);
 	}
 
@@ -386,14 +394,14 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	function testUpdateCollateralRequirementsReverts(uint256 requirements) public {
 		hevm.assume(requirements > 10000);
 
-		hevm.expectRevert("COLLATERAL_REQUIREMENTS_OVERFLOW");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
 		collateral.updateCollateralRequirements(aliceOwnerId, requirements);
 	}
 
 	function testUpdateCollateralRequirementsRevertsWithSameRequirements() public {
 		collateral.updateCollateralRequirements(aliceOwnerId, 0);
 
-		hevm.expectRevert("SAME_COLLATERAL_REQUIREMENTS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
 		collateral.updateCollateralRequirements(aliceOwnerId, 1500);
 	}
 
@@ -403,14 +411,14 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	}
 
 	function testUpdateBaseCollateralRequirementsReverts() public {
-		hevm.expectRevert("SAME_REQUIREMENTS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
 		collateral.updateBaseCollateralRequirements(baseCollateralRequirements);
 
 		hevm.prank(aliceOwnerAddr);
-		hevm.expectRevert("INVALID_ACCESS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
 		collateral.updateBaseCollateralRequirements(1);
 
-		hevm.expectRevert("INVALID_REQUIREMENTS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
 		collateral.updateBaseCollateralRequirements(0);
 	}
 
@@ -425,10 +433,10 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		address registryAddr = address(0x94812417984127);
 
 		hevm.prank(alice);
-		hevm.expectRevert("INVALID_ACCESS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
 		collateral.setRegistryAddress(registryAddr);
 
-		hevm.expectRevert("SAME_ADDRESS");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
 		collateral.setRegistryAddress(address(registry));
 	}
 }

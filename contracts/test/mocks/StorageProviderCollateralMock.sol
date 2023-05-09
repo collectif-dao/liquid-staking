@@ -27,7 +27,7 @@ contract StorageProviderCollateralMock is StorageProviderCollateral {
 		WFIL = _wFIL;
 		registry = IStorageProviderRegistryClient(_registry);
 
-		require(_baseRequirements > 0 || _baseRequirements <= 10000, "BASE_REQUIREMENTS_OVERFLOW");
+		if (_baseRequirements == 0 || _baseRequirements > 10000) revert InvalidParams();
 		baseRequirements = _baseRequirements;
 
 		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -41,9 +41,9 @@ contract StorageProviderCollateralMock is StorageProviderCollateral {
 	 */
 	function deposit(uint64 ownerId) public payable virtual {
 		uint256 amount = msg.value;
-		require(amount > 0, "INVALID_AMOUNT");
+		if (amount == 0) revert InvalidParams();
 
-		require(registry.isActiveProvider(ownerId), "INACTIVE_STORAGE_PROVIDER");
+		if (!registry.isActiveProvider(ownerId)) revert InactiveSP();
 
 		SPCollateral storage collateral = collaterals[ownerId];
 		collateral.availableCollateral = collateral.availableCollateral + amount;
@@ -59,8 +59,8 @@ contract StorageProviderCollateralMock is StorageProviderCollateral {
 	 * delivers maximum amount of FIL available for withdrawal if `_amount` is bigger.
 	 */
 	function withdraw(uint64 ownerId, uint256 _amount) public virtual {
-		require(_amount > 0, "ZERO_AMOUNT");
-		require(registry.isActiveProvider(ownerId), "INACTIVE_STORAGE_PROVIDER");
+		if (_amount == 0) revert InvalidParams();
+		if (!registry.isActiveProvider(ownerId)) revert InactiveSP();
 
 		(uint256 lockedWithdraw, uint256 availableWithdraw, bool isUnlock) = calcMaximumWithdraw(ownerId);
 		uint256 maxWithdraw = lockedWithdraw + availableWithdraw;
