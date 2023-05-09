@@ -2,6 +2,7 @@
 pragma solidity >=0.8.0;
 
 // import {ERC20} from "./ERC20.sol";
+import {WFIL} from "fevmate/token/WFIL.sol";
 
 interface IWFIL {
 	/**

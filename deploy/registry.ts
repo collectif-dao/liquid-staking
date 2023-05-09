@@ -7,7 +7,7 @@ const deployFunction: DeployFunction = async function ({ deployments, getNamedAc
     const { deploy } = deployments;
     const feeData = await ethers.provider.getFeeData();
 
-    const maxAllocation = ethers.BigNumber.from("1000000000000000000000000");
+    const maxAllocation = ethers.utils.parseEther('1000000');
 
     // StorageProviderRegistry deployment
     const registry = await deploy('StorageProviderRegistry', {

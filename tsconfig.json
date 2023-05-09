@@ -16,6 +16,6 @@
     "allowSyntheticDefaultImports": true,
     "incremental": false
   },
-  "include": ["./deploy", "./test", "./typechain-types"],
+  "include": ["./deploy", "./test", "./typechain-types", "./tasks"],
   "files": ["./hardhat.config.ts"]
 }
