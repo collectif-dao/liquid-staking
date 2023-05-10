@@ -12,7 +12,6 @@ import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
 import {IStorageProviderCollateral, StorageProviderCollateralMock} from "./mocks/StorageProviderCollateralMock.sol";
 import {StorageProviderRegistryMock} from "./mocks/StorageProviderRegistryMock.sol";
 // import {IStakingRouter, StakingRouter} from "../StakingRouter.sol";
-import {ClFILToken} from "../ClFIL.sol";
 import {IERC4626RouterBase, ERC4626RouterBase, IERC4626, SelfPermit, PeripheryPayments} from "fei-protocol/erc4626/ERC4626RouterBase.sol";
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
 import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
@@ -31,7 +30,6 @@ contract LiquidStakingTest is DSTestPlus {
 	MinerActorMock public minerActor;
 	MinerMockAPI private minerMockAPI;
 	BigIntsClient private bigIntsLib;
-	ClFILToken private clFIL;
 
 	bytes public owner;
 	uint64 public aliceOwnerId = 1508;
@@ -87,11 +85,6 @@ contract LiquidStakingTest is DSTestPlus {
 			address(bigIntsLib)
 		);
 
-		ClFILToken clFILImpl = new ClFILToken();
-		ERC1967Proxy tokenProxy = new ERC1967Proxy(address(clFILImpl), "");
-		clFIL = ClFILToken(address(tokenProxy));
-		clFIL.initialize(address(wfil), address(staking));
-
 		StorageProviderRegistryMock registryImpl = new StorageProviderRegistryMock();
 		ERC1967Proxy registryProxy = new ERC1967Proxy(address(registryImpl), "");
 		registry = StorageProviderRegistryMock(address(registryProxy));
@@ -108,7 +101,6 @@ contract LiquidStakingTest is DSTestPlus {
 		registry.registerPool(address(staking));
 		staking.setCollateralAddress(address(collateral));
 		staking.setRegistryAddress(address(registry));
-		staking.setClFILToken(address(clFIL));
 
 		// prepare storage provider for getting FIL from liquid staking
 		hevm.prank(alice);
@@ -144,9 +136,9 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.deal(address(this), amount);
 
 		wfil.deposit{value: amount}();
-		wfil.approve(address(clFIL), amount);
+		wfil.approve(address(staking), amount);
 
-		clFIL.deposit(amount, address(this));
+		staking.deposit(amount, address(this));
 
 		require(staking.balanceOf(address(this)) == amount, "INVALID_BALANCE");
 		require(wfil.balanceOf(address(this)) == 0, "INVALID_BALANCE");
@@ -215,10 +207,10 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.deal(address(this), 1 ether);
 
 		wfil.deposit{value: amount}();
-		wfil.approve(address(clFIL), amount);
+		wfil.approve(address(staking), amount);
 
 		hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
-		clFIL.deposit(amount, address(this));
+		staking.deposit(amount, address(this));
 	}
 
 	function testUnstake(uint128 amount) public {
@@ -255,7 +247,7 @@ contract LiquidStakingTest is DSTestPlus {
 
 		hevm.startPrank(alice);
 		staking.stake{value: amount}();
-		clFIL.redeem(amount, alice, alice);
+		staking.redeem(amount, alice, alice);
 		hevm.stopPrank();
 
 		require(staking.balanceOf(alice) == 0, "INVALID_BALANCE");
@@ -269,7 +261,7 @@ contract LiquidStakingTest is DSTestPlus {
 
 		hevm.startPrank(alice);
 		staking.stake{value: amount}();
-		clFIL.withdraw(amount, alice, alice);
+		staking.withdraw(amount, alice, alice);
 		hevm.stopPrank();
 
 		require(staking.balanceOf(alice) == 0, "INVALID_BALANCE");
@@ -295,7 +287,7 @@ contract LiquidStakingTest is DSTestPlus {
 
 		require(wfil.balanceOf(address(this)) == 0, "INVALID_BALANCE");
 		require(address(minerActor).balance == amount, "INVALID_BALANCE");
-		require(clFIL.totalAssets() == amount, "INVALID_BALANCE");
+		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 	}
 
 	function testWithdrawRewards(uint256 amount) public {
@@ -322,7 +314,7 @@ contract LiquidStakingTest is DSTestPlus {
 		staking.pledge(dailyAllocation);
 
 		require(address(minerActor).balance == withdrawAmount + dailyAllocation, "INVALID_BALANCE");
-		require(clFIL.totalAssets() == amount, "INVALID_BALANCE");
+		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 
 		staking.withdrawRewards(aliceOwnerId, withdrawAmount);
 
@@ -333,7 +325,7 @@ contract LiquidStakingTest is DSTestPlus {
 		require(address(minerActor).balance == dailyAllocation, "INVALID_BALANCE");
 		require(aliceOwnerAddr.balance == spShare, "INVALID_BALANCE");
 		require(wfil.balanceOf(rewardCollector) == protocolFees, "INVALID_BALANCE");
-		require(clFIL.totalAssets() == amount + stakingShare, "INVALID_BALANCE");
+		require(staking.totalAssets() == amount + stakingShare, "INVALID_BALANCE");
 
 		collateralAmount = (dailyAllocation * baseCollateralRequirements) / BASIS_POINTS;
 		require(collateral.getLockedCollateral(aliceOwnerId) == collateralAmount, "INVALID_LOCKED_COLLATERAL");
@@ -360,13 +352,13 @@ contract LiquidStakingTest is DSTestPlus {
 		staking.pledge(dailyAllocation);
 
 		require(address(minerActor).balance == dailyAllocation, "INVALID_BALANCE");
-		require(clFIL.totalAssets() == amount, "INVALID_BALANCE");
+		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 
 		staking.withdrawPledge(aliceOwnerId, dailyAllocation);
 
 		require(address(minerActor).balance == 0, "INVALID_BALANCE");
 		require(wfil.balanceOf(address(staking)) == amount, "INVALID_BALANCE");
-		require(clFIL.totalAssets() == amount, "INVALID_BALANCE");
+		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 
 		hevm.prank(address(minerActor));
 		collateral.withdraw(aliceOwnerId, collateralAmount);

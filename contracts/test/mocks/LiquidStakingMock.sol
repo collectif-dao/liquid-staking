@@ -38,12 +38,11 @@ contract LiquidStakingMock is LiquidStaking {
 	) public initializer {
 		__AccessControl_init();
 		__ReentrancyGuard_init();
+		ClFILToken.initialize(_wFIL);
 		__UUPSUpgradeable_init();
 
 		if (_adminFee > 2000 || _rewardCollector == address(0)) revert InvalidParams();
 		if (_wFIL == address(0)) revert InvalidParams();
-
-		WFIL = IWFIL(_wFIL);
 
 		adminFee = _adminFee;
 		baseProfitShare = _profitShare;
@@ -71,7 +70,7 @@ contract LiquidStakingMock is LiquidStaking {
 	 * @param amount Amount of FIL to be pledged from Liquid Staking Pool
 	 */
 	function pledge(uint256 amount) external virtual override nonReentrant {
-		if (amount > clFIL.totalAssets()) revert InvalidParams();
+		if (amount > totalAssets()) revert InvalidParams();
 		if (activeSlashings[ownerId]) revert ActiveSlashing();
 
 		collateral.lock(ownerId, amount);

@@ -16,7 +16,6 @@ import {StorageProviderRegistryMock, StorageProviderRegistryCallerMock} from "./
 import {StorageProviderCollateralMock} from "./mocks/StorageProviderCollateralMock.sol";
 import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
-import {ClFILToken} from "../ClFIL.sol";
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 
 import {ERC1967Proxy} from "@oz/contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -26,7 +25,6 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	StorageProviderRegistryCallerMock public callerMock;
 	StorageProviderCollateralMock public collateral;
 	MinerMockAPI private minerMockAPI;
-	ClFILToken private clFIL;
 	BigIntsClient private bigIntsLib;
 
 	LiquidStakingMock public staking;
@@ -75,11 +73,6 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			address(bigIntsLib)
 		);
 
-		ClFILToken clFILImpl = new ClFILToken();
-		ERC1967Proxy tokenProxy = new ERC1967Proxy(address(clFILImpl), "");
-		clFIL = ClFILToken(address(tokenProxy));
-		clFIL.initialize(address(wfil), address(staking));
-
 		StorageProviderRegistryMock registryImpl = new StorageProviderRegistryMock();
 		ERC1967Proxy registryProxy = new ERC1967Proxy(address(registryImpl), "");
 		registry = StorageProviderRegistryMock(address(registryProxy));
@@ -92,7 +85,6 @@ contract StorageProviderRegistryTest is DSTestPlus {
 
 		registry.setCollateralAddress(address(collateral));
 		staking.setRegistryAddress(address(registry));
-		staking.setClFILToken(address(clFIL));
 		staking.setCollateralAddress(address(collateral));
 		registry.registerPool(address(staking));
 

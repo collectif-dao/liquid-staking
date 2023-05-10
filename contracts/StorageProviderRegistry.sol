@@ -437,7 +437,6 @@ contract StorageProviderRegistry is
 		StorageProviderTypes.SPAllocation storage spAllocation = allocations[_ownerId];
 
 		if (totalDailyUsage > spAllocation.dailyAllocation) revert AllocationOverflow();
-		// require(spAllocation.usedAllocation + _allocated <= spAllocation.allocationLimit, "TOTAL_ALLOCATION_OVERFLOW");
 
 		spAllocation.usedAllocation = spAllocation.usedAllocation + _allocated;
 		dailyUsages[dateHash] += _allocated;

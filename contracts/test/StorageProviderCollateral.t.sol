@@ -9,7 +9,6 @@ import {Buffer} from "@ensdomains/buffer/contracts/Buffer.sol";
 import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
-import {ClFILToken} from "../ClFIL.sol";
 import {StorageProviderCollateralMock, IStorageProviderCollateral, StorageProviderCollateralCallerMock} from "./mocks/StorageProviderCollateralMock.sol";
 import {StorageProviderRegistryMock, StorageProviderRegistryCallerMock} from "./mocks/StorageProviderRegistryMock.sol";
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
@@ -27,7 +26,6 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	IWFIL public wfil;
 	MinerMockAPI private minerMockAPI;
 	BigIntsClient private bigIntsLib;
-	ClFILToken private clFIL;
 
 	bytes public owner;
 	uint64 public aliceOwnerId = 1508;
@@ -75,11 +73,6 @@ contract StorageProviderCollateralTest is DSTestPlus {
 			address(bigIntsLib)
 		);
 
-		ClFILToken clFILImpl = new ClFILToken();
-		ERC1967Proxy tokenProxy = new ERC1967Proxy(address(clFILImpl), "");
-		clFIL = ClFILToken(address(tokenProxy));
-		clFIL.initialize(address(wfil), address(staking));
-
 		StorageProviderRegistryMock registryImpl = new StorageProviderRegistryMock();
 		ERC1967Proxy registryProxy = new ERC1967Proxy(address(registryImpl), "");
 		registry = StorageProviderRegistryMock(address(registryProxy));
@@ -95,7 +88,6 @@ contract StorageProviderCollateralTest is DSTestPlus {
 
 		registry.setCollateralAddress(address(collateral));
 		staking.setRegistryAddress(address(registry));
-		staking.setClFILToken(address(clFIL));
 		registry.registerPool(address(staking));
 
 		hevm.prank(alice);

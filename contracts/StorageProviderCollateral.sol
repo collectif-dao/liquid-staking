@@ -368,7 +368,6 @@ contract StorageProviderCollateral is
 	 * @param requirements Percentage of collateral requirements
 	 */
 	function updateCollateralRequirements(uint64 _ownerId, uint256 requirements) external {
-		// require(hasRole(COLLATERAL_ADMIN, msg.sender) || msg.sender == address(registry), "INVALID_ACCESS");
 		if (msg.sender != address(registry) && !hasRole(COLLATERAL_ADMIN, msg.sender)) revert InvalidAccess();
 
 		if (requirements == 0) {

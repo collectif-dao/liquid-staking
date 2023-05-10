@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {IClFILTokenClient} from "./interfaces/IClFILClient.sol";
-import {IWFIL} from "./libraries/tokens/IWFIL.sol";
-
+import {ClFILToken} from "./ClFIL.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
@@ -18,7 +16,6 @@ import {ILiquidStaking} from "./interfaces/ILiquidStaking.sol";
 import {IStorageProviderCollateralClient} from "./interfaces/IStorageProviderCollateralClient.sol";
 import {IStorageProviderRegistryClient} from "./interfaces/IStorageProviderRegistryClient.sol";
 import {IBigInts} from "./libraries/BigInts.sol";
-import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 
 /**
  * @title LiquidStaking contract allows users to stake/unstake FIL to earn
@@ -32,9 +29,9 @@ import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
  * performs wrapping of the native FIL into Wrapped Filecoin (WFIL) token.
  */
 contract LiquidStaking is
-	DSTestPlus,
 	ILiquidStaking,
 	Initializable,
+	ClFILToken,
 	ReentrancyGuardUpgradeable,
 	AccessControlUpgradeable,
 	UUPSUpgradeable
@@ -43,13 +40,9 @@ contract LiquidStaking is
 	using FilAddress for address;
 
 	error InvalidAccess();
-	error InvalidParams();
 	error InvalidCall();
 	error InvalidAddress();
 	error ERC4626ZeroShares();
-	error ERC4626Overflow();
-	error ERC4626Underflow();
-	error AllowanceUnderflow();
 	error InactiveActor();
 	error ActiveSlashing();
 	error InactiveSlashing();
@@ -64,11 +57,9 @@ contract LiquidStaking is
 	uint256 public baseProfitShare;
 	address public rewardCollector;
 
-	IWFIL public WFIL; // WFIL implementation
-	IStorageProviderCollateralClient public collateral;
-	IStorageProviderRegistryClient public registry;
-	IBigInts public BigInts;
-	IClFILTokenClient public clFIL;
+	IStorageProviderCollateralClient internal collateral;
+	IStorageProviderRegistryClient internal registry;
+	IBigInts internal BigInts;
 
 	bytes32 private constant LIQUID_STAKING_ADMIN = keccak256("LIQUID_STAKING_ADMIN");
 	bytes32 private constant FEE_DISTRIBUTOR = keccak256("FEE_DISTRIBUTOR");
@@ -99,11 +90,10 @@ contract LiquidStaking is
 	) public initializer {
 		__AccessControl_init();
 		__ReentrancyGuard_init();
+		ClFILToken.initialize(_wFIL);
 		__UUPSUpgradeable_init();
-		if (_adminFee > 2000 || _rewardCollector == address(0)) revert InvalidParams();
-		if (_wFIL == address(0)) revert InvalidParams();
 
-		WFIL = IWFIL(_wFIL);
+		if (_adminFee > 2000 || _rewardCollector == address(0)) revert InvalidParams();
 		adminFee = _adminFee;
 		baseProfitShare = _baseProfitShare;
 		rewardCollector = _rewardCollector;
@@ -133,16 +123,16 @@ contract LiquidStaking is
 		uint256 assets = msg.value;
 		address receiver = msg.sender.normalize();
 
-		if (assets > clFIL.maxDeposit(receiver)) revert ERC4626Overflow();
-
-		shares = clFIL.previewDeposit(assets);
+		if (assets > maxDeposit(receiver)) revert ERC4626Overflow();
+		shares = previewDeposit(assets);
 
 		if (shares == 0) revert ERC4626ZeroShares();
 
 		WFIL.deposit{value: assets}();
-		clFIL.mintShares(receiver, shares);
 
-		emit Stake(_msgSender(), receiver, assets, shares);
+		_mint(receiver, shares);
+
+		emit Deposit(_msgSender(), receiver, assets, shares);
 	}
 
 	/**
@@ -153,18 +143,18 @@ contract LiquidStaking is
 	 * @dev Please note that unstake amount has to be clFIL shares (not FIL assets)
 	 */
 	function unstake(uint256 shares, address owner) external nonReentrant returns (uint256 assets) {
-		if (shares > clFIL.maxRedeem(owner)) revert ERC4626Overflow();
+		if (shares > maxRedeem(owner)) revert ERC4626Overflow();
 
 		address receiver = msg.sender.normalize();
 		owner = owner.normalize();
 
-		assets = clFIL.previewRedeem(shares);
+		assets = previewRedeem(shares);
 
 		if (receiver != owner) {
-			clFIL.spendAllowance(owner, receiver, shares);
+			_spendAllowance(owner, receiver, shares);
 		}
 
-		clFIL.burnShares(owner, shares);
+		_burn(owner, shares);
 
 		emit Unstaked(msg.sender, owner, assets, shares);
 
@@ -178,17 +168,17 @@ contract LiquidStaking is
 	 * @param owner Receiver of FIL assets
 	 */
 	function unstakeAssets(uint256 assets, address owner) external nonReentrant returns (uint256 shares) {
-		if (assets > clFIL.maxWithdraw(owner)) revert ERC4626Overflow();
+		if (assets > maxWithdraw(owner)) revert ERC4626Overflow();
 
 		address receiver = msg.sender.normalize();
 		owner = owner.normalize();
 
-		shares = clFIL.previewWithdraw(assets);
+		shares = previewWithdraw(assets);
 		if (receiver != owner) {
-			clFIL.spendAllowance(owner, receiver, shares);
+			_spendAllowance(owner, receiver, shares);
 		}
 
-		clFIL.burnShares(owner, shares);
+		_burn(owner, shares);
 
 		emit Unstaked(receiver, owner, assets, shares);
 
@@ -200,7 +190,7 @@ contract LiquidStaking is
 	 * @param amount Amount of FIL to pledge from Liquid Staking Pool
 	 */
 	function pledge(uint256 amount) external virtual nonReentrant {
-		if (amount > clFIL.totalAssets()) revert InvalidParams();
+		if (amount > totalAssets()) revert InvalidParams();
 
 		address ownerAddr = msg.sender.normalize();
 		(bool isID, uint64 ownerId) = ownerAddr.getActorID();
@@ -381,28 +371,21 @@ contract LiquidStaking is
 	 * @param receiver f4 address to receive clFIL tokens
 	 */
 	function _restake(uint256 assets, address receiver) internal returns (uint256 shares) {
-		if (assets > clFIL.maxDeposit(receiver)) revert ERC4626Overflow();
-		shares = clFIL.previewDeposit(assets);
+		if (assets > maxDeposit(receiver)) revert ERC4626Overflow();
+		shares = previewDeposit(assets);
 		if (shares == 0) revert ERC4626ZeroShares();
 
-		clFIL.mintShares(receiver, shares);
+		_mint(receiver, shares);
 
-		emit Stake(receiver, receiver, assets, shares);
+		emit Deposit(receiver, receiver, assets, shares);
 	}
 
 	/**
 	 * @notice Returns total amount of assets backing clFIL, that includes
 	 * buffered capital in the pool and pledged capital to the SPs.
 	 */
-	function totalAssets() public view virtual returns (uint256) {
-		return clFIL.totalAssets();
-	}
-
-	/**
-	 * @notice Returns balance of clFIL tokens for `owner`
-	 */
-	function balanceOf(address owner) public view virtual returns (uint256) {
-		return clFIL.balanceOf(owner);
+	function totalAssets() public view virtual override returns (uint256) {
+		return totalFilAvailable() + totalFilPledged;
 	}
 
 	/**
@@ -452,17 +435,6 @@ contract LiquidStaking is
 		registry = IStorageProviderRegistryClient(newAddr);
 
 		emit SetRegistryAddress(newAddr);
-	}
-
-	/**
-	 * @notice Updates clFIL token contract address
-	 * @param token clFILToken contract address
-	 */
-	function setClFILToken(address token) external onlyAdmin {
-		address prevToken = address(clFIL);
-		if (token == address(0) || prevToken == token) revert InvalidAddress();
-
-		clFIL = IClFILTokenClient(token);
 	}
 
 	/**
