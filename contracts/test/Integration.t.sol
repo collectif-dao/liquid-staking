@@ -428,7 +428,7 @@ contract IntegrationTest is DSTestPlus {
 			);
 
 			if (i == slashingDay) {
-				staking.reportSlashing(aliceOwnerId, slashingAmt);
+				collateral.reportSlashing(aliceOwnerId, slashingAmt);
 
 				uint256 lockedCol = collateralRequirements > slashingAmt
 					? collateralRequirements - slashingAmt
@@ -436,7 +436,7 @@ contract IntegrationTest is DSTestPlus {
 
 				require(collateral.getLockedCollateral(aliceOwnerId) == lockedCol, "INVALID_LOCKED_COLLATERAL");
 				assertEq(collateral.slashings(aliceOwnerId), slashingAmt);
-				assertBoolEq(staking.activeSlashings(aliceOwnerId), true);
+				assertBoolEq(collateral.activeSlashings(aliceOwnerId), true);
 
 				// Try to pledge daily allocation after slashing
 				hevm.prank(alice);
@@ -444,8 +444,8 @@ contract IntegrationTest is DSTestPlus {
 				staking.pledge(vars.dailyAllocation);
 
 				// Recover SP after recovering sectors
-				staking.reportRecovery(aliceOwnerId);
-				assertBoolEq(staking.activeSlashings(aliceOwnerId), false);
+				collateral.reportRecovery(aliceOwnerId);
+				assertBoolEq(collateral.activeSlashings(aliceOwnerId), false);
 
 				hevm.prank(alice);
 				collateral.deposit{value: slashingAmt}(aliceOwnerId);

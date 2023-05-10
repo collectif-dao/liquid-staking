@@ -15,7 +15,6 @@ contract LiquidStakingMock is LiquidStaking {
 
 	bytes32 private constant LIQUID_STAKING_ADMIN = keccak256("LIQUID_STAKING_ADMIN");
 	bytes32 private constant FEE_DISTRIBUTOR = keccak256("FEE_DISTRIBUTOR");
-	bytes32 private constant SLASHING_AGENT = keccak256("SLASHING_AGENT");
 
 	IMinerActorMock private minerActorMock;
 	MockAPI private mockAPI;
@@ -57,8 +56,6 @@ contract LiquidStakingMock is LiquidStaking {
 		_setRoleAdmin(LIQUID_STAKING_ADMIN, DEFAULT_ADMIN_ROLE);
 		grantRole(FEE_DISTRIBUTOR, msg.sender);
 		_setRoleAdmin(FEE_DISTRIBUTOR, DEFAULT_ADMIN_ROLE);
-		grantRole(SLASHING_AGENT, msg.sender);
-		_setRoleAdmin(SLASHING_AGENT, DEFAULT_ADMIN_ROLE);
 
 		minerActorMock = IMinerActorMock(minerActor);
 		ownerId = _ownerId;
@@ -73,9 +70,11 @@ contract LiquidStakingMock is LiquidStaking {
 	 */
 	function pledge(uint256 amount) external virtual override nonReentrant {
 		if (amount > totalAssets()) revert InvalidParams();
-		if (activeSlashings[ownerId]) revert ActiveSlashing();
 
-		ICollateralClient(resolver.getCollateral()).lock(ownerId, amount);
+		ICollateralClient collateral = ICollateralClient(resolver.getCollateral());
+		if (collateral.activeSlashings(ownerId)) revert ActiveSlashing();
+
+		collateral.lock(ownerId, amount);
 
 		(, , uint64 minerId, ) = IRegistryClient(resolver.getRegistry()).getStorageProvider(ownerId);
 

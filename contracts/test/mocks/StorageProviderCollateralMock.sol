@@ -12,6 +12,7 @@ import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Ini
  */
 contract StorageProviderCollateralMock is StorageProviderCollateral {
 	bytes32 private constant COLLATERAL_ADMIN = keccak256("COLLATERAL_ADMIN");
+	bytes32 private constant SLASHING_AGENT = keccak256("SLASHING_AGENT");
 
 	/**
 	 * @dev Contract initializer function.
@@ -33,6 +34,8 @@ contract StorageProviderCollateralMock is StorageProviderCollateral {
 		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 		_setRoleAdmin(COLLATERAL_ADMIN, DEFAULT_ADMIN_ROLE);
 		grantRole(COLLATERAL_ADMIN, msg.sender);
+		grantRole(SLASHING_AGENT, msg.sender);
+		_setRoleAdmin(SLASHING_AGENT, DEFAULT_ADMIN_ROLE);
 	}
 
 	/**
@@ -84,6 +87,32 @@ contract StorageProviderCollateralMock is StorageProviderCollateral {
 	function increaseUserAllocation(uint64 ownerId, uint256 amount) public {
 		IRegistryClient(resolver.getRegistry()).increaseUsedAllocation(ownerId, amount, block.timestamp);
 	}
+
+	/**
+	 * @dev Slashes SP for a `_slashingAmt` and delivers WFIL amount to the `msg.sender` LSP
+	 * @notice Doesn't perform a rebalancing checks
+	 * @param _ownerId Storage provider owner ID
+	 * @param _slashingAmt Slashing amount for SP
+	 * @param _pool Liquid staking pool address
+	 */
+	function slash(
+		uint64 _ownerId,
+		uint256 _slashingAmt,
+		address _pool
+	) external nonReentrant activeStorageProvider(_ownerId) {
+		_slash(_ownerId, _slashingAmt, _pool);
+	}
+}
+
+interface IStorageProviderCollateralMock is IStorageProviderCollateral {
+	/**
+	 * @dev Slashes SP for a `_slashingAmt` and delivers WFIL amount to the `msg.sender` LSP
+	 * @notice Doesn't perform a rebalancing checks
+	 * @param _ownerId Storage provider owner ID
+	 * @param _slashingAmt Slashing amount for SP
+	 * @param _pool Liquid staking pool address
+	 */
+	function slash(uint64 _ownerId, uint256 _slashingAmt, address _pool) external;
 }
 
 /**
@@ -91,7 +120,7 @@ contract StorageProviderCollateralMock is StorageProviderCollateral {
  * @author Collective DAO
  */
 contract StorageProviderCollateralCallerMock {
-	IStorageProviderCollateral public collateral;
+	IStorageProviderCollateralMock public collateral;
 
 	/**
 	 * @dev Contract constructor function.
@@ -99,7 +128,7 @@ contract StorageProviderCollateralCallerMock {
 	 *
 	 */
 	constructor(address _collateral) {
-		collateral = IStorageProviderCollateral(_collateral);
+		collateral = IStorageProviderCollateralMock(_collateral);
 	}
 
 	/**
@@ -127,7 +156,7 @@ contract StorageProviderCollateralCallerMock {
 	 * @param _ownerId Storage provider owner ID
 	 * @param _slashingAmt Slashing amount for SP
 	 */
-	function slash(uint64 _ownerId, uint256 _slashingAmt) public {
-		collateral.slash(_ownerId, _slashingAmt);
+	function slash(uint64 _ownerId, uint256 _slashingAmt, address _pool) public {
+		collateral.slash(_ownerId, _slashingAmt, _pool);
 	}
 }

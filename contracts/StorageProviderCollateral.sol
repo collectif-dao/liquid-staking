@@ -43,9 +43,11 @@ contract StorageProviderCollateral is
 	error InvalidParams();
 	error InactiveActor();
 	error InactiveSP();
+	error InactivePool();
 	error InvalidAccess();
 	error InsufficientFunds();
 	error InsufficientCollateral();
+	error InactiveSlashing();
 
 	// Mapping of storage provider collateral information to their owner ID
 	mapping(uint64 => SPCollateral) public collaterals;
@@ -55,7 +57,11 @@ contract StorageProviderCollateral is
 
 	mapping(uint64 => uint256) public collateralRequirements;
 
+	// Mapping of storage providers slashing flags to owner ID
+	mapping(uint64 => bool) public activeSlashings;
+
 	bytes32 private constant COLLATERAL_ADMIN = keccak256("COLLATERAL_ADMIN");
+	bytes32 private constant SLASHING_AGENT = keccak256("SLASHING_AGENT");
 
 	uint256 public baseRequirements; // Number in basis points (10000 = 100%)
 	uint256 public constant BASIS_POINTS = 10000;
@@ -70,8 +76,7 @@ contract StorageProviderCollateral is
 	}
 
 	modifier activeStorageProvider(uint64 _ownerId) {
-		address registry = resolver.getRegistry();
-		if (!IRegistryClient(registry).isActiveProvider(_ownerId)) revert InactiveSP();
+		if (!IRegistryClient(resolver.getRegistry()).isActiveProvider(_ownerId)) revert InactiveSP();
 		_;
 	}
 
@@ -100,6 +105,8 @@ contract StorageProviderCollateral is
 		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 		_setRoleAdmin(COLLATERAL_ADMIN, DEFAULT_ADMIN_ROLE);
 		grantRole(COLLATERAL_ADMIN, msg.sender);
+		grantRole(SLASHING_AGENT, msg.sender);
+		_setRoleAdmin(SLASHING_AGENT, DEFAULT_ADMIN_ROLE);
 	}
 
 	receive() external payable virtual {}
@@ -185,13 +192,57 @@ contract StorageProviderCollateral is
 	}
 
 	/**
+	 * @notice Report slashing of SP accured on the Filecoin network
+	 * This function is triggered when SP get continiously slashed by faulting it's sectors
+	 * @param _ownerId Storage provider owner ID
+	 * @param _slashingAmt Slashing amount
+	 *
+	 * @dev Please note that slashing amount couldn't exceed the total amount of collateral provided by SP.
+	 * If sector has been slashed for 42 days and automatically terminated both operations
+	 * would take place after one another: slashing report and initial pledge withdrawal
+	 * which is the remaining pledge for a terminated sector.
+	 */
+	function reportSlashing(
+		uint64 _ownerId,
+		uint256 _slashingAmt
+	) external virtual nonReentrant activeStorageProvider(_ownerId) {
+		emit log_named_address("msg.sender", msg.sender);
+		emit log_named_string("hasRole(SLASHING_AGENT)", hasRole(SLASHING_AGENT, msg.sender) ? "true" : "false");
+
+		if (!hasRole(SLASHING_AGENT, msg.sender)) revert InvalidAccess();
+		if (_slashingAmt == 0) revert InvalidParams();
+		(, , uint64 minerId, ) = IRegistryClient(resolver.getRegistry()).getStorageProvider(_ownerId);
+
+		_slash(_ownerId, _slashingAmt, resolver.getLiquidStaking());
+
+		activeSlashings[_ownerId] = true;
+
+		emit ReportSlashing(_ownerId, minerId, _slashingAmt);
+	}
+
+	/**
+	 * @notice Report recovery of previously slashed sectors for SP with `_ownerId`
+	 * @param _ownerId Storage provider owner ID
+	 */
+	function reportRecovery(uint64 _ownerId) external virtual activeStorageProvider(_ownerId) {
+		if (!hasRole(SLASHING_AGENT, msg.sender)) revert InvalidAccess();
+		if (!activeSlashings[_ownerId]) revert InactiveSlashing();
+		(, , uint64 minerId, ) = IRegistryClient(resolver.getRegistry()).getStorageProvider(_ownerId);
+
+		activeSlashings[_ownerId] = false;
+
+		emit ReportRecovery(_ownerId, minerId);
+	}
+
+	/**
 	 * @dev Slashes SP for a `_slashingAmt` and delivers WFIL amount to the `msg.sender` LSP
 	 * @notice Doesn't perform a rebalancing checks
 	 * @param _ownerId Storage provider owner ID
 	 * @param _slashingAmt Slashing amount for SP
+	 * @param _pool Liquid staking pool address
 	 */
-	function slash(uint64 _ownerId, uint256 _slashingAmt) external activeStorageProvider(_ownerId) {
-		if (!IRegistryClient(resolver.getRegistry()).isActivePool(msg.sender)) revert InvalidAccess();
+	function _slash(uint64 _ownerId, uint256 _slashingAmt, address _pool) internal {
+		if (!IRegistryClient(resolver.getRegistry()).isActivePool(_pool)) revert InactivePool();
 
 		SPCollateral memory collateral = collaterals[_ownerId];
 		if (_slashingAmt <= collateral.lockedCollateral) {
@@ -208,9 +259,9 @@ contract StorageProviderCollateral is
 		collaterals[_ownerId] = collateral;
 		slashings[_ownerId] += _slashingAmt;
 
-		WFIL.transfer(msg.sender, _slashingAmt);
+		WFIL.transfer(_pool, _slashingAmt);
 
-		emit StorageProviderCollateralSlash(_ownerId, _slashingAmt, msg.sender);
+		emit StorageProviderCollateralSlash(_ownerId, _slashingAmt, _pool);
 	}
 
 	/**

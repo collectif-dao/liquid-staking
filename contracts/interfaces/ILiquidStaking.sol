@@ -37,21 +37,6 @@ interface ILiquidStaking {
 	event PledgeRepayment(uint64 ownerId, uint64 minerId, uint256 amount);
 
 	/**
-	 * @notice Emitted when storage provider has been reported to accure slashing
-	 * @param ownerId Storage Provider's owner ID
-	 * @param minerId Storage Provider's miner actor ID
-	 * @param slashingAmount Slashing amount
-	 */
-	event ReportSlashing(uint64 ownerId, uint64 minerId, uint256 slashingAmount);
-
-	/**
-	 * @notice Emitted when storage provider has been reported to recover slashed sectors
-	 * @param ownerId Storage Provider's owner ID
-	 * @param minerId Storage Provider's miner actor ID
-	 */
-	event ReportRecovery(uint64 ownerId, uint64 minerId);
-
-	/**
 	 * @notice Emitted when collateral address is updated
 	 * @param collateral StorageProviderCollateral contract address
 	 */
@@ -125,25 +110,6 @@ interface ILiquidStaking {
 	 * @param amount Initial pledge amount
 	 */
 	function withdrawPledge(uint64 ownerId, uint256 amount) external;
-
-	/**
-	 * @notice Report slashing of SP accured on the Filecoin network
-	 * This function is triggered when SP get continiously slashed by faulting it's sectors
-	 * @param _ownerId Storage provider owner ID
-	 * @param _slashingAmt Slashing amount
-	 *
-	 * @dev Please note that slashing amount couldn't exceed the total amount of collateral provided by SP.
-	 * If sector has been slashed for 42 days and automatically terminated both operations
-	 * would take place after one another: slashing report and initial pledge withdrawal
-	 * which is the remaining pledge for a terminated sector.
-	 */
-	function reportSlashing(uint64 _ownerId, uint256 _slashingAmt) external;
-
-	/**
-	 * @notice Report recovery of previously slashed sectors for SP with `_ownerId`
-	 * @param _ownerId Storage provider owner ID
-	 */
-	function reportRecovery(uint64 _ownerId) external;
 
 	/**
 	 * @dev Updates profit sharing requirements for SP with `_ownerId` by `_profitShare` percentage

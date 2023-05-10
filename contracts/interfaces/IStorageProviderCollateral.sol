@@ -16,6 +16,21 @@ interface IStorageProviderCollateral {
 	event SetRegistryAddress(address registry);
 
 	/**
+	 * @notice Emitted when storage provider has been reported to accure slashing
+	 * @param ownerId Storage Provider's owner ID
+	 * @param minerId Storage Provider's miner actor ID
+	 * @param slashingAmount Slashing amount
+	 */
+	event ReportSlashing(uint64 ownerId, uint64 minerId, uint256 slashingAmount);
+
+	/**
+	 * @notice Emitted when storage provider has been reported to recover slashed sectors
+	 * @param ownerId Storage Provider's owner ID
+	 * @param minerId Storage Provider's miner actor ID
+	 */
+	event ReportRecovery(uint64 ownerId, uint64 minerId);
+
+	/**
 	 * @dev Deposit `msg.value` FIL funds by the msg.sender into collateral
 	 * @notice Wrapps of FIL into WFIL token internally
 	 */
@@ -44,12 +59,23 @@ interface IStorageProviderCollateral {
 	function fit(uint64 _ownerId) external;
 
 	/**
-	 * @dev Slashes SP for a `_slashingAmt` and delivers WFIL amount to the `msg.sender` LSP
-	 * @notice Doesn't perform a rebalancing checks
+	 * @notice Report slashing of SP accured on the Filecoin network
+	 * This function is triggered when SP get continiously slashed by faulting it's sectors
 	 * @param _ownerId Storage provider owner ID
-	 * @param _slashingAmt Slashing amount for SP
+	 * @param _slashingAmt Slashing amount
+	 *
+	 * @dev Please note that slashing amount couldn't exceed the total amount of collateral provided by SP.
+	 * If sector has been slashed for 42 days and automatically terminated both operations
+	 * would take place after one another: slashing report and initial pledge withdrawal
+	 * which is the remaining pledge for a terminated sector.
 	 */
-	function slash(uint64 _ownerId, uint256 _slashingAmt) external;
+	function reportSlashing(uint64 _ownerId, uint256 _slashingAmt) external;
+
+	/**
+	 * @notice Report recovery of previously slashed sectors for SP with `_ownerId`
+	 * @param _ownerId Storage provider owner ID
+	 */
+	function reportRecovery(uint64 _ownerId) external;
 
 	/**
 	 * @notice Return Storage Provider Collateral information with `_provider` address

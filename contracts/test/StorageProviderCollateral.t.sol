@@ -14,6 +14,7 @@ import {StorageProviderCollateralMock, IStorageProviderCollateral, StorageProvid
 import {StorageProviderRegistryMock, StorageProviderRegistryCallerMock} from "./mocks/StorageProviderRegistryMock.sol";
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
 import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
+import {MinerActorMock} from "./mocks/MinerActorMock.sol";
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 import {ERC1967Proxy} from "@oz/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
@@ -26,6 +27,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	LiquidStakingMock public staking;
 	IWFIL public wfil;
 	MinerMockAPI private minerMockAPI;
+	MinerActorMock public minerActor;
 	BigIntsClient private bigIntsLib;
 	Resolver public resolver;
 
@@ -57,6 +59,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 
 		wfil = IWFIL(address(new WFIL(msg.sender)));
 		minerMockAPI = new MinerMockAPI(owner);
+		minerActor = new MinerActorMock();
 
 		bigIntsLib = new BigIntsClient();
 
@@ -70,7 +73,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		staking = LiquidStakingMock(payable(stakingProxy));
 		staking.initialize(
 			address(wfil),
-			address(0x21421),
+			address(minerActor),
 			aliceOwnerId,
 			1000,
 			3000,
@@ -198,8 +201,6 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		require(wfil.balanceOf(address(collateral)) == amount, "INVALID_BALANCE");
 		require(wfil.balanceOf(alice) == 0, "INVALID_BALANCE");
 	}
-
-	// TODO: fix rounding errors on precision calculations
 
 	function testFitDown(uint256 percentage) public {
 		hevm.assume(percentage > 0 && percentage <= BASIS_POINTS);
@@ -338,7 +339,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		uint256 slashingAmt = (lockedAmount * 5000) / BASIS_POINTS;
 		uint256 totalSlashing = slashingAmt;
 
-		callerMock.slash(aliceOwnerId, slashingAmt);
+		callerMock.slash(aliceOwnerId, slashingAmt, address(callerMock));
 
 		lockedAmount = lockedAmount - slashingAmt;
 		assertEq(collateral.getLockedCollateral(aliceOwnerId), lockedAmount);
@@ -351,7 +352,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		slashingAmt = (lockedAmount * 15000) / BASIS_POINTS;
 		totalSlashing = totalSlashing + slashingAmt;
 
-		callerMock.slash(aliceOwnerId, slashingAmt);
+		callerMock.slash(aliceOwnerId, slashingAmt, address(callerMock));
 
 		assertEq(collateral.getLockedCollateral(aliceOwnerId), 0);
 		assertEq(collateral.slashings(aliceOwnerId), totalSlashing);
@@ -381,7 +382,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		require(wfil.balanceOf(alice) == 0, "INVALID_BALANCE");
 
 		hevm.expectRevert(abi.encodeWithSignature("InsufficientCollateral()"));
-		callerMock.slash(aliceOwnerId, amount + 1);
+		callerMock.slash(aliceOwnerId, amount + 1, address(callerMock));
 	}
 
 	function testUpdateCollateralRequirements(uint256 requirements) public {
@@ -421,5 +422,116 @@ contract StorageProviderCollateralTest is DSTestPlus {
 
 		hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
 		collateral.updateBaseCollateralRequirements(0);
+	}
+
+	function testReportSlashing(uint128 amount) public {
+		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
+		uint256 collateralAmount = (amount * baseCollateralRequirements) / BASIS_POINTS;
+
+		hevm.deal(address(this), amount);
+		hevm.deal(alice, collateralAmount);
+
+		hevm.prank(alice);
+		collateral.deposit{value: collateralAmount}(aliceOwnerId);
+
+		staking.stake{value: amount}();
+
+		hevm.prank(alice);
+		staking.pledge(amount);
+
+		require(wfil.balanceOf(address(this)) == 0, "INVALID_BALANCE");
+		require(wfil.balanceOf(address(staking)) == 0, "INVALID_BALANCE");
+		require(address(minerActor).balance == amount, "INVALID_BALANCE");
+		require(staking.totalAssets() == amount, "INVALID_BALANCE");
+
+		uint256 slashingAmt = (collateralAmount * 5000) / BASIS_POINTS;
+		collateral.reportSlashing(aliceOwnerId, slashingAmt);
+
+		require(staking.totalAssets() == amount + slashingAmt, "INVALID_BALANCE");
+		require(wfil.balanceOf(address(staking)) == slashingAmt, "INVALID_BALANCE");
+		require(address(minerActor).balance == amount, "INVALID_BALANCE");
+
+		assertEq(collateral.getLockedCollateral(aliceOwnerId), collateralAmount - slashingAmt);
+		assertEq(collateral.slashings(aliceOwnerId), slashingAmt);
+	}
+
+	function testReportSlashingReverts(uint128 amount) public {
+		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
+		uint256 collateralAmount = (amount * baseCollateralRequirements) / BASIS_POINTS;
+
+		hevm.deal(address(this), amount);
+		hevm.deal(alice, collateralAmount);
+
+		hevm.prank(alice);
+		collateral.deposit{value: collateralAmount}(aliceOwnerId);
+
+		staking.stake{value: amount}();
+
+		hevm.prank(alice);
+		staking.pledge(amount);
+
+		hevm.expectRevert(abi.encodeWithSignature("InsufficientCollateral()"));
+		collateral.reportSlashing(aliceOwnerId, collateralAmount + 1);
+	}
+
+	function testReportSlashingRevertsInvalidAccess(uint128 amount) public {
+		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
+		uint256 collateralAmount = (amount * baseCollateralRequirements) / BASIS_POINTS;
+
+		hevm.deal(address(this), amount);
+		hevm.deal(alice, collateralAmount);
+
+		hevm.prank(alice);
+		collateral.deposit{value: collateralAmount}(aliceOwnerId);
+
+		staking.stake{value: amount}();
+
+		hevm.prank(alice);
+		staking.pledge(amount);
+
+		hevm.prank(alice);
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
+		collateral.reportSlashing(aliceOwnerId, collateralAmount + 1);
+	}
+
+	function testReportRecovery(uint128 amount) public {
+		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
+		uint256 collateralAmount = (amount * baseCollateralRequirements) / BASIS_POINTS;
+
+		hevm.deal(address(this), amount);
+		hevm.deal(alice, collateralAmount);
+
+		hevm.prank(alice);
+		collateral.deposit{value: collateralAmount}(aliceOwnerId);
+
+		staking.stake{value: amount}();
+
+		hevm.prank(alice);
+		staking.pledge(amount);
+
+		uint256 slashingAmt = (collateralAmount * 5000) / BASIS_POINTS;
+		collateral.reportSlashing(aliceOwnerId, slashingAmt);
+
+		assertEq(collateral.getLockedCollateral(aliceOwnerId), collateralAmount - slashingAmt);
+		assertEq(collateral.slashings(aliceOwnerId), slashingAmt);
+		assertBoolEq(collateral.activeSlashings(aliceOwnerId), true);
+
+		collateral.reportRecovery(aliceOwnerId);
+		assertBoolEq(collateral.activeSlashings(aliceOwnerId), false);
+	}
+
+	function testReportRecoveryReverts(uint128 amount) public {
+		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
+
+		hevm.expectRevert(abi.encodeWithSignature("InactiveSlashing()"));
+		collateral.reportRecovery(aliceOwnerId);
+	}
+
+	function testReportRecoveryRevertsWithInvalidAccess(uint128 amount) public {
+		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
+
+		hevm.prank(alice);
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
+		collateral.reportRecovery(aliceOwnerId);
 	}
 }

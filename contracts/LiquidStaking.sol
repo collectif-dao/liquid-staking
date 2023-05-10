@@ -46,7 +46,6 @@ contract LiquidStaking is
 	error ERC4626ZeroShares();
 	error InactiveActor();
 	error ActiveSlashing();
-	error InactiveSlashing();
 	error IncorrectWithdrawal();
 	error BigNumConversion();
 	error InsufficientFunds();
@@ -63,10 +62,8 @@ contract LiquidStaking is
 
 	bytes32 private constant LIQUID_STAKING_ADMIN = keccak256("LIQUID_STAKING_ADMIN");
 	bytes32 private constant FEE_DISTRIBUTOR = keccak256("FEE_DISTRIBUTOR");
-	bytes32 private constant SLASHING_AGENT = keccak256("SLASHING_AGENT");
 
 	mapping(uint64 => uint256) public profitShares;
-	mapping(uint64 => bool) public activeSlashings;
 
 	modifier onlyAdmin() {
 		if (!hasRole(LIQUID_STAKING_ADMIN, msg.sender)) revert InvalidAccess();
@@ -107,8 +104,6 @@ contract LiquidStaking is
 		_setRoleAdmin(LIQUID_STAKING_ADMIN, DEFAULT_ADMIN_ROLE);
 		grantRole(FEE_DISTRIBUTOR, msg.sender);
 		_setRoleAdmin(FEE_DISTRIBUTOR, DEFAULT_ADMIN_ROLE);
-		grantRole(SLASHING_AGENT, msg.sender);
-		_setRoleAdmin(SLASHING_AGENT, DEFAULT_ADMIN_ROLE);
 	}
 
 	receive() external payable virtual {}
@@ -197,9 +192,11 @@ contract LiquidStaking is
 		address ownerAddr = msg.sender.normalize();
 		(bool isID, uint64 ownerId) = ownerAddr.getActorID();
 		if (!isID) revert InactiveActor();
-		if (activeSlashings[ownerId]) revert ActiveSlashing();
 
-		ICollateralClient(resolver.getCollateral()).lock(ownerId, amount);
+		ICollateralClient collateral = ICollateralClient(resolver.getCollateral());
+		if (collateral.activeSlashings(ownerId)) revert ActiveSlashing();
+
+		collateral.lock(ownerId, amount);
 
 		(, , uint64 minerId, ) = IRegistryClient(resolver.getRegistry()).getStorageProvider(ownerId);
 
@@ -245,43 +242,6 @@ contract LiquidStaking is
 		ICollateralClient(resolver.getCollateral()).fit(ownerId);
 
 		emit PledgeRepayment(ownerId, minerId, amount);
-	}
-
-	/**
-	 * @notice Report slashing of SP accured on the Filecoin network
-	 * This function is triggered when SP get continiously slashed by faulting it's sectors
-	 * @param _ownerId Storage provider owner ID
-	 * @param _slashingAmt Slashing amount
-	 *
-	 * @dev Please note that slashing amount couldn't exceed the total amount of collateral provided by SP.
-	 * If sector has been slashed for 42 days and automatically terminated both operations
-	 * would take place after one another: slashing report and initial pledge withdrawal
-	 * which is the remaining pledge for a terminated sector.
-	 */
-	function reportSlashing(uint64 _ownerId, uint256 _slashingAmt) external virtual nonReentrant {
-		if (!hasRole(SLASHING_AGENT, msg.sender)) revert InvalidAccess();
-		if (_slashingAmt == 0) revert InvalidParams();
-		(, , uint64 minerId, ) = IRegistryClient(resolver.getRegistry()).getStorageProvider(_ownerId);
-
-		ICollateralClient(resolver.getCollateral()).slash(_ownerId, _slashingAmt);
-
-		activeSlashings[_ownerId] = true;
-
-		emit ReportSlashing(_ownerId, minerId, _slashingAmt);
-	}
-
-	/**
-	 * @notice Report recovery of previously slashed sectors for SP with `_ownerId`
-	 * @param _ownerId Storage provider owner ID
-	 */
-	function reportRecovery(uint64 _ownerId) external virtual {
-		if (!hasRole(SLASHING_AGENT, msg.sender)) revert InvalidAccess();
-		if (!activeSlashings[_ownerId]) revert InactiveSlashing();
-		(, , uint64 minerId, ) = IRegistryClient(resolver.getRegistry()).getStorageProvider(_ownerId);
-
-		activeSlashings[_ownerId] = false;
-
-		emit ReportRecovery(_ownerId, minerId);
 	}
 
 	struct WithdrawRewardsLocalVars {
