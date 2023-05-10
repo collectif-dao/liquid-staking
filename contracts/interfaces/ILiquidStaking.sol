@@ -37,44 +37,6 @@ interface ILiquidStaking {
 	event PledgeRepayment(uint64 ownerId, uint64 minerId, uint256 amount);
 
 	/**
-	 * @notice Emitted when collateral address is updated
-	 * @param collateral StorageProviderCollateral contract address
-	 */
-	event SetCollateralAddress(address indexed collateral);
-
-	/**
-	 * @notice Emitted when registry address is updated
-	 * @param registry StorageProviderRegistry contract address
-	 */
-	event SetRegistryAddress(address indexed registry);
-
-	/**
-	 * @notice Emitted when profit sharing is update for SP
-	 * @param ownerId SP owner ID
-	 * @param prevShare Previous profit sharing value
-	 * @param profitShare New profit share percentage
-	 */
-	event ProfitShareUpdate(uint64 ownerId, uint256 prevShare, uint256 profitShare);
-
-	/**
-	 * @notice Emitted when admin fee is updated
-	 * @param adminFee New admin fee
-	 */
-	event UpdateAdminFee(uint256 adminFee);
-
-	/**
-	 * @notice Emitted when base profit sharing is updated
-	 * @param profitShare New base profit sharing ratio
-	 */
-	event UpdateBaseProfitShare(uint256 profitShare);
-
-	/**
-	 * @notice Emitted when reward collector address is updated
-	 * @param rewardsCollector New rewards collector address
-	 */
-	event UpdateRewardCollector(address rewardsCollector);
-
-	/**
 	 * @notice Stake FIL to the Liquid Staking pool and get clFIL in return
 	 * native FIL is wrapped into WFIL and deposited into LiquidStaking
 	 *
@@ -112,14 +74,6 @@ interface ILiquidStaking {
 	function withdrawPledge(uint64 ownerId, uint256 amount) external;
 
 	/**
-	 * @dev Updates profit sharing requirements for SP with `_ownerId` by `_profitShare` percentage
-	 * @notice Only triggered by Liquid Staking admin or registry contract while registering SP
-	 * @param _ownerId Storage provider owner ID
-	 * @param _profitShare Percentage of profit sharing
-	 */
-	function updateProfitShare(uint64 _ownerId, uint256 _profitShare) external;
-
-	/**
 	 * @notice Returns pool usage ratio to determine what percentage of FIL
 	 * is pledged compared to the total amount of FIL staked.
 	 */
@@ -135,26 +89,6 @@ interface ILiquidStaking {
 	 * @param _ownerId Storage Provider owner ID
 	 */
 	function totalFees(uint64 _ownerId) external view returns (uint256);
-
-	/**
-	 * @notice Updates admin fee for the protocol revenue
-	 * @param fee New admin fee
-	 * @dev Make sure that admin fee is not greater than 20%
-	 */
-	function updateAdminFee(uint256 fee) external;
-
-	/**
-	 * @notice Updates base profit sharing ratio
-	 * @param share New base profit sharing ratio
-	 * @dev Make sure that profit sharing is not greater than 80%
-	 */
-	function updateBaseProfitShare(uint256 share) external;
-
-	/**
-	 * @notice Updates reward collector address of the protocol revenue
-	 * @param collector New rewards collector address
-	 */
-	function updateRewardsCollector(address collector) external;
 
 	/**
 	 * @notice Triggers changeBeneficiary Miner actor call

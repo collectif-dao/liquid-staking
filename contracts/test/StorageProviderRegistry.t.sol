@@ -17,6 +17,7 @@ import {StorageProviderRegistryMock, StorageProviderRegistryCallerMock} from "./
 import {StorageProviderCollateralMock} from "./mocks/StorageProviderCollateralMock.sol";
 import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
+import {LiquidStakingController} from "../LiquidStakingController.sol";
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 
 import {ERC1967Proxy} from "@oz/contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -28,6 +29,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	MinerMockAPI private minerMockAPI;
 	BigIntsClient private bigIntsLib;
 	Resolver public resolver;
+	LiquidStakingController public controller;
 
 	LiquidStakingMock public staking;
 	IWFIL public wfil;
@@ -64,6 +66,11 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		resolver = Resolver(address(resolverProxy));
 		resolver.initialize();
 
+		LiquidStakingController controllerImpl = new LiquidStakingController();
+		ERC1967Proxy controllerProxy = new ERC1967Proxy(address(controllerImpl), "");
+		controller = LiquidStakingController(address(controllerProxy));
+		controller.initialize(adminFee, profitShare, rewardCollector, address(resolver));
+
 		// hevm.startPrank(proxyAdmin);
 		LiquidStakingMock stakingImpl = new LiquidStakingMock();
 		ERC1967Proxy stakingProxy = new ERC1967Proxy(address(stakingImpl), "");
@@ -72,9 +79,6 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			address(wfil),
 			address(0x21421),
 			aliceOwnerId,
-			adminFee,
-			profitShare,
-			rewardCollector,
 			aliceOwnerAddr,
 			address(minerMockAPI),
 			address(bigIntsLib),
@@ -91,6 +95,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		collateral = StorageProviderCollateralMock(payable(collateralProxy));
 		collateral.initialize(wfil, address(resolver), 1500);
 
+		resolver.setLiquidStakingControllerAddress(address(controller));
 		resolver.setRegistryAddress(address(registry));
 		resolver.setCollateralAddress(address(collateral));
 		resolver.setLiquidStakingAddress(address(staking));

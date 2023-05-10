@@ -16,6 +16,7 @@ import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
 import {MinerActorMock} from "./mocks/MinerActorMock.sol";
 import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {Resolver} from "../Resolver.sol";
+import {LiquidStakingController} from "../LiquidStakingController.sol";
 
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 import {ERC1967Proxy} from "@oz/contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -31,6 +32,7 @@ contract IntegrationTest is DSTestPlus {
 	MinerMockAPI private minerMockAPI;
 	BigIntsClient private bigIntsLib;
 	Resolver public resolver;
+	LiquidStakingController public controller;
 
 	bytes public owner;
 	uint64 public aliceOwnerId = 1508;
@@ -80,6 +82,11 @@ contract IntegrationTest is DSTestPlus {
 		resolver = Resolver(address(resolverProxy));
 		resolver.initialize();
 
+		LiquidStakingController controllerImpl = new LiquidStakingController();
+		ERC1967Proxy controllerProxy = new ERC1967Proxy(address(controllerImpl), "");
+		controller = LiquidStakingController(address(controllerProxy));
+		controller.initialize(adminFee, profitShare, rewardCollector, address(resolver));
+
 		LiquidStakingMock stakingImpl = new LiquidStakingMock();
 		ERC1967Proxy stakingProxy = new ERC1967Proxy(address(stakingImpl), "");
 		staking = LiquidStakingMock(payable(stakingProxy));
@@ -87,9 +94,6 @@ contract IntegrationTest is DSTestPlus {
 			address(wfil),
 			address(minerActor),
 			aliceOwnerId,
-			adminFee,
-			profitShare,
-			rewardCollector,
 			aliceOwnerAddr,
 			address(minerMockAPI),
 			address(bigIntsLib),
@@ -107,6 +111,7 @@ contract IntegrationTest is DSTestPlus {
 		collateral.initialize(wfil, address(resolver), baseCollateralRequirements);
 
 		registry.registerPool(address(staking));
+		resolver.setLiquidStakingControllerAddress(address(controller));
 		resolver.setRegistryAddress(address(registry));
 		resolver.setCollateralAddress(address(collateral));
 		resolver.setLiquidStakingAddress(address(staking));
@@ -565,7 +570,7 @@ contract IntegrationTest is DSTestPlus {
 			);
 
 			if (i == 70) {
-				staking.updateProfitShare(aliceOwnerId, profitShareUpdate);
+				controller.updateProfitShare(aliceOwnerId, profitShareUpdate, address(staking));
 				collateral.updateCollateralRequirements(aliceOwnerId, collateralRequirementsUpdate);
 			}
 

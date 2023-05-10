@@ -12,6 +12,7 @@ import {IStorageProviderRegistry} from "./interfaces/IStorageProviderRegistry.so
 import {ILiquidStakingClient} from "./interfaces/ILiquidStakingClient.sol";
 import {IStorageProviderCollateralClient} from "./interfaces/IStorageProviderCollateralClient.sol";
 import {IResolverClient} from "./interfaces/IResolverClient.sol";
+import {ILiquidStakingControllerClient as IStakingControllerClient} from "./interfaces/ILiquidStakingControllerClient.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
@@ -153,7 +154,7 @@ contract StorageProviderRegistry is
 		sectorSizes[vars.ownerId] = vars.sectorSize;
 
 		IStorageProviderCollateralClient(resolver.getCollateral()).updateCollateralRequirements(vars.ownerId, 0);
-		ILiquidStakingClient(_targetPool).updateProfitShare(vars.ownerId, 0);
+		IStakingControllerClient(resolver.getLiquidStakingController()).updateProfitShare(vars.ownerId, 0, _targetPool);
 
 		emit StorageProviderRegistered(
 			ownerReturn.owner.data,

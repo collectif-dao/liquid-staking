@@ -13,6 +13,7 @@ import {FilAddress} from "fevmate/utils/FilAddress.sol";
 import {SendAPI} from "filecoin-solidity/contracts/v0.8/SendAPI.sol";
 
 import {ILiquidStaking} from "./interfaces/ILiquidStaking.sol";
+import {ILiquidStakingControllerClient as IStakingControllerClient} from "./interfaces/ILiquidStakingControllerClient.sol";
 import {IStorageProviderCollateralClient as ICollateralClient} from "./interfaces/IStorageProviderCollateralClient.sol";
 import {IStorageProviderRegistryClient as IRegistryClient} from "./interfaces/IStorageProviderRegistryClient.sol";
 import {IResolverClient} from "./interfaces/IResolverClient.sol";
@@ -50,20 +51,16 @@ contract LiquidStaking is
 	error BigNumConversion();
 	error InsufficientFunds();
 
+	uint256 private constant BASIS_POINTS = 10000;
+
 	/// @notice The current total amount of FIL that is allocated to SPs.
 	uint256 public totalFilPledged;
-	uint256 private constant BASIS_POINTS = 10000;
-	uint256 public adminFee;
-	uint256 public baseProfitShare;
-	address public rewardCollector;
 
 	IBigInts internal BigInts;
 	IResolverClient internal resolver;
 
 	bytes32 private constant LIQUID_STAKING_ADMIN = keccak256("LIQUID_STAKING_ADMIN");
 	bytes32 private constant FEE_DISTRIBUTOR = keccak256("FEE_DISTRIBUTOR");
-
-	mapping(uint64 => uint256) public profitShares;
 
 	modifier onlyAdmin() {
 		if (!hasRole(LIQUID_STAKING_ADMIN, msg.sender)) revert InvalidAccess();
@@ -73,28 +70,14 @@ contract LiquidStaking is
 	/**
 	 * @dev Contract initializer function.
 	 * @param _wFIL WFIL token contract address
-	 * @param _adminFee Admin fee percentage
-	 * @param _baseProfitShare Base profit sharing percentage
-	 * @param _rewardCollector Rewards collector address
+	 * @param _bigIntsLib BigInts contract address
 	 * @param _resolver Resolver contract address
 	 */
-	function initialize(
-		address _wFIL,
-		uint256 _adminFee,
-		uint256 _baseProfitShare,
-		address _rewardCollector,
-		address _bigIntsLib,
-		address _resolver
-	) public initializer {
+	function initialize(address _wFIL, address _bigIntsLib, address _resolver) public initializer {
 		__AccessControl_init();
 		__ReentrancyGuard_init();
 		ClFILToken.initialize(_wFIL);
 		__UUPSUpgradeable_init();
-
-		if (_adminFee > 2000 || _rewardCollector == address(0)) revert InvalidParams();
-		adminFee = _adminFee;
-		baseProfitShare = _baseProfitShare;
-		rewardCollector = _rewardCollector;
 
 		BigInts = IBigInts(_bigIntsLib);
 		resolver = IResolverClient(_resolver);
@@ -280,8 +263,10 @@ contract LiquidStaking is
 		if (vars.abort) revert BigNumConversion();
 		if (vars.withdrawn != amount) revert IncorrectWithdrawal();
 
-		vars.stakingProfit = (vars.withdrawn * profitShares[ownerId]) / BASIS_POINTS;
-		vars.protocolFees = (vars.withdrawn * adminFee) / BASIS_POINTS;
+		IStakingControllerClient controller = IStakingControllerClient(resolver.getLiquidStakingController());
+
+		vars.stakingProfit = (vars.withdrawn * controller.getProfitShares(ownerId, address(this))) / BASIS_POINTS;
+		vars.protocolFees = (vars.withdrawn * controller.adminFee()) / BASIS_POINTS;
 		vars.protocolShare = vars.stakingProfit + vars.protocolFees;
 
 		(vars.restakingRatio, vars.restakingAddress) = registry.restakings(ownerId);
@@ -295,7 +280,7 @@ contract LiquidStaking is
 		vars.spShare = vars.withdrawn - (vars.protocolShare + vars.restakingAmt);
 
 		WFIL.deposit{value: vars.protocolShare}();
-		WFIL.transfer(rewardCollector, vars.protocolFees);
+		WFIL.transfer(controller.rewardCollector(), vars.protocolFees);
 
 		SendAPI.send(CommonTypes.FilActorId.wrap(ownerId), vars.spShare);
 
@@ -304,29 +289,6 @@ contract LiquidStaking is
 
 		if (vars.isRestaking) {
 			_restake(vars.restakingAmt, vars.restakingAddress);
-		}
-	}
-
-	/**
-	 * @dev Updates profit sharing requirements for SP with `_ownerId` by `_profitShare` percentage
-	 * @notice Only triggered by Liquid Staking admin or registry contract while registering SP
-	 * @param _ownerId Storage provider owner ID
-	 * @param _profitShare Percentage of profit sharing
-	 */
-	function updateProfitShare(uint64 _ownerId, uint256 _profitShare) external {
-		if (!hasRole(LIQUID_STAKING_ADMIN, msg.sender) && msg.sender != resolver.getRegistry()) revert InvalidAccess();
-
-		if (_profitShare == 0) {
-			profitShares[_ownerId] = baseProfitShare;
-
-			emit ProfitShareUpdate(_ownerId, 0, baseProfitShare);
-		} else {
-			uint256 prevShare = profitShares[_ownerId];
-			if (_profitShare > 8000 || _profitShare == prevShare) revert InvalidParams();
-
-			profitShares[_ownerId] = _profitShare;
-
-			emit ProfitShareUpdate(_ownerId, prevShare, _profitShare);
 		}
 	}
 
@@ -358,7 +320,7 @@ contract LiquidStaking is
 	 * @param _ownerId Storage Provider owner ID
 	 */
 	function totalFees(uint64 _ownerId) external view virtual override returns (uint256) {
-		return profitShares[_ownerId] + adminFee;
+		return IStakingControllerClient(resolver.getLiquidStakingController()).totalFees(_ownerId, address(this));
 	}
 
 	/**
@@ -374,47 +336,6 @@ contract LiquidStaking is
 	 */
 	function totalFilAvailable() public view returns (uint256) {
 		return WFIL.balanceOf(address(this));
-	}
-
-	/**
-	 * @notice Updates admin fee for the protocol revenue
-	 * @param fee New admin fee
-	 * @dev Make sure that admin fee is not greater than 20%
-	 */
-	function updateAdminFee(uint256 fee) external onlyAdmin {
-		uint256 prevFee = adminFee;
-		if (fee > 2000 || fee == prevFee) revert InvalidParams();
-
-		adminFee = fee;
-
-		emit UpdateAdminFee(fee);
-	}
-
-	/**
-	 * @notice Updates base profit sharing ratio
-	 * @param share New base profit sharing ratio
-	 * @dev Make sure that profit sharing is not greater than 80%
-	 */
-	function updateBaseProfitShare(uint256 share) external onlyAdmin {
-		uint256 prevShare = baseProfitShare;
-		if (share > 8000 || share == 0 || share == prevShare) revert InvalidParams();
-
-		baseProfitShare = share;
-
-		emit UpdateBaseProfitShare(share);
-	}
-
-	/**
-	 * @notice Updates reward collector address of the protocol revenue
-	 * @param collector New rewards collector address
-	 */
-	function updateRewardsCollector(address collector) external onlyAdmin {
-		address prevAddr = rewardCollector;
-		if (collector == address(0) || prevAddr == collector) revert InvalidAddress();
-
-		rewardCollector = collector;
-
-		emit UpdateRewardCollector(collector);
 	}
 
 	/**

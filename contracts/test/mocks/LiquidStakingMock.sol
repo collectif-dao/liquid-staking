@@ -28,9 +28,6 @@ contract LiquidStakingMock is LiquidStaking {
 		address _wFIL,
 		address minerActor,
 		uint64 _ownerId,
-		uint256 _adminFee,
-		uint256 _profitShare,
-		address _rewardCollector,
 		address _ownerAddr,
 		address _minerApiMock,
 		address _bigIntsLib,
@@ -40,13 +37,6 @@ contract LiquidStakingMock is LiquidStaking {
 		__ReentrancyGuard_init();
 		ClFILToken.initialize(_wFIL);
 		__UUPSUpgradeable_init();
-
-		if (_adminFee > 2000 || _rewardCollector == address(0)) revert InvalidParams();
-		if (_wFIL == address(0)) revert InvalidParams();
-
-		adminFee = _adminFee;
-		baseProfitShare = _profitShare;
-		rewardCollector = _rewardCollector;
 
 		BigInts = IBigInts(_bigIntsLib);
 		resolver = IResolverClient(_resolver);
@@ -141,9 +131,11 @@ contract LiquidStakingMock is LiquidStaking {
 		if (vars.abort) revert BigNumConversion();
 		if (vars.withdrawn != amount) revert IncorrectWithdrawal();
 
-		uint256 profitShare = profitShares[ownerId];
+		IStakingControllerClient controller = IStakingControllerClient(resolver.getLiquidStakingController());
+
+		uint256 profitShare = controller.getProfitShares(ownerId, address(this));
 		vars.stakingProfit = (vars.withdrawn * profitShare) / BASIS_POINTS;
-		vars.protocolFees = (vars.withdrawn * adminFee) / BASIS_POINTS;
+		vars.protocolFees = (vars.withdrawn * controller.adminFee()) / BASIS_POINTS;
 		vars.protocolShare = vars.stakingProfit + vars.protocolFees;
 
 		(vars.restakingRatio, vars.restakingAddress) = registry.restakings(ownerId);
@@ -157,7 +149,7 @@ contract LiquidStakingMock is LiquidStaking {
 		vars.spShare = vars.withdrawn - (vars.protocolShare + vars.restakingAmt);
 
 		WFIL.deposit{value: vars.withdrawn}();
-		WFIL.transfer(rewardCollector, vars.protocolFees);
+		WFIL.transfer(controller.rewardCollector(), vars.protocolFees);
 
 		WFIL.withdraw(vars.spShare);
 		ownerAddr.safeTransferETH(vars.spShare);

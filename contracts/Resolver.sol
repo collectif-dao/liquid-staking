@@ -18,6 +18,7 @@ contract Resolver is IResolver, Initializable, OwnableUpgradeable, UUPSUpgradeab
 	bytes32 private constant REGISTRY = "REGISTRY";
 	bytes32 private constant COLLATERAL = "COLLATERAL";
 	bytes32 private constant BIG_INTS = "BIG_INTS";
+	bytes32 private constant LIQUID_STAKING_CONTROLLER = "LIQUID_STAKING_CONTROLLER";
 
 	/**
 	 * @dev Contract initializer function.
@@ -120,6 +121,24 @@ contract Resolver is IResolver, Initializable, OwnableUpgradeable, UUPSUpgradeab
 	 */
 	function getBigInts() external view override returns (address) {
 		return getAddress(BIG_INTS);
+	}
+
+	/**
+	 * @notice Update LiquidStakingController address
+	 * @param newAddress LiquidStakingController smart contract address
+	 * @dev Only triggered by resolver owner
+	 */
+	function setLiquidStakingControllerAddress(address newAddress) external override onlyOwner {
+		_setAddress(LIQUID_STAKING_CONTROLLER, newAddress);
+
+		emit LiquidStakingControllerAddressUpdated(newAddress);
+	}
+
+	/**
+	 * @notice Returns an address of a Liquid Staking Controller contract
+	 */
+	function getLiquidStakingController() external view override returns (address) {
+		return getAddress(LIQUID_STAKING_CONTROLLER);
 	}
 
 	function _setAddress(bytes32 id, address newAddr) internal {

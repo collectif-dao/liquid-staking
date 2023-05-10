@@ -16,6 +16,7 @@ import {IERC4626RouterBase, ERC4626RouterBase, IERC4626, SelfPermit, PeripheryPa
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
 import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {LiquidStaking} from "../LiquidStaking.sol";
+import {LiquidStakingController} from "../LiquidStakingController.sol";
 import {MinerActorMock} from "./mocks/MinerActorMock.sol";
 import {Resolver} from "../Resolver.sol";
 
@@ -32,6 +33,7 @@ contract LiquidStakingTest is DSTestPlus {
 	MinerMockAPI private minerMockAPI;
 	BigIntsClient private bigIntsLib;
 	Resolver public resolver;
+	LiquidStakingController public controller;
 
 	bytes public owner;
 	uint64 public aliceOwnerId = 1508;
@@ -77,6 +79,11 @@ contract LiquidStakingTest is DSTestPlus {
 		resolver = Resolver(address(resolverProxy));
 		resolver.initialize();
 
+		LiquidStakingController controllerImpl = new LiquidStakingController();
+		ERC1967Proxy controllerProxy = new ERC1967Proxy(address(controllerImpl), "");
+		controller = LiquidStakingController(address(controllerProxy));
+		controller.initialize(adminFee, profitShare, rewardCollector, address(resolver));
+
 		LiquidStakingMock stakingImpl = new LiquidStakingMock();
 		ERC1967Proxy stakingProxy = new ERC1967Proxy(address(stakingImpl), "");
 		staking = LiquidStakingMock(payable(stakingProxy));
@@ -84,9 +91,6 @@ contract LiquidStakingTest is DSTestPlus {
 			address(wfil),
 			address(minerActor),
 			aliceOwnerId,
-			adminFee,
-			profitShare,
-			rewardCollector,
 			aliceOwnerAddr,
 			address(minerMockAPI),
 			address(bigIntsLib),
@@ -105,6 +109,7 @@ contract LiquidStakingTest is DSTestPlus {
 
 		// router = new StakingRouter("Collective DAO Router", wfil);
 
+		resolver.setLiquidStakingControllerAddress(address(controller));
 		resolver.setRegistryAddress(address(registry));
 		resolver.setCollateralAddress(address(collateral));
 		resolver.setLiquidStakingAddress(address(staking));
@@ -447,28 +452,6 @@ contract LiquidStakingTest is DSTestPlus {
 		require(staking.totalAssets() == stakingAssets, "INVALID_BALANCE");
 	}
 
-	function testUpdateProfitShare(uint256 share) public {
-		hevm.assume(share <= 8000 && share > 0 && share != profitShare);
-
-		staking.updateProfitShare(aliceOwnerId, share);
-
-		require(staking.profitShares(aliceOwnerId) == share, "INVALID_PROFIT_SHARE");
-	}
-
-	function testUpdateProfitShareReverts(uint256 share) public {
-		hevm.assume(share > 10000);
-
-		hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
-		staking.updateProfitShare(aliceOwnerId, share);
-	}
-
-	function testUpdateProfitShareRevertsWithSameRequirements() public {
-		staking.updateProfitShare(aliceOwnerId, 0);
-
-		hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
-		staking.updateProfitShare(aliceOwnerId, profitShare);
-	}
-
 	function testPledgeRevertsAfterReportSlashing(uint128 amount) public {
 		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
 
@@ -505,66 +488,5 @@ contract LiquidStakingTest is DSTestPlus {
 
 		hevm.expectRevert(abi.encodeWithSignature("ActiveSlashing()"));
 		staking.pledge(pledgeAmt);
-	}
-
-	function testUpdateAdminFee(uint256 fee) public {
-		hevm.assume(fee <= 2000 && fee != adminFee);
-
-		staking.updateAdminFee(fee);
-	}
-
-	function testUpdateAdminFeeReverts(uint256 fee) public {
-		hevm.assume(fee > 2000 || fee == adminFee);
-
-		if (fee == adminFee) {
-			hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
-			staking.updateAdminFee(fee);
-		} else {
-			hevm.prank(alice);
-			hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
-			staking.updateAdminFee(fee);
-
-			hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
-			staking.updateAdminFee(fee);
-		}
-	}
-
-	function testBaseProfitShare(uint256 share) public {
-		hevm.assume(share <= 8000 && share != profitShare && share > 0);
-
-		staking.updateBaseProfitShare(share);
-	}
-
-	function testBaseProfitShareReverts(uint256 share) public {
-		hevm.assume(share > 8000 || share == profitShare);
-
-		if (share == profitShare) {
-			hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
-			staking.updateBaseProfitShare(profitShare);
-		} else {
-			hevm.prank(alice);
-			hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
-			staking.updateBaseProfitShare(share);
-
-			hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
-			staking.updateBaseProfitShare(share);
-		}
-	}
-
-	function testUpdateRewardsCollector(address collector) public {
-		hevm.assume(collector != address(0) && collector != rewardCollector);
-		staking.updateRewardsCollector(collector);
-	}
-
-	function testUpdateRewardsCollectorReverts() public {
-		hevm.expectRevert(abi.encodeWithSignature("InvalidAddress()"));
-		staking.updateRewardsCollector(rewardCollector);
-
-		hevm.prank(alice);
-		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
-		staking.updateRewardsCollector(address(0));
-
-		hevm.expectRevert(abi.encodeWithSignature("InvalidAddress()"));
-		staking.updateRewardsCollector(address(0));
 	}
 }

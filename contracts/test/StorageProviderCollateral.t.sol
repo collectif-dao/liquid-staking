@@ -13,6 +13,7 @@ import {Resolver} from "../Resolver.sol";
 import {StorageProviderCollateralMock, IStorageProviderCollateral, StorageProviderCollateralCallerMock} from "./mocks/StorageProviderCollateralMock.sol";
 import {StorageProviderRegistryMock, StorageProviderRegistryCallerMock} from "./mocks/StorageProviderRegistryMock.sol";
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
+import {LiquidStakingController} from "../LiquidStakingController.sol";
 import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {MinerActorMock} from "./mocks/MinerActorMock.sol";
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
@@ -30,6 +31,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	MinerActorMock public minerActor;
 	BigIntsClient private bigIntsLib;
 	Resolver public resolver;
+	LiquidStakingController public controller;
 
 	bytes public owner;
 	uint64 public aliceOwnerId = 1508;
@@ -68,6 +70,11 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		resolver = Resolver(address(resolverProxy));
 		resolver.initialize();
 
+		LiquidStakingController controllerImpl = new LiquidStakingController();
+		ERC1967Proxy controllerProxy = new ERC1967Proxy(address(controllerImpl), "");
+		controller = LiquidStakingController(address(controllerProxy));
+		controller.initialize(1000, 3000, rewardCollector, address(resolver));
+
 		LiquidStakingMock stakingImpl = new LiquidStakingMock();
 		ERC1967Proxy stakingProxy = new ERC1967Proxy(address(stakingImpl), "");
 		staking = LiquidStakingMock(payable(stakingProxy));
@@ -75,9 +82,6 @@ contract StorageProviderCollateralTest is DSTestPlus {
 			address(wfil),
 			address(minerActor),
 			aliceOwnerId,
-			1000,
-			3000,
-			rewardCollector,
 			aliceOwnerAddr,
 			address(minerMockAPI),
 			address(bigIntsLib),
@@ -97,6 +101,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		callerMock = new StorageProviderCollateralCallerMock(address(collateral));
 		registryCallerMock = new StorageProviderRegistryCallerMock(address(registry));
 
+		resolver.setLiquidStakingControllerAddress(address(controller));
 		resolver.setRegistryAddress(address(registry));
 		resolver.setCollateralAddress(address(collateral));
 		resolver.setLiquidStakingAddress(address(staking));

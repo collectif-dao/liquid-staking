@@ -81,7 +81,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 		sectorSizes[ownerId] = sampleSectorSize;
 
 		IStorageProviderCollateralClient(resolver.getCollateral()).updateCollateralRequirements(ownerId, 0);
-		ILiquidStakingClient(_targetPool).updateProfitShare(ownerId, 0);
+		IStakingControllerClient(resolver.getLiquidStakingController()).updateProfitShare(ownerId, 0, _targetPool);
 
 		emit StorageProviderRegistered(
 			ownerReturn.owner.data,

@@ -37,6 +37,12 @@ interface IResolver {
 	event BigIntsAddressUpdated(address newAddress);
 
 	/**
+	 * @notice Emitted when new LiquidStaking address updated
+	 * @param newAddress New contract implementation address
+	 */
+	event LiquidStakingControllerAddressUpdated(address newAddress);
+
+	/**
 	 * @notice Sets a `newAddress` for a contract by `id`
 	 * @param id Address Identifier
 	 * @param newAddress Contract implementation address
@@ -102,4 +108,16 @@ interface IResolver {
 	 * @notice Returns the implementation contract
 	 */
 	function getImplementation() external view returns (address);
+
+	/**
+	 * @notice Update LiquidStakingController address
+	 * @param newAddress LiquidStakingController smart contract address
+	 * @dev Only triggered by resolver owner
+	 */
+	function setLiquidStakingControllerAddress(address newAddress) external;
+
+	/**
+	 * @notice Returns an address of a Liquid Staking Controller contract
+	 */
+	function getLiquidStakingController() external view returns (address);
 }
