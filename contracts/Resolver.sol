@@ -1,0 +1,134 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.17;
+
+import {IResolver} from "./interfaces/IResolver.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+
+/**
+ * @title Resolver contract used to resolve registered addresses in the protocol
+ * by their identifiers
+ */
+contract Resolver is IResolver, Initializable, OwnableUpgradeable, UUPSUpgradeable {
+	// Map of registered addresses (identifier => registeredAddress)
+	mapping(bytes32 => address) private _addresses;
+
+	bytes32 private constant LIQUID_STAKING = "LIQUID_STAKING";
+	bytes32 private constant REGISTRY = "REGISTRY";
+	bytes32 private constant COLLATERAL = "COLLATERAL";
+
+	/**
+	 * @dev Contract initializer function.
+	 */
+	function initialize() public initializer {
+		__Ownable_init();
+		__UUPSUpgradeable_init();
+	}
+
+	/**
+	 * @notice Sets a `newAddress` for a contract by `id`
+	 * @param id Address Identifier
+	 * @param newAddress Contract implementation address
+	 * @dev Only triggered by resolver owner
+	 */
+	function setAddress(bytes32 id, address newAddress) external override onlyOwner {
+		address oldAddress = _addresses[id];
+
+		if (oldAddress == newAddress || newAddress == address(0)) revert InvalidAddress();
+
+		_addresses[id] = newAddress;
+		emit AddressSet(id, oldAddress, newAddress);
+	}
+
+	/**
+	 * @notice Returns an address of a contract by its identifier
+	 * @param id Address identifier
+	 */
+	function getAddress(bytes32 id) public view override returns (address) {
+		return _addresses[id];
+	}
+
+	/**
+	 * @notice Update StorageProviderRegistry smart contract address
+	 * @param newAddress StorageProviderRegistry smart contract address
+	 * @dev Only triggered by resolver owner
+	 */
+	function setRegistryAddress(address newAddress) external override onlyOwner {
+		address prevAddr = _addresses[REGISTRY];
+		if (prevAddr == newAddress || newAddress == address(0)) revert InvalidAddress();
+
+		_addresses[REGISTRY] = newAddress;
+
+		emit RegistryAddressUpdated(prevAddr, newAddress);
+	}
+
+	/**
+	 * @notice Returns an address of a Storage Provider Registry contract
+	 */
+	function getRegistry() external view override returns (address) {
+		return getAddress(REGISTRY);
+	}
+
+	/**
+	 * @notice Update StorageProviderCollateral smart contract address
+	 * @param newAddress StorageProviderCollateral smart contract address
+	 * @dev Only triggered by resolver owner
+	 */
+	function setCollateralAddress(address newAddress) external override onlyOwner {
+		address prevAddr = _addresses[COLLATERAL];
+		if (prevAddr == newAddress || newAddress == address(0)) revert InvalidAddress();
+
+		_addresses[COLLATERAL] = newAddress;
+
+		emit CollateralAddressUpdated(prevAddr, newAddress);
+	}
+
+	/**
+	 * @notice Returns an address of a Storage Provider Collateral contract
+	 */
+	function getCollateral() external view override returns (address) {
+		return getAddress(COLLATERAL);
+	}
+
+	/**
+	 * @notice Update LiquidStaking smart contract address
+	 * @param newAddress LiquidStaking smart contract address
+	 * @dev Only triggered by resolver owner
+	 */
+	function setLiquidStakingAddress(address newAddress) external override onlyOwner {
+		address prevAddr = _addresses[LIQUID_STAKING];
+		if (prevAddr == newAddress || newAddress == address(0)) revert InvalidAddress();
+
+		_addresses[LIQUID_STAKING] = newAddress;
+
+		emit LiquidStakingAddressUpdated(prevAddr, newAddress);
+	}
+
+	/**
+	 * @notice Returns an address of a Liquid Staking contract
+	 */
+	function getLiquidStaking() external view override returns (address) {
+		return getAddress(LIQUID_STAKING);
+	}
+
+	/**
+	 * @notice UUPS Upgradeable function to update the liquid staking pool implementation
+	 * @dev Only triggered by contract admin
+	 */
+	function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
+
+	/**
+	 * @notice Returns the version of clFIL token contract
+	 */
+	function version() external pure virtual returns (string memory) {
+		return "v1";
+	}
+
+	/**
+	 * @notice Returns the implementation contract
+	 */
+	function getImplementation() external view returns (address) {
+		return _getImplementation();
+	}
+}
