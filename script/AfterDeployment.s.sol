@@ -19,10 +19,10 @@ contract AfterDeploymentScript is Script {
 		ILiquidStaking staking = ILiquidStaking(stakingAddr);
 		IStorageProviderRegistry registry = IStorageProviderRegistry(registryAddr);
 
-		registry.setCollateralAddress(collateralAddr);
-		staking.setCollateralAddress(collateralAddr);
-		staking.setRegistryAddress(registryAddr);
-		registry.registerPool(address(staking));
+		// registry.setCollateralAddress(collateralAddr);
+		// staking.setCollateralAddress(collateralAddr);
+		// staking.setRegistryAddress(registryAddr);
+		// registry.registerPool(address(staking));
 
 		vm.stopBroadcast();
 	}

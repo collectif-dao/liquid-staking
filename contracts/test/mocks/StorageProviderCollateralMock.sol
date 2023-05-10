@@ -16,16 +16,16 @@ contract StorageProviderCollateralMock is StorageProviderCollateral {
 	/**
 	 * @dev Contract initializer function.
 	 * @param _wFIL WFIL token implementation
-	 * @param _registry StorageProviderRegister contract implementation
+	 * @param _resolver Resolver contract implementation
 	 * @param _baseRequirements Base collateral requirements for SPs
 	 */
-	function initialize(IWFIL _wFIL, address _registry, uint256 _baseRequirements) public override initializer {
+	function initialize(IWFIL _wFIL, address _resolver, uint256 _baseRequirements) public override initializer {
 		__AccessControl_init();
 		__ReentrancyGuard_init();
 		__UUPSUpgradeable_init();
 
 		WFIL = _wFIL;
-		registry = IStorageProviderRegistryClient(_registry);
+		resolver = IResolverClient(_resolver);
 
 		if (_baseRequirements == 0 || _baseRequirements > 10000) revert InvalidParams();
 		baseRequirements = _baseRequirements;
@@ -43,7 +43,7 @@ contract StorageProviderCollateralMock is StorageProviderCollateral {
 		uint256 amount = msg.value;
 		if (amount == 0) revert InvalidParams();
 
-		if (!registry.isActiveProvider(ownerId)) revert InactiveSP();
+		if (!IRegistryClient(resolver.getRegistry()).isActiveProvider(ownerId)) revert InactiveSP();
 
 		SPCollateral storage collateral = collaterals[ownerId];
 		collateral.availableCollateral = collateral.availableCollateral + amount;
@@ -60,7 +60,7 @@ contract StorageProviderCollateralMock is StorageProviderCollateral {
 	 */
 	function withdraw(uint64 ownerId, uint256 _amount) public virtual {
 		if (_amount == 0) revert InvalidParams();
-		if (!registry.isActiveProvider(ownerId)) revert InactiveSP();
+		if (!IRegistryClient(resolver.getRegistry()).isActiveProvider(ownerId)) revert InactiveSP();
 
 		(uint256 lockedWithdraw, uint256 availableWithdraw, bool isUnlock) = calcMaximumWithdraw(ownerId);
 		uint256 maxWithdraw = lockedWithdraw + availableWithdraw;
@@ -82,7 +82,7 @@ contract StorageProviderCollateralMock is StorageProviderCollateral {
 	}
 
 	function increaseUserAllocation(uint64 ownerId, uint256 amount) public {
-		registry.increaseUsedAllocation(ownerId, amount, block.timestamp);
+		IRegistryClient(resolver.getRegistry()).increaseUsedAllocation(ownerId, amount, block.timestamp);
 	}
 }
 

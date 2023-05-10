@@ -34,7 +34,8 @@ contract LiquidStakingMock is LiquidStaking {
 		address _rewardCollector,
 		address _ownerAddr,
 		address _minerApiMock,
-		address _bigIntsLib
+		address _bigIntsLib,
+		address _resolver
 	) public initializer {
 		__AccessControl_init();
 		__ReentrancyGuard_init();
@@ -49,6 +50,7 @@ contract LiquidStakingMock is LiquidStaking {
 		rewardCollector = _rewardCollector;
 
 		BigInts = IBigInts(_bigIntsLib);
+		resolver = IResolverClient(_resolver);
 
 		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 		grantRole(LIQUID_STAKING_ADMIN, msg.sender);
@@ -73,9 +75,9 @@ contract LiquidStakingMock is LiquidStaking {
 		if (amount > totalAssets()) revert InvalidParams();
 		if (activeSlashings[ownerId]) revert ActiveSlashing();
 
-		collateral.lock(ownerId, amount);
+		ICollateralClient(resolver.getCollateral()).lock(ownerId, amount);
 
-		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
+		(, , uint64 minerId, ) = IRegistryClient(resolver.getRegistry()).getStorageProvider(ownerId);
 
 		emit Pledge(ownerId, minerId, amount);
 
@@ -94,6 +96,8 @@ contract LiquidStakingMock is LiquidStaking {
 	 */
 	function withdrawPledge(uint64 ownerId, uint256 amount) external virtual override nonReentrant {
 		if (!hasRole(FEE_DISTRIBUTOR, msg.sender)) revert InvalidAccess();
+		IRegistryClient registry = IRegistryClient(resolver.getRegistry());
+
 		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
 		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
 
@@ -112,7 +116,7 @@ contract LiquidStakingMock is LiquidStaking {
 
 		totalFilPledged -= amount;
 
-		collateral.fit(ownerId);
+		ICollateralClient(resolver.getCollateral()).fit(ownerId);
 
 		emit PledgeRepayment(ownerId, minerId, amount);
 	}
@@ -126,6 +130,7 @@ contract LiquidStakingMock is LiquidStaking {
 	function withdrawRewards(uint64 ownerId, uint256 amount) external virtual override nonReentrant {
 		if (!hasRole(FEE_DISTRIBUTOR, msg.sender)) revert InvalidAccess();
 		WithdrawRewardsLocalVars memory vars;
+		IRegistryClient registry = IRegistryClient(resolver.getRegistry());
 
 		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
 		CommonTypes.BigInt memory withdrawnBInt = minerActorMock.withdrawBalance(
@@ -159,7 +164,7 @@ contract LiquidStakingMock is LiquidStaking {
 		ownerAddr.safeTransferETH(vars.spShare);
 
 		registry.increaseRewards(ownerId, vars.stakingProfit);
-		collateral.fit(ownerId);
+		ICollateralClient(resolver.getCollateral()).fit(ownerId);
 
 		if (vars.isRestaking) {
 			_restake(vars.restakingAmt, vars.restakingAddress);
@@ -179,7 +184,7 @@ contract LiquidStakingMock is LiquidStaking {
 		uint256 quota,
 		int64 expiration
 	) external override {
-		if (msg.sender != address(registry)) revert InvalidAccess();
+		if (msg.sender != resolver.getRegistry()) revert InvalidAccess();
 		if (targetPool != address(this)) revert InvalidAddress();
 
 		CommonTypes.FilActorId filMinerId = CommonTypes.FilActorId.wrap(minerId);

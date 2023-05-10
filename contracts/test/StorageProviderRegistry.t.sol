@@ -12,6 +12,7 @@ import {MinerTypes} from "filecoin-solidity/contracts/v0.8/types/MinerTypes.sol"
 import {BigInts} from "filecoin-solidity/contracts/v0.8/utils/BigInts.sol";
 import {PrecompilesAPI} from "filecoin-solidity/contracts/v0.8/PrecompilesAPI.sol";
 
+import {Resolver} from "../Resolver.sol";
 import {StorageProviderRegistryMock, StorageProviderRegistryCallerMock} from "./mocks/StorageProviderRegistryMock.sol";
 import {StorageProviderCollateralMock} from "./mocks/StorageProviderCollateralMock.sol";
 import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
@@ -26,6 +27,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	StorageProviderCollateralMock public collateral;
 	MinerMockAPI private minerMockAPI;
 	BigIntsClient private bigIntsLib;
+	Resolver public resolver;
 
 	LiquidStakingMock public staking;
 	IWFIL public wfil;
@@ -57,6 +59,11 @@ contract StorageProviderRegistryTest is DSTestPlus {
 
 		bigIntsLib = new BigIntsClient();
 
+		Resolver resolverImpl = new Resolver();
+		ERC1967Proxy resolverProxy = new ERC1967Proxy(address(resolverImpl), "");
+		resolver = Resolver(address(resolverProxy));
+		resolver.initialize();
+
 		// hevm.startPrank(proxyAdmin);
 		LiquidStakingMock stakingImpl = new LiquidStakingMock();
 		ERC1967Proxy stakingProxy = new ERC1967Proxy(address(stakingImpl), "");
@@ -70,22 +77,23 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			rewardCollector,
 			aliceOwnerAddr,
 			address(minerMockAPI),
-			address(bigIntsLib)
+			address(bigIntsLib),
+			address(resolver)
 		);
 
 		StorageProviderRegistryMock registryImpl = new StorageProviderRegistryMock();
 		ERC1967Proxy registryProxy = new ERC1967Proxy(address(registryImpl), "");
 		registry = StorageProviderRegistryMock(address(registryProxy));
-		registry.initialize(address(minerMockAPI), ownerId, MAX_ALLOCATION);
+		registry.initialize(address(minerMockAPI), ownerId, MAX_ALLOCATION, address(resolver));
 
 		StorageProviderCollateralMock collateralImpl = new StorageProviderCollateralMock();
 		ERC1967Proxy collateralProxy = new ERC1967Proxy(address(collateralImpl), "");
 		collateral = StorageProviderCollateralMock(payable(collateralProxy));
-		collateral.initialize(wfil, address(registry), 1500);
+		collateral.initialize(wfil, address(resolver), 1500);
 
-		registry.setCollateralAddress(address(collateral));
-		staking.setRegistryAddress(address(registry));
-		staking.setCollateralAddress(address(collateral));
+		resolver.setRegistryAddress(address(registry));
+		resolver.setCollateralAddress(address(collateral));
+		resolver.setLiquidStakingAddress(address(staking));
 		registry.registerPool(address(staking));
 
 		callerMock = new StorageProviderRegistryCallerMock(address(registry));
@@ -574,30 +582,10 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		assertEq(rAddr, address(0));
 	}
 
-	function testSetCollateralAddress(address collateralAddr) public {
-		hevm.assume(collateralAddr != address(0) && collateralAddr != address(collateral));
-		hevm.etch(collateralAddr, bytes("0x10378"));
-
-		registry.setCollateralAddress(collateralAddr);
-	}
-
-	function testSetCollateralAddressReverts() public {
-		address collateralAddr = address(0x94812417984127);
-		hevm.etch(collateralAddr, bytes("0x103789851206015297"));
-
-		hevm.prank(aliceOwnerAddr);
-		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
-		registry.setCollateralAddress(collateralAddr);
-
-		hevm.expectRevert(abi.encodeWithSignature("InvalidAddress()"));
-		registry.setCollateralAddress(address(collateral));
-	}
-
 	function testRegisterPool(address pool) public {
 		hevm.assume(
 			pool != address(0) && pool != address(staking) && pool != address(callerMock) && pool != address(registry)
 		);
-		hevm.etch(pool, bytes("0x10148"));
 
 		registry.registerPool(pool);
 		assertBoolEq(registry.isActivePool(pool), true);
@@ -605,7 +593,6 @@ contract StorageProviderRegistryTest is DSTestPlus {
 
 	function testRegisterPoolReverts(address pool) public {
 		hevm.assume(pool != address(0) && pool != address(staking) && pool != address(registry));
-		hevm.etch(pool, bytes("0x10148851206015297"));
 
 		hevm.prank(aliceOwnerAddr);
 		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
@@ -670,7 +657,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		registry.changeBeneficiaryAddress();
 		registry.acceptBeneficiaryAddress(ownerId);
 
-		registry.setCollateralAddress(address(callerMock)); // Test case only
+		resolver.setCollateralAddress(address(callerMock)); // Test case only
 		callerMock.increaseUsedAllocation(ownerId, allocated, block.timestamp);
 
 		(, , uint256 usedAllocation, , , ) = registry.allocations(ownerId);
@@ -709,7 +696,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		registry.changeBeneficiaryAddress();
 		registry.acceptBeneficiaryAddress(ownerId);
 
-		registry.setCollateralAddress(address(callerMock)); // Test case only
+		resolver.setCollateralAddress(address(callerMock)); // Test case only
 		callerMock.increaseUsedAllocation(ownerId, _repaidPledge, block.timestamp);
 		callerMock.increasePledgeRepayment(ownerId, _repaidPledge);
 
@@ -753,7 +740,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		registry.changeBeneficiaryAddress();
 		registry.acceptBeneficiaryAddress(ownerId);
 
-		registry.setCollateralAddress(address(callerMock)); // Test case only
+		resolver.setCollateralAddress(address(callerMock)); // Test case only
 
 		uint256 _usedAllocation = _repaidPledge / 2;
 		callerMock.increaseUsedAllocation(ownerId, _usedAllocation, block.timestamp);

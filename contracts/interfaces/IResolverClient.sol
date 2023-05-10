@@ -16,4 +16,9 @@ interface IResolverClient {
 	 * @notice Returns an address of a Liquid Staking contract
 	 */
 	function getLiquidStaking() external view returns (address);
+
+	/**
+	 * @notice Returns an address of a Storage Provider Collateral contract
+	 */
+	function getBigInts() external view returns (address);
 }

@@ -17,6 +17,7 @@ contract Resolver is IResolver, Initializable, OwnableUpgradeable, UUPSUpgradeab
 	bytes32 private constant LIQUID_STAKING = "LIQUID_STAKING";
 	bytes32 private constant REGISTRY = "REGISTRY";
 	bytes32 private constant COLLATERAL = "COLLATERAL";
+	bytes32 private constant BIG_INTS = "BIG_INTS";
 
 	/**
 	 * @dev Contract initializer function.
@@ -55,12 +56,9 @@ contract Resolver is IResolver, Initializable, OwnableUpgradeable, UUPSUpgradeab
 	 * @dev Only triggered by resolver owner
 	 */
 	function setRegistryAddress(address newAddress) external override onlyOwner {
-		address prevAddr = _addresses[REGISTRY];
-		if (prevAddr == newAddress || newAddress == address(0)) revert InvalidAddress();
+		_setAddress(REGISTRY, newAddress);
 
-		_addresses[REGISTRY] = newAddress;
-
-		emit RegistryAddressUpdated(prevAddr, newAddress);
+		emit RegistryAddressUpdated(newAddress);
 	}
 
 	/**
@@ -76,12 +74,9 @@ contract Resolver is IResolver, Initializable, OwnableUpgradeable, UUPSUpgradeab
 	 * @dev Only triggered by resolver owner
 	 */
 	function setCollateralAddress(address newAddress) external override onlyOwner {
-		address prevAddr = _addresses[COLLATERAL];
-		if (prevAddr == newAddress || newAddress == address(0)) revert InvalidAddress();
+		_setAddress(COLLATERAL, newAddress);
 
-		_addresses[COLLATERAL] = newAddress;
-
-		emit CollateralAddressUpdated(prevAddr, newAddress);
+		emit CollateralAddressUpdated(newAddress);
 	}
 
 	/**
@@ -97,12 +92,9 @@ contract Resolver is IResolver, Initializable, OwnableUpgradeable, UUPSUpgradeab
 	 * @dev Only triggered by resolver owner
 	 */
 	function setLiquidStakingAddress(address newAddress) external override onlyOwner {
-		address prevAddr = _addresses[LIQUID_STAKING];
-		if (prevAddr == newAddress || newAddress == address(0)) revert InvalidAddress();
+		_setAddress(LIQUID_STAKING, newAddress);
 
-		_addresses[LIQUID_STAKING] = newAddress;
-
-		emit LiquidStakingAddressUpdated(prevAddr, newAddress);
+		emit LiquidStakingAddressUpdated(newAddress);
 	}
 
 	/**
@@ -110,6 +102,31 @@ contract Resolver is IResolver, Initializable, OwnableUpgradeable, UUPSUpgradeab
 	 */
 	function getLiquidStaking() external view override returns (address) {
 		return getAddress(LIQUID_STAKING);
+	}
+
+	/**
+	 * @notice Update BigInts library address
+	 * @param newAddress BigInts smart contract address
+	 * @dev Only triggered by resolver owner
+	 */
+	function setBigIntsAddress(address newAddress) external override onlyOwner {
+		_setAddress(BIG_INTS, newAddress);
+
+		emit BigIntsAddressUpdated(newAddress);
+	}
+
+	/**
+	 * @notice Returns an address of a Liquid Staking contract
+	 */
+	function getBigInts() external view override returns (address) {
+		return getAddress(BIG_INTS);
+	}
+
+	function _setAddress(bytes32 id, address newAddr) internal {
+		address prevAddr = _addresses[id];
+		if (prevAddr == newAddr || newAddr == address(0)) revert InvalidAddress();
+
+		_addresses[id] = newAddr;
 	}
 
 	/**

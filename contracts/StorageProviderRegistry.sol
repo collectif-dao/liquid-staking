@@ -11,6 +11,7 @@ import {BokkyPooBahsDateTimeLibrary} from "./libraries/DateTimeLibraryCompressed
 import {IStorageProviderRegistry} from "./interfaces/IStorageProviderRegistry.sol";
 import {ILiquidStakingClient} from "./interfaces/ILiquidStakingClient.sol";
 import {IStorageProviderCollateralClient} from "./interfaces/IStorageProviderCollateralClient.sol";
+import {IResolverClient} from "./interfaces/IResolverClient.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
@@ -71,7 +72,7 @@ contract StorageProviderRegistry is
 
 	uint256 public maxAllocation;
 
-	IStorageProviderCollateralClient public collateral;
+	IResolverClient public resolver;
 
 	modifier activeStorageProvider(uint64 _ownerId) {
 		if (!storageProviders[_ownerId].active) revert InactiveSP();
@@ -87,7 +88,7 @@ contract StorageProviderRegistry is
 	 * @dev Contract initializer function.
 	 * @param _maxAllocation Number of maximum FIL allocated to a single storage provider
 	 */
-	function initialize(uint256 _maxAllocation) public initializer {
+	function initialize(uint256 _maxAllocation, address _resolver) public initializer {
 		__AccessControl_init();
 		__ReentrancyGuard_init();
 		__UUPSUpgradeable_init();
@@ -96,6 +97,7 @@ contract StorageProviderRegistry is
 		_setRoleAdmin(REGISTRY_ADMIN, DEFAULT_ADMIN_ROLE);
 		grantRole(REGISTRY_ADMIN, msg.sender);
 		maxAllocation = _maxAllocation;
+		resolver = IResolverClient(_resolver);
 	}
 
 	struct RegisterLocalVars {
@@ -150,7 +152,7 @@ contract StorageProviderRegistry is
 		vars.sectorSize = MinerAPI.getSectorSize(actorId);
 		sectorSizes[vars.ownerId] = vars.sectorSize;
 
-		collateral.updateCollateralRequirements(vars.ownerId, 0);
+		IStorageProviderCollateralClient(resolver.getCollateral()).updateCollateralRequirements(vars.ownerId, 0);
 		ILiquidStakingClient(_targetPool).updateProfitShare(vars.ownerId, 0);
 
 		emit StorageProviderRegistered(
@@ -426,7 +428,7 @@ contract StorageProviderRegistry is
 	 * @param _timestamp Transaction timestamp
 	 */
 	function increaseUsedAllocation(uint64 _ownerId, uint256 _allocated, uint256 _timestamp) external {
-		if (msg.sender != address(collateral)) revert InvalidAccess();
+		if (msg.sender != resolver.getCollateral()) revert InvalidAccess();
 
 		(uint year, uint month, uint day) = BokkyPooBahsDateTimeLibrary.timestampToDate(_timestamp);
 		bytes32 dateHash = keccak256(abi.encodePacked(year, month, day));
@@ -442,22 +444,6 @@ contract StorageProviderRegistry is
 		dailyUsages[dateHash] += _allocated;
 
 		emit StorageProviderAllocationUsed(_ownerId, _allocated);
-	}
-
-	/**
-	 * @notice Update StorageProviderCollateral smart contract
-	 * @param _collateral StorageProviderCollateral smart contract address
-	 * @dev Only triggered by registry admin
-	 */
-	function setCollateralAddress(address _collateral) public onlyAdmin {
-		if (_collateral == address(0)) revert InvalidAddress();
-
-		address prevCollateral = address(collateral);
-		if (prevCollateral == _collateral) revert InvalidAddress();
-
-		collateral = IStorageProviderCollateralClient(_collateral);
-
-		emit CollateralAddressUpdated(_collateral);
 	}
 
 	/**

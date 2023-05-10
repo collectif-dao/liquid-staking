@@ -14,24 +14,27 @@ interface IResolver {
 
 	/**
 	 * @notice Emitted when new StorageProviderRegistry address updated
-	 * @param oldAddress Old contract implementation address
 	 * @param newAddress New contract implementation address
 	 */
-	event RegistryAddressUpdated(address oldAddress, address newAddress);
+	event RegistryAddressUpdated(address newAddress);
 
 	/**
 	 * @notice Emitted when new StorageProviderCollateral address updated
-	 * @param oldAddress Old contract implementation address
 	 * @param newAddress New contract implementation address
 	 */
-	event CollateralAddressUpdated(address oldAddress, address newAddress);
+	event CollateralAddressUpdated(address newAddress);
 
 	/**
 	 * @notice Emitted when new LiquidStaking address updated
-	 * @param oldAddress Old contract implementation address
 	 * @param newAddress New contract implementation address
 	 */
-	event LiquidStakingAddressUpdated(address oldAddress, address newAddress);
+	event LiquidStakingAddressUpdated(address newAddress);
+
+	/**
+	 * @notice Emitted when new BigInts address updated
+	 * @param newAddress New contract implementation address
+	 */
+	event BigIntsAddressUpdated(address newAddress);
 
 	/**
 	 * @notice Sets a `newAddress` for a contract by `id`
@@ -82,6 +85,18 @@ interface IResolver {
 	 * @notice Returns an address of a Liquid Staking contract
 	 */
 	function getLiquidStaking() external view returns (address);
+
+	/**
+	 * @notice Update StorageProviderCollateral smart contract address
+	 * @param newAddress StorageProviderCollateral smart contract address
+	 * @dev Only triggered by resolver owner
+	 */
+	function setBigIntsAddress(address newAddress) external;
+
+	/**
+	 * @notice Returns an address of a Storage Provider Collateral contract
+	 */
+	function getBigInts() external view returns (address);
 
 	/**
 	 * @notice Returns the implementation contract

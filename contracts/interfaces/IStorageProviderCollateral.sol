@@ -79,10 +79,4 @@ interface IStorageProviderCollateral {
 	 * @param requirements New base collateral requirements for SP
 	 */
 	function updateBaseCollateralRequirements(uint256 requirements) external;
-
-	/**
-	 * @notice Updates StorageProviderRegistry contract address
-	 * @param newAddr StorageProviderRegistry contract address
-	 */
-	function setRegistryAddress(address newAddr) external;
 }

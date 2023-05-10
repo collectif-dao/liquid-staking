@@ -9,6 +9,7 @@ import {Buffer} from "@ensdomains/buffer/contracts/Buffer.sol";
 import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
+import {Resolver} from "../Resolver.sol";
 import {StorageProviderCollateralMock, IStorageProviderCollateral, StorageProviderCollateralCallerMock} from "./mocks/StorageProviderCollateralMock.sol";
 import {StorageProviderRegistryMock, StorageProviderRegistryCallerMock} from "./mocks/StorageProviderRegistryMock.sol";
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
@@ -26,6 +27,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	IWFIL public wfil;
 	MinerMockAPI private minerMockAPI;
 	BigIntsClient private bigIntsLib;
+	Resolver public resolver;
 
 	bytes public owner;
 	uint64 public aliceOwnerId = 1508;
@@ -58,6 +60,11 @@ contract StorageProviderCollateralTest is DSTestPlus {
 
 		bigIntsLib = new BigIntsClient();
 
+		Resolver resolverImpl = new Resolver();
+		ERC1967Proxy resolverProxy = new ERC1967Proxy(address(resolverImpl), "");
+		resolver = Resolver(address(resolverProxy));
+		resolver.initialize();
+
 		LiquidStakingMock stakingImpl = new LiquidStakingMock();
 		ERC1967Proxy stakingProxy = new ERC1967Proxy(address(stakingImpl), "");
 		staking = LiquidStakingMock(payable(stakingProxy));
@@ -70,24 +77,26 @@ contract StorageProviderCollateralTest is DSTestPlus {
 			rewardCollector,
 			aliceOwnerAddr,
 			address(minerMockAPI),
-			address(bigIntsLib)
+			address(bigIntsLib),
+			address(resolver)
 		);
 
 		StorageProviderRegistryMock registryImpl = new StorageProviderRegistryMock();
 		ERC1967Proxy registryProxy = new ERC1967Proxy(address(registryImpl), "");
 		registry = StorageProviderRegistryMock(address(registryProxy));
-		registry.initialize(address(minerMockAPI), aliceOwnerId, MAX_ALLOCATION);
+		registry.initialize(address(minerMockAPI), aliceOwnerId, MAX_ALLOCATION, address(resolver));
 
 		StorageProviderCollateralMock collateralImpl = new StorageProviderCollateralMock();
 		ERC1967Proxy collateralProxy = new ERC1967Proxy(address(collateralImpl), "");
 		collateral = StorageProviderCollateralMock(payable(collateralProxy));
-		collateral.initialize(wfil, address(registry), baseCollateralRequirements);
+		collateral.initialize(wfil, address(resolver), baseCollateralRequirements);
 
 		callerMock = new StorageProviderCollateralCallerMock(address(collateral));
 		registryCallerMock = new StorageProviderRegistryCallerMock(address(registry));
 
-		registry.setCollateralAddress(address(collateral));
-		staking.setRegistryAddress(address(registry));
+		resolver.setRegistryAddress(address(registry));
+		resolver.setCollateralAddress(address(collateral));
+		resolver.setLiquidStakingAddress(address(staking));
 		registry.registerPool(address(staking));
 
 		hevm.prank(alice);
@@ -412,23 +421,5 @@ contract StorageProviderCollateralTest is DSTestPlus {
 
 		hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
 		collateral.updateBaseCollateralRequirements(0);
-	}
-
-	function testSetRegistryAddress(address registryAddr) public {
-		hevm.assume(registryAddr != address(0) && registryAddr != address(registry));
-		hevm.etch(registryAddr, bytes("0x10378"));
-
-		collateral.setRegistryAddress(registryAddr);
-	}
-
-	function testSetRegistryAddressReverts() public {
-		address registryAddr = address(0x94812417984127);
-
-		hevm.prank(alice);
-		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
-		collateral.setRegistryAddress(registryAddr);
-
-		hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
-		collateral.setRegistryAddress(address(registry));
 	}
 }

@@ -13,8 +13,9 @@ import {FilAddress} from "fevmate/utils/FilAddress.sol";
 import {SendAPI} from "filecoin-solidity/contracts/v0.8/SendAPI.sol";
 
 import {ILiquidStaking} from "./interfaces/ILiquidStaking.sol";
-import {IStorageProviderCollateralClient} from "./interfaces/IStorageProviderCollateralClient.sol";
-import {IStorageProviderRegistryClient} from "./interfaces/IStorageProviderRegistryClient.sol";
+import {IStorageProviderCollateralClient as ICollateralClient} from "./interfaces/IStorageProviderCollateralClient.sol";
+import {IStorageProviderRegistryClient as IRegistryClient} from "./interfaces/IStorageProviderRegistryClient.sol";
+import {IResolverClient} from "./interfaces/IResolverClient.sol";
 import {IBigInts} from "./libraries/BigInts.sol";
 
 /**
@@ -57,9 +58,8 @@ contract LiquidStaking is
 	uint256 public baseProfitShare;
 	address public rewardCollector;
 
-	IStorageProviderCollateralClient internal collateral;
-	IStorageProviderRegistryClient internal registry;
 	IBigInts internal BigInts;
+	IResolverClient internal resolver;
 
 	bytes32 private constant LIQUID_STAKING_ADMIN = keccak256("LIQUID_STAKING_ADMIN");
 	bytes32 private constant FEE_DISTRIBUTOR = keccak256("FEE_DISTRIBUTOR");
@@ -79,14 +79,15 @@ contract LiquidStaking is
 	 * @param _adminFee Admin fee percentage
 	 * @param _baseProfitShare Base profit sharing percentage
 	 * @param _rewardCollector Rewards collector address
-	 * @param _bigIntsLib BigInts library address
+	 * @param _resolver Resolver contract address
 	 */
 	function initialize(
 		address _wFIL,
 		uint256 _adminFee,
 		uint256 _baseProfitShare,
 		address _rewardCollector,
-		address _bigIntsLib
+		address _bigIntsLib,
+		address _resolver
 	) public initializer {
 		__AccessControl_init();
 		__ReentrancyGuard_init();
@@ -99,6 +100,7 @@ contract LiquidStaking is
 		rewardCollector = _rewardCollector;
 
 		BigInts = IBigInts(_bigIntsLib);
+		resolver = IResolverClient(_resolver);
 
 		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
 		grantRole(LIQUID_STAKING_ADMIN, msg.sender);
@@ -197,9 +199,9 @@ contract LiquidStaking is
 		if (!isID) revert InactiveActor();
 		if (activeSlashings[ownerId]) revert ActiveSlashing();
 
-		collateral.lock(ownerId, amount);
+		ICollateralClient(resolver.getCollateral()).lock(ownerId, amount);
 
-		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
+		(, , uint64 minerId, ) = IRegistryClient(resolver.getRegistry()).getStorageProvider(ownerId);
 
 		emit Pledge(ownerId, minerId, amount);
 
@@ -221,6 +223,8 @@ contract LiquidStaking is
 		if (!hasRole(FEE_DISTRIBUTOR, msg.sender)) revert InvalidAccess();
 		if (amount == 0) revert InvalidParams();
 
+		IRegistryClient registry = IRegistryClient(resolver.getRegistry());
+
 		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
 
 		CommonTypes.BigInt memory withdrawnBInt = MinerAPI.withdrawBalance(
@@ -238,7 +242,7 @@ contract LiquidStaking is
 
 		totalFilPledged -= amount;
 
-		collateral.fit(ownerId);
+		ICollateralClient(resolver.getCollateral()).fit(ownerId);
 
 		emit PledgeRepayment(ownerId, minerId, amount);
 	}
@@ -257,9 +261,9 @@ contract LiquidStaking is
 	function reportSlashing(uint64 _ownerId, uint256 _slashingAmt) external virtual nonReentrant {
 		if (!hasRole(SLASHING_AGENT, msg.sender)) revert InvalidAccess();
 		if (_slashingAmt == 0) revert InvalidParams();
-		(, , uint64 minerId, ) = registry.getStorageProvider(_ownerId);
+		(, , uint64 minerId, ) = IRegistryClient(resolver.getRegistry()).getStorageProvider(_ownerId);
 
-		collateral.slash(_ownerId, _slashingAmt);
+		ICollateralClient(resolver.getCollateral()).slash(_ownerId, _slashingAmt);
 
 		activeSlashings[_ownerId] = true;
 
@@ -273,7 +277,7 @@ contract LiquidStaking is
 	function reportRecovery(uint64 _ownerId) external virtual {
 		if (!hasRole(SLASHING_AGENT, msg.sender)) revert InvalidAccess();
 		if (!activeSlashings[_ownerId]) revert InactiveSlashing();
-		(, , uint64 minerId, ) = registry.getStorageProvider(_ownerId);
+		(, , uint64 minerId, ) = IRegistryClient(resolver.getRegistry()).getStorageProvider(_ownerId);
 
 		activeSlashings[_ownerId] = false;
 
@@ -303,6 +307,7 @@ contract LiquidStaking is
 		if (!hasRole(FEE_DISTRIBUTOR, msg.sender)) revert InvalidAccess();
 
 		WithdrawRewardsLocalVars memory vars;
+		IRegistryClient registry = IRegistryClient(resolver.getRegistry());
 
 		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
 
@@ -335,7 +340,7 @@ contract LiquidStaking is
 		SendAPI.send(CommonTypes.FilActorId.wrap(ownerId), vars.spShare);
 
 		registry.increaseRewards(ownerId, vars.stakingProfit);
-		collateral.fit(ownerId);
+		ICollateralClient(resolver.getCollateral()).fit(ownerId);
 
 		if (vars.isRestaking) {
 			_restake(vars.restakingAmt, vars.restakingAddress);
@@ -349,7 +354,7 @@ contract LiquidStaking is
 	 * @param _profitShare Percentage of profit sharing
 	 */
 	function updateProfitShare(uint64 _ownerId, uint256 _profitShare) external {
-		if (!hasRole(LIQUID_STAKING_ADMIN, msg.sender) && msg.sender != address(registry)) revert InvalidAccess();
+		if (!hasRole(LIQUID_STAKING_ADMIN, msg.sender) && msg.sender != resolver.getRegistry()) revert InvalidAccess();
 
 		if (_profitShare == 0) {
 			profitShares[_ownerId] = baseProfitShare;
@@ -405,36 +410,10 @@ contract LiquidStaking is
 	}
 
 	/**
-	 * @notice Updates StorageProviderCollateral contract address
-	 * @param newAddr StorageProviderCollateral contract address
-	 */
-	function setCollateralAddress(address newAddr) external onlyAdmin {
-		address prevCollateral = address(collateral);
-		if (newAddr == address(0) || prevCollateral == newAddr) revert InvalidAddress();
-
-		collateral = IStorageProviderCollateralClient(newAddr);
-
-		emit SetCollateralAddress(newAddr);
-	}
-
-	/**
 	 * @notice Returns the amount of WFIL available on the liquid staking contract
 	 */
 	function totalFilAvailable() public view returns (uint256) {
 		return WFIL.balanceOf(address(this));
-	}
-
-	/**
-	 * @notice Updates StorageProviderRegistry contract address
-	 * @param newAddr StorageProviderRegistry contract address
-	 */
-	function setRegistryAddress(address newAddr) external onlyAdmin {
-		address prevRegistry = address(registry);
-		if (newAddr == address(0) || prevRegistry == newAddr) revert InvalidAddress();
-
-		registry = IStorageProviderRegistryClient(newAddr);
-
-		emit SetRegistryAddress(newAddr);
 	}
 
 	/**
@@ -491,7 +470,7 @@ contract LiquidStaking is
 		uint256 quota,
 		int64 expiration
 	) external virtual {
-		if (msg.sender != address(registry)) revert InvalidAccess();
+		if (msg.sender != resolver.getRegistry()) revert InvalidAccess();
 		if (targetPool != address(this)) revert InvalidAddress();
 
 		MinerTypes.ChangeBeneficiaryParams memory params;

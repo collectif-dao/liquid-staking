@@ -22,7 +22,12 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 	 * @dev Contract initializer function.
 	 * @param _maxAllocation Number of maximum FIL allocated to a single storage provider
 	 */
-	function initialize(address _minerApiMock, uint64 _ownerId, uint256 _maxAllocation) public initializer {
+	function initialize(
+		address _minerApiMock,
+		uint64 _ownerId,
+		uint256 _maxAllocation,
+		address _resolver
+	) public initializer {
 		__AccessControl_init();
 		__ReentrancyGuard_init();
 		__UUPSUpgradeable_init();
@@ -34,6 +39,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 
 		ownerId = _ownerId;
 		mockAPI = MockAPI(_minerApiMock);
+		resolver = IResolverClient(_resolver);
 
 		sampleSectorSize = 32 << 30;
 	}
@@ -74,7 +80,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 
 		sectorSizes[ownerId] = sampleSectorSize;
 
-		collateral.updateCollateralRequirements(ownerId, 0);
+		IStorageProviderCollateralClient(resolver.getCollateral()).updateCollateralRequirements(ownerId, 0);
 		ILiquidStakingClient(_targetPool).updateProfitShare(ownerId, 0);
 
 		emit StorageProviderRegistered(

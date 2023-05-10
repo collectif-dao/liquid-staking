@@ -160,12 +160,6 @@ interface ILiquidStaking {
 	function getUsageRatio() external view returns (uint256);
 
 	/**
-	 * @notice Updates StorageProviderCollateral contract address
-	 * @param newAddr StorageProviderCollateral contract address
-	 */
-	function setCollateralAddress(address newAddr) external;
-
-	/**
 	 * @notice Returns the amount of WFIL available on the liquid staking contract
 	 */
 	function totalFilAvailable() external view returns (uint256);
@@ -175,12 +169,6 @@ interface ILiquidStaking {
 	 * @param _ownerId Storage Provider owner ID
 	 */
 	function totalFees(uint64 _ownerId) external view returns (uint256);
-
-	/**
-	 * @notice Updates StorageProviderRegistry contract address
-	 * @param newAddr StorageProviderRegistry contract address
-	 */
-	function setRegistryAddress(address newAddr) external;
 
 	/**
 	 * @notice Updates admin fee for the protocol revenue

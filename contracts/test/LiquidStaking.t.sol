@@ -17,6 +17,7 @@ import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
 import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {LiquidStaking} from "../LiquidStaking.sol";
 import {MinerActorMock} from "./mocks/MinerActorMock.sol";
+import {Resolver} from "../Resolver.sol";
 
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 import {ERC1967Proxy} from "@oz/contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -30,6 +31,7 @@ contract LiquidStakingTest is DSTestPlus {
 	MinerActorMock public minerActor;
 	MinerMockAPI private minerMockAPI;
 	BigIntsClient private bigIntsLib;
+	Resolver public resolver;
 
 	bytes public owner;
 	uint64 public aliceOwnerId = 1508;
@@ -70,6 +72,11 @@ contract LiquidStakingTest is DSTestPlus {
 
 		bigIntsLib = new BigIntsClient();
 
+		Resolver resolverImpl = new Resolver();
+		ERC1967Proxy resolverProxy = new ERC1967Proxy(address(resolverImpl), "");
+		resolver = Resolver(address(resolverProxy));
+		resolver.initialize();
+
 		LiquidStakingMock stakingImpl = new LiquidStakingMock();
 		ERC1967Proxy stakingProxy = new ERC1967Proxy(address(stakingImpl), "");
 		staking = LiquidStakingMock(payable(stakingProxy));
@@ -82,25 +89,27 @@ contract LiquidStakingTest is DSTestPlus {
 			rewardCollector,
 			aliceOwnerAddr,
 			address(minerMockAPI),
-			address(bigIntsLib)
+			address(bigIntsLib),
+			address(resolver)
 		);
 
 		StorageProviderRegistryMock registryImpl = new StorageProviderRegistryMock();
 		ERC1967Proxy registryProxy = new ERC1967Proxy(address(registryImpl), "");
 		registry = StorageProviderRegistryMock(address(registryProxy));
-		registry.initialize(address(minerMockAPI), aliceOwnerId, MAX_ALLOCATION);
+		registry.initialize(address(minerMockAPI), aliceOwnerId, MAX_ALLOCATION, address(resolver));
 
 		StorageProviderCollateralMock collateralImpl = new StorageProviderCollateralMock();
 		ERC1967Proxy collateralProxy = new ERC1967Proxy(address(collateralImpl), "");
 		collateral = StorageProviderCollateralMock(payable(collateralProxy));
-		collateral.initialize(wfil, address(registry), baseCollateralRequirements);
+		collateral.initialize(wfil, address(resolver), baseCollateralRequirements);
 
 		// router = new StakingRouter("Collective DAO Router", wfil);
 
-		registry.setCollateralAddress(address(collateral));
+		resolver.setRegistryAddress(address(registry));
+		resolver.setCollateralAddress(address(collateral));
+		resolver.setLiquidStakingAddress(address(staking));
+		resolver.setBigIntsAddress(address(bigIntsLib));
 		registry.registerPool(address(staking));
-		staking.setCollateralAddress(address(collateral));
-		staking.setRegistryAddress(address(registry));
 
 		// prepare storage provider for getting FIL from liquid staking
 		hevm.prank(alice);
@@ -607,43 +616,6 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.prank(alice);
 		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
 		staking.reportRecovery(aliceOwnerId);
-	}
-
-	function testSetCollateralAddress(address collateralAddr) public {
-		hevm.assume(collateralAddr != address(0) && collateralAddr != address(collateral));
-		hevm.etch(collateralAddr, bytes("0x10378"));
-
-		staking.setCollateralAddress(collateralAddr);
-	}
-
-	function testCollateralAddressReverts() public {
-		address collateralAddr = address(0x94812417984127);
-		hevm.etch(collateralAddr, bytes("0x103789851206015297"));
-
-		hevm.prank(alice);
-		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
-		staking.setCollateralAddress(collateralAddr);
-
-		hevm.expectRevert(abi.encodeWithSignature("InvalidAddress()"));
-		staking.setCollateralAddress(address(collateral));
-	}
-
-	function testSetRegistryAddress(address registryAddr) public {
-		hevm.assume(registryAddr != address(0) && registryAddr != address(registry));
-		hevm.etch(registryAddr, bytes("0x10378"));
-
-		staking.setRegistryAddress(registryAddr);
-	}
-
-	function testSetRegistryAddressReverts() public {
-		address registryAddr = address(0x94812417984127);
-
-		hevm.prank(alice);
-		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
-		staking.setRegistryAddress(registryAddr);
-
-		hevm.expectRevert(abi.encodeWithSignature("InvalidAddress()"));
-		staking.setRegistryAddress(address(registry));
 	}
 
 	function testUpdateAdminFee(uint256 fee) public {

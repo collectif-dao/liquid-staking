@@ -167,13 +167,6 @@ interface IStorageProviderRegistry {
 	function increaseUsedAllocation(uint64 _ownerId, uint256 _allocated, uint256 _timestamp) external;
 
 	/**
-	 * @notice Update StorageProviderCollateral smart contract
-	 * @param _collateral StorageProviderCollateral smart contract address
-	 * @dev Only triggered by owner contract
-	 */
-	function setCollateralAddress(address _collateral) external;
-
-	/**
 	 * @notice Register new liquid staking pool
 	 * @param _pool Address of pool smart contract
 	 * @dev Only triggered by owner contract
