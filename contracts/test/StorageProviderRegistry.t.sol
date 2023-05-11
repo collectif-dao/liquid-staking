@@ -234,31 +234,6 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		registry.onboardStorageProvider(_minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION, _repayment, _lastEpoch);
 	}
 
-	function testChangeBeneficiaryAddress(uint64 minerId, int64 lastEpoch) public {
-		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
-		uint256 repayment = MAX_ALLOCATION + 10;
-
-		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
-		registry.onboardStorageProvider(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION, repayment, lastEpoch);
-		beneficiaryManager.changeBeneficiaryAddress();
-
-		(, address targetPool, , ) = registry.getStorageProvider(ownerId);
-		assertEq(targetPool, address(staking));
-
-		MinerTypes.GetBeneficiaryReturn memory beneficiary = minerMockAPI.getBeneficiary();
-		(uint256 quota, bool err) = BigInts.toUint256(beneficiary.active.term.quota);
-		require(!err, "INVALID_BIG_INT");
-		require(quota == repayment, "INVALID_BENEFICIARY_QUOTA");
-	}
-
-	function testChangeBeneficiaryAddressReverts(uint64 minerId, int64 lastEpoch) public {
-		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
-		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
-
-		hevm.expectRevert(abi.encodeWithSignature("InactiveSP()"));
-		beneficiaryManager.changeBeneficiaryAddress();
-	}
-
 	function testAcceptBeneficiaryAddress(uint64 minerId, int64 lastEpoch) public {
 		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
 		uint256 repayment = MAX_ALLOCATION + 10;

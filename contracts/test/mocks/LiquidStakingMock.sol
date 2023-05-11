@@ -162,3 +162,31 @@ contract LiquidStakingMock is LiquidStaking {
 		}
 	}
 }
+
+/**
+ * @title LiquidStaking Caller Mock contract that routes calls to LiquidStaking
+ * @author Collective DAO
+ */
+contract LiquidStakingCallerMock {
+	ILiquidStaking public staking;
+
+	/**
+	 * @dev Contract constructor function.
+	 * @param _staking LiquidStaking address to route calls
+	 *
+	 */
+	constructor(address _staking) {
+		staking = ILiquidStaking(_staking);
+	}
+
+	/**
+	 * @notice Forwards the changeBeneficiary Miner actor call as Liquid Staking
+	 * @param minerId Miner actor ID
+	 * @param targetPool LSP smart contract address
+	 * @param quota Total beneficiary quota
+	 * @param expiration Expiration epoch
+	 */
+	function forwardChangeBeneficiary(uint64 minerId, address targetPool, uint256 quota, int64 expiration) public {
+		staking.forwardChangeBeneficiary(minerId, targetPool, quota, expiration);
+	}
+}

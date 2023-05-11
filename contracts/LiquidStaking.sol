@@ -340,7 +340,7 @@ contract LiquidStaking is
 	}
 
 	/**
-	 * @notice Triggers changeBeneficiary Miner actor call
+	 * @notice Forwards the changeBeneficiary Miner actor call as Liquid Staking
 	 * @param minerId Miner actor ID
 	 * @param targetPool LSP smart contract address
 	 * @param quota Total beneficiary quota
