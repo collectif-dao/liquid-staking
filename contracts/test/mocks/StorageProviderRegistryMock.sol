@@ -132,23 +132,6 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 	}
 
 	/**
-	 * @notice Transfer beneficiary address of a miner to the target pool
-	 */
-	function changeBeneficiaryAddress() public override {
-		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[ownerId];
-		if (!storageProvider.onboarded) revert InactiveSP();
-
-		ILiquidStakingClient(storageProviders[ownerId].targetPool).forwardChangeBeneficiary(
-			storageProvider.minerId,
-			storageProvider.targetPool,
-			allocations[ownerId].repayment,
-			storageProvider.lastEpoch
-		);
-
-		emit StorageProviderBeneficiaryAddressUpdated(storageProvider.targetPool);
-	}
-
-	/**
 	 * @notice Accept beneficiary address transfer and activate FIL allocation
 	 * @param _ownerId Storage Provider owner ID
 	 * @dev Only triggered by owner contract
@@ -165,8 +148,6 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 		);
 
 		storageProviders[_ownerId].active = true;
-
-		// MockAPI.changeBeneficiary(params);
 
 		emit StorageProviderBeneficiaryAddressAccepted(_ownerId);
 	}

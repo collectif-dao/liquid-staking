@@ -161,31 +161,4 @@ contract LiquidStakingMock is LiquidStaking {
 			_restake(vars.restakingAmt, vars.restakingAddress);
 		}
 	}
-
-	/**
-	 * @notice Triggers changeBeneficiary Miner actor call
-	 * @param minerId Miner actor ID
-	 * @param targetPool LSP smart contract address
-	 * @param quota Total beneficiary quota
-	 * @param expiration Expiration epoch
-	 */
-	function forwardChangeBeneficiary(
-		uint64 minerId,
-		address targetPool,
-		uint256 quota,
-		int64 expiration
-	) external override {
-		if (msg.sender != resolver.getRegistry()) revert InvalidAccess();
-		if (targetPool != address(this)) revert InvalidAddress();
-
-		CommonTypes.FilActorId filMinerId = CommonTypes.FilActorId.wrap(minerId);
-
-		MinerTypes.ChangeBeneficiaryParams memory params;
-
-		params.new_beneficiary = FilAddresses.fromEthAddress(targetPool);
-		params.new_quota = BigInts.fromUint256(quota);
-		params.new_expiration = CommonTypes.ChainEpoch.wrap(expiration);
-
-		mockAPI.changeBeneficiary(params);
-	}
 }

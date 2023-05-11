@@ -43,6 +43,12 @@ interface IResolver {
 	event LiquidStakingControllerAddressUpdated(address newAddress);
 
 	/**
+	 * @notice Emitted when new BeneficiaryManager address updated
+	 * @param newAddress New contract implementation address
+	 */
+	event BeneficiaryManagerAddressUpdated(address newAddress);
+
+	/**
 	 * @notice Sets a `newAddress` for a contract by `id`
 	 * @param id Address Identifier
 	 * @param newAddress Contract implementation address
@@ -120,4 +126,16 @@ interface IResolver {
 	 * @notice Returns an address of a Liquid Staking Controller contract
 	 */
 	function getLiquidStakingController() external view returns (address);
+
+	/**
+	 * @notice Update Beneficiary Manager address
+	 * @param newAddress Beneficiary Manager smart contract address
+	 * @dev Only triggered by resolver owner
+	 */
+	function setBeneficiaryManagerAddress(address newAddress) external;
+
+	/**
+	 * @notice Returns an address of a Beneficiary Manager contract
+	 */
+	function getBeneficiaryManager() external view returns (address);
 }

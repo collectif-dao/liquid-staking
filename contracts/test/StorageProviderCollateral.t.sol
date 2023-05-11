@@ -16,6 +16,7 @@ import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
 import {LiquidStakingController} from "../LiquidStakingController.sol";
 import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {MinerActorMock} from "./mocks/MinerActorMock.sol";
+import {BeneficiaryManagerMock} from "./mocks/BeneficiaryManagerMock.sol";
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 import {ERC1967Proxy} from "@oz/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
@@ -32,6 +33,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	BigIntsClient private bigIntsLib;
 	Resolver public resolver;
 	LiquidStakingController public controller;
+	BeneficiaryManagerMock public beneficiaryManager;
 
 	bytes public owner;
 	uint64 public aliceOwnerId = 1508;
@@ -70,6 +72,11 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		resolver = Resolver(address(resolverProxy));
 		resolver.initialize();
 
+		BeneficiaryManagerMock bManagerImpl = new BeneficiaryManagerMock();
+		ERC1967Proxy bManagerProxy = new ERC1967Proxy(address(bManagerImpl), "");
+		beneficiaryManager = BeneficiaryManagerMock(address(bManagerProxy));
+		beneficiaryManager.initialize(address(minerMockAPI), aliceOwnerId, address(resolver));
+
 		LiquidStakingController controllerImpl = new LiquidStakingController();
 		ERC1967Proxy controllerProxy = new ERC1967Proxy(address(controllerImpl), "");
 		controller = LiquidStakingController(address(controllerProxy));
@@ -102,6 +109,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		registryCallerMock = new StorageProviderRegistryCallerMock(address(registry));
 
 		resolver.setLiquidStakingControllerAddress(address(controller));
+		resolver.setBeneficiaryManagerAddress(address(beneficiaryManager));
 		resolver.setRegistryAddress(address(registry));
 		resolver.setCollateralAddress(address(collateral));
 		resolver.setLiquidStakingAddress(address(staking));
@@ -119,7 +127,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		);
 
 		hevm.prank(alice);
-		registry.changeBeneficiaryAddress();
+		beneficiaryManager.changeBeneficiaryAddress();
 
 		registry.acceptBeneficiaryAddress(aliceOwnerId);
 		registry.registerPool(address(callerMock));

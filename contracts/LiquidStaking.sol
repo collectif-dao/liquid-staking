@@ -13,6 +13,7 @@ import {FilAddress} from "fevmate/utils/FilAddress.sol";
 import {SendAPI} from "filecoin-solidity/contracts/v0.8/SendAPI.sol";
 
 import {ILiquidStaking} from "./interfaces/ILiquidStaking.sol";
+import {IBeneficiaryManager} from "./interfaces/IBeneficiaryManager.sol";
 import {ILiquidStakingControllerClient as IStakingControllerClient} from "./interfaces/ILiquidStakingControllerClient.sol";
 import {IStorageProviderCollateralClient as ICollateralClient} from "./interfaces/IStorageProviderCollateralClient.sol";
 import {IStorageProviderRegistryClient as IRegistryClient} from "./interfaces/IStorageProviderRegistryClient.sol";
@@ -354,13 +355,12 @@ contract LiquidStaking is
 		if (msg.sender != resolver.getRegistry()) revert InvalidAccess();
 		if (targetPool != address(this)) revert InvalidAddress();
 
-		MinerTypes.ChangeBeneficiaryParams memory params;
-
-		params.new_beneficiary = FilAddresses.fromEthAddress(targetPool);
-		params.new_quota = BigInts.fromUint256(quota);
-		params.new_expiration = CommonTypes.ChainEpoch.wrap(expiration);
-
-		MinerAPI.changeBeneficiary(CommonTypes.FilActorId.wrap(minerId), params);
+		IBeneficiaryManager(resolver.getBeneficiaryManager()).forwardChangeBeneficiary(
+			minerId,
+			targetPool,
+			quota,
+			expiration
+		);
 	}
 
 	/**

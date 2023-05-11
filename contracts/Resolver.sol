@@ -19,6 +19,7 @@ contract Resolver is IResolver, Initializable, OwnableUpgradeable, UUPSUpgradeab
 	bytes32 private constant COLLATERAL = "COLLATERAL";
 	bytes32 private constant BIG_INTS = "BIG_INTS";
 	bytes32 private constant LIQUID_STAKING_CONTROLLER = "LIQUID_STAKING_CONTROLLER";
+	bytes32 private constant BENEFICIARY_MANAGER = "BENEFICIARY_MANAGER";
 
 	/**
 	 * @dev Contract initializer function.
@@ -139,6 +140,24 @@ contract Resolver is IResolver, Initializable, OwnableUpgradeable, UUPSUpgradeab
 	 */
 	function getLiquidStakingController() external view override returns (address) {
 		return getAddress(LIQUID_STAKING_CONTROLLER);
+	}
+
+	/**
+	 * @notice Update Beneficiary Manager address
+	 * @param newAddress Beneficiary Manager smart contract address
+	 * @dev Only triggered by resolver owner
+	 */
+	function setBeneficiaryManagerAddress(address newAddress) external override onlyOwner {
+		_setAddress(BENEFICIARY_MANAGER, newAddress);
+
+		emit BeneficiaryManagerAddressUpdated(newAddress);
+	}
+
+	/**
+	 * @notice Returns an address of a Beneficiary Manager contract
+	 */
+	function getBeneficiaryManager() external view override returns (address) {
+		return getAddress(BENEFICIARY_MANAGER);
 	}
 
 	function _setAddress(bytes32 id, address newAddr) internal {

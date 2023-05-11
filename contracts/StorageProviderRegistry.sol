@@ -208,43 +208,22 @@ contract StorageProviderRegistry is
 	}
 
 	/**
-	 * @notice Transfer beneficiary address of a miner to the target pool
-	 */
-	function changeBeneficiaryAddress() public virtual override nonReentrant {
-		address ownerAddr = msg.sender.normalize();
-		(bool isID, uint64 ownerId) = ownerAddr.getActorID();
-		if (!isID) revert InactiveActor();
-
-		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[ownerId];
-		if (!storageProvider.onboarded) revert InactiveSP();
-
-		ILiquidStakingClient(storageProviders[ownerId].targetPool).forwardChangeBeneficiary(
-			storageProvider.minerId,
-			storageProvider.targetPool,
-			allocations[ownerId].repayment,
-			storageProvider.lastEpoch
-		);
-
-		emit StorageProviderBeneficiaryAddressUpdated(storageProvider.targetPool);
-	}
-
-	/**
 	 * @notice Accept beneficiary address transfer and activate FIL allocation
 	 * @param _ownerId Storage Provider owner ID
 	 * @dev Only triggered by registry admin
 	 */
 	function acceptBeneficiaryAddress(uint64 _ownerId) public virtual override onlyAdmin nonReentrant {
-		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_ownerId];
+		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[_ownerId];
 		if (!storageProvider.onboarded) revert InactiveSP();
 
-		ILiquidStakingClient(storageProviders[_ownerId].targetPool).forwardChangeBeneficiary(
+		ILiquidStakingClient(storageProvider.targetPool).forwardChangeBeneficiary(
 			storageProvider.minerId,
 			storageProvider.targetPool,
 			allocations[_ownerId].repayment,
 			storageProvider.lastEpoch
 		);
 
-		storageProviders[_ownerId].active = true;
+		storageProvider.active = true;
 
 		emit StorageProviderBeneficiaryAddressAccepted(_ownerId);
 	}
@@ -342,7 +321,7 @@ contract StorageProviderRegistry is
 
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_ownerId];
 
-		ILiquidStakingClient(storageProviders[_ownerId].targetPool).forwardChangeBeneficiary(
+		ILiquidStakingClient(storageProvider.targetPool).forwardChangeBeneficiary(
 			storageProvider.minerId,
 			storageProvider.targetPool,
 			_repaymentAmount,
@@ -391,6 +370,13 @@ contract StorageProviderRegistry is
 	 */
 	function isActiveProvider(uint64 _ownerId) external view returns (bool status) {
 		status = storageProviders[_ownerId].active;
+	}
+
+	/**
+	 * @notice Return a repayment amount for Storage Provider
+	 */
+	function getRepayment(uint64 _ownerId) external view returns (uint256) {
+		return allocations[_ownerId].repayment;
 	}
 
 	/**

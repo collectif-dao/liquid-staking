@@ -8,15 +8,7 @@ import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/acce
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /**
- * @title LiquidStaking contract allows users to stake/unstake FIL to earn
- * Filecoin mining rewards. Staked FIL is allocated to Storage Providers (SPs) that
- * perform filecoin storage mining operations. This contract acts as a beneficiary address
- * for each SP that uses FIL capital for pledges.
- *
- * While staking FIL user would get clFIL token in exchange, the token follows ERC4626
- * standard and it's price is recalculated once mining rewards are distributed to the
- * liquid staking pool and once new FIL is deposited. Please note that LiquidStaking contract
- * performs wrapping of the native FIL into Wrapped Filecoin (WFIL) token.
+ * @title LiquidStaking Controller allows to manage the parameters of Liquid Staking contract
  */
 contract LiquidStakingController is ILiquidStakingController, Initializable, AccessControlUpgradeable, UUPSUpgradeable {
 	error InvalidParams();

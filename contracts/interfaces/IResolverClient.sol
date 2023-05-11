@@ -26,4 +26,9 @@ interface IResolverClient {
 	 * @notice Returns an address of a Liquid Staking Controller contract
 	 */
 	function getLiquidStakingController() external view returns (address);
+
+	/**
+	 * @notice Returns an address of a Beneficiary Manager contract
+	 */
+	function getBeneficiaryManager() external view returns (address);
 }
