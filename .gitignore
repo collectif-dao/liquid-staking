@@ -60,3 +60,6 @@ abi/
 
 # Dotenv file
 .env
+
+# Local deployments artifacts
+deployments/localnet
