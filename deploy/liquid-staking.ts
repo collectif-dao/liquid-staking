@@ -25,7 +25,7 @@ const deployFunction: DeployFunction = async function ({ deployments, getNamedAc
 
     console.log("Library Address--->" + bigInts.address)
 
-    if (chainId.chainId == 31337) {
+    if (chainId.chainId == 31337 || chainId.chainId === 31415926) {
         wFIL = (await deployments.get('WFIL')).address;
     } else if (chainId.chainId == 3141) {
         wFIL = "0x6C297AeD654816dc5d211c956DE816Ba923475D2";

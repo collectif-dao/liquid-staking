@@ -6,8 +6,8 @@ const deployFunction: DeployFunction = async function ({ deployments, getNamedAc
     const { deployer } = await getNamedAccounts();
     const { save } = deployments;
     const feeData = await ethers.provider.getFeeData();
-    const maxAllocation = ethers.BigNumber.from("1000000000000000000000000");
-
+  
+    const maxAllocation = ethers.utils.parseEther('1000000');
     const provider = new ethers.providers.FallbackProvider([ethers.provider], 1);
     provider.getFeeData = async () => feeData;
     const signer = new ethers.Wallet(process.env.PRIVATE_KEY).connect(provider);

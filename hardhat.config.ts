@@ -7,8 +7,9 @@ import "@nomicfoundation/hardhat-toolbox";
 import "hardhat-preprocessor";
 import "hardhat-deploy";
 import "@nomiclabs/hardhat-ethers";
-import "@nomicfoundation/hardhat-foundry";
+// import "@nomicfoundation/hardhat-foundry";
 import * as path from 'path';
+import "./tasks";
 
 import * as dotenv from 'dotenv';
 dotenv.config();
@@ -18,11 +19,11 @@ subtask(
   async (_, { config }, runSuper) => {
     const paths = await runSuper();
 
-    return paths
-      .filter(solidityFilePath => {
+    const res =  paths.filter(solidityFilePath => {
         const relativePath = path.relative(config.paths.sources, solidityFilePath)
         return !relativePath.includes('test/') && !relativePath.includes('router/') && !relativePath.includes('oracle/');
       })
+	return res;
   }
 );
 
@@ -60,12 +61,22 @@ const config: HardhatUserConfig = {
       },
     ],
   },
+  defaultNetwork: "localnet",
   networks: {
     hardhat: {},
     development: {
       url: 'http://0.0.0.0:8545',
       chainId: 1337,
     },
+	localnet: {
+		url: 'http://127.0.0.1:1234/rpc/v1',
+		chainId: 31415926,
+		accounts: [process.env.PRIVATE_KEY],
+		saveDeployments: true,
+		// gasPrice: 100000000,
+      	// gasMultiplier: 8000,
+		live: true,
+	},
     filecoin: {
       url: `${process.env.FILECOIN_MAINNET_RPC_URL}`,
       chainId: 314,
@@ -106,7 +117,7 @@ const config: HardhatUserConfig = {
     }),
   },
   paths: {
-    sources: "./contracts",
+    sources: "./contracts/",
     cache: "./cache",
   },
 };

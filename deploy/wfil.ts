@@ -26,7 +26,7 @@ deployFunction.skip = ({ getChainId }) =>
   new Promise(async (resolve, reject) => {
     try {
       const chainId = await getChainId();
-      resolve(chainId !== "31337");
+      resolve(chainId !== "31337" && chainId !=='31415926');
     } catch (error) {
       reject(error);
     }
