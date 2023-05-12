@@ -18,10 +18,9 @@ abstract contract ClFILToken is Initializable, ERC4626Upgradeable {
 	 * @dev Contract initializer function.
 	 * @param _wFIL WFIL token implementation
 	 */
-	function initialize(address _wFIL) public onlyInitializing {
+	function __ClFILToken_init(address _wFIL) internal onlyInitializing {
 		__ERC20_init("Collective Staked FIL", "clFIL");
 		__ERC4626_init(IERC20Upgradeable(_wFIL));
-
 		WFIL = IWFIL(_wFIL);
 	}
 

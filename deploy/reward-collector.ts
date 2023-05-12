@@ -1,7 +1,7 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
 import '@nomiclabs/hardhat-ethers';
-import { deployAndSaveContract, getWFIL } from "../utils";
+import { deployAndSaveContract, getWFIL } from '../utils';
 
 const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const { deployments, ethers } = hre;
@@ -11,10 +11,10 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
     const resolver = await deployments.get('Resolver');
 
-    await deployAndSaveContract('LiquidStaking', [wFIL, resolver.address], hre);
+    await deployAndSaveContract('RewardCollector', [wFIL, resolver.address], hre);
 };
 
 export default deployFunction;
 
-deployFunction.dependencies = ['WFIL', 'Resolver', 'LiquidStakingController'];
-deployFunction.tags = ['LiquidStaking'];
+deployFunction.tags = ['RewardCollector'];
+deployFunction.dependencies = ['Resolver', 'WFIL'];

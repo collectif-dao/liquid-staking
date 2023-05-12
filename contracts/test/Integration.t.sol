@@ -5,7 +5,6 @@ import {ERC20, MockERC20} from "solmate/test/utils/mocks/MockERC20.sol";
 import {MockERC4626} from "solmate/test/utils/mocks/MockERC4626.sol";
 import {WFIL} from "fevmate/token/WFIL.sol";
 import {IWFIL} from "../libraries/tokens/IWFIL.sol";
-import {BigIntsClient} from "../libraries/BigInts.sol";
 import {Buffer} from "@ensdomains/buffer/contracts/Buffer.sol";
 import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
@@ -32,7 +31,6 @@ contract IntegrationTest is DSTestPlus {
 	StorageProviderRegistryMock public registry;
 	MinerActorMock public minerActor;
 	MinerMockAPI private minerMockAPI;
-	BigIntsClient private bigIntsLib;
 	Resolver public resolver;
 	LiquidStakingController public controller;
 	BeneficiaryManagerMock public beneficiaryManager;
@@ -78,7 +76,6 @@ contract IntegrationTest is DSTestPlus {
 		wfil = IWFIL(address(new WFIL(msg.sender)));
 		minerActor = new MinerActorMock();
 		minerMockAPI = new MinerMockAPI(owner);
-		bigIntsLib = new BigIntsClient();
 
 		Resolver resolverImpl = new Resolver();
 		ERC1967Proxy resolverProxy = new ERC1967Proxy(address(resolverImpl), "");
@@ -109,7 +106,6 @@ contract IntegrationTest is DSTestPlus {
 			aliceOwnerId,
 			aliceOwnerAddr,
 			address(minerMockAPI),
-			address(bigIntsLib),
 			address(resolver)
 		);
 

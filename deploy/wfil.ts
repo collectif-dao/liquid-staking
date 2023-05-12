@@ -15,7 +15,7 @@ const deployFunction: DeployFunction = async function ({ deployments, getNamedAc
     maxFeePerGas: feeData.maxFeePerGas
   })
 
-  console.log("WFIL Address--->" + address)
+  console.log("WFIL Address---> " + address)
 };
 
 export default deployFunction;

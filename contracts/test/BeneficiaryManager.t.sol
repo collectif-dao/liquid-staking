@@ -19,7 +19,6 @@ import {BigInts} from "filecoin-solidity/contracts/v0.8/utils/BigInts.sol";
 import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
 import {ERC1967Proxy} from "@oz/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
-import {BigIntsClient} from "../libraries/BigInts.sol";
 
 contract BeneficiaryManagerTest is DSTestPlus {
 	BeneficiaryManagerMock public beneficiaryManager;
@@ -27,7 +26,6 @@ contract BeneficiaryManagerTest is DSTestPlus {
 	StorageProviderRegistryMock public registry;
 	LiquidStakingMock public staking;
 	IWFIL public wfil;
-	BigIntsClient private bigIntsLib;
 	StorageProviderCollateralMock public collateral;
 	StorageProviderRegistryCallerMock private registryCaller;
 	RewardCollectorMock private rewardCollector;
@@ -53,7 +51,6 @@ contract BeneficiaryManagerTest is DSTestPlus {
 		wfil = IWFIL(address(new WFIL(msg.sender)));
 
 		minerMockAPI = new MinerMockAPI(owner);
-		bigIntsLib = new BigIntsClient();
 		minerActor = new MinerActorMock();
 
 		Resolver resolverImpl = new Resolver();
@@ -85,7 +82,6 @@ contract BeneficiaryManagerTest is DSTestPlus {
 			aliceOwnerId,
 			aliceOwnerAddr,
 			address(minerMockAPI),
-			address(bigIntsLib),
 			address(resolver)
 		);
 

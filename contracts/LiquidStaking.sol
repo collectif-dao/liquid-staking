@@ -17,7 +17,6 @@ import {ILiquidStakingControllerClient as IStakingControllerClient} from "./inte
 import {IStorageProviderCollateralClient as ICollateralClient} from "./interfaces/IStorageProviderCollateralClient.sol";
 import {IStorageProviderRegistryClient as IRegistryClient} from "./interfaces/IStorageProviderRegistryClient.sol";
 import {IResolverClient} from "./interfaces/IResolverClient.sol";
-import {IBigInts} from "./libraries/BigInts.sol";
 
 /**
  * @title LiquidStaking contract allows users to stake/unstake FIL to earn
@@ -54,7 +53,6 @@ contract LiquidStaking is
 	/// @notice The current total amount of FIL that is allocated to SPs.
 	uint256 public totalFilPledged;
 
-	IBigInts internal BigInts;
 	IResolverClient internal resolver;
 
 	bytes32 private constant LIQUID_STAKING_ADMIN = keccak256("LIQUID_STAKING_ADMIN");
@@ -68,16 +66,14 @@ contract LiquidStaking is
 	/**
 	 * @dev Contract initializer function.
 	 * @param _wFIL WFIL token contract address
-	 * @param _bigIntsLib BigInts contract address
 	 * @param _resolver Resolver contract address
 	 */
-	function initialize(address _wFIL, address _bigIntsLib, address _resolver) public initializer {
+	function initialize(address _wFIL, address _resolver) public initializer {
 		__AccessControl_init();
 		__ReentrancyGuard_init();
-		ClFILToken.initialize(_wFIL);
+		__ClFILToken_init(_wFIL);
 		__UUPSUpgradeable_init();
 
-		BigInts = IBigInts(_bigIntsLib);
 		resolver = IResolverClient(_resolver);
 
 		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);

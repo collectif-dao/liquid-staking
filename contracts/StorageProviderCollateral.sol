@@ -13,7 +13,6 @@ import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/se
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {FilAddress} from "fevmate/utils/FilAddress.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
-import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 
 /**
  * @title Storage Provider Collateral stores collateral for covering potential
@@ -28,7 +27,6 @@ import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
  *
  */
 contract StorageProviderCollateral is
-	DSTestPlus,
 	IStorageProviderCollateral,
 	Initializable,
 	AccessControlUpgradeable,
@@ -206,9 +204,6 @@ contract StorageProviderCollateral is
 		uint64 _ownerId,
 		uint256 _slashingAmt
 	) external virtual nonReentrant activeStorageProvider(_ownerId) {
-		emit log_named_address("msg.sender", msg.sender);
-		emit log_named_string("hasRole(SLASHING_AGENT)", hasRole(SLASHING_AGENT, msg.sender) ? "true" : "false");
-
 		if (!hasRole(SLASHING_AGENT, msg.sender)) revert InvalidAccess();
 		if (_slashingAmt == 0) revert InvalidParams();
 		(, , uint64 minerId, ) = IRegistryClient(resolver.getRegistry()).getStorageProvider(_ownerId);

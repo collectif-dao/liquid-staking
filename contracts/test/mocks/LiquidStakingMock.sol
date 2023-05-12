@@ -30,15 +30,13 @@ contract LiquidStakingMock is LiquidStaking {
 		uint64 _ownerId,
 		address _ownerAddr,
 		address _minerApiMock,
-		address _bigIntsLib,
 		address _resolver
 	) public initializer {
 		__AccessControl_init();
 		__ReentrancyGuard_init();
-		ClFILToken.initialize(_wFIL);
+		__ClFILToken_init(_wFIL);
 		__UUPSUpgradeable_init();
 
-		BigInts = IBigInts(_bigIntsLib);
 		resolver = IResolverClient(_resolver);
 
 		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
