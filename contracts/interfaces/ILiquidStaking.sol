@@ -30,11 +30,9 @@ interface ILiquidStaking {
 
 	/**
 	 * @notice Emitted when storage provider's pledge is returned back to the LSP
-	 * @param ownerId Storage Provider's owner ID
-	 * @param minerId Storage Provider's miner actor ID
 	 * @param amount Total FIL amount of repayment
 	 */
-	event PledgeRepayment(uint64 ownerId, uint64 minerId, uint256 amount);
+	event PledgeRepayment(uint256 amount);
 
 	/**
 	 * @notice Stake FIL to the Liquid Staking pool and get clFIL in return
@@ -66,12 +64,17 @@ interface ILiquidStaking {
 	function pledge(uint256 amount) external;
 
 	/**
-	 * @notice Withdraw initial pledge from Storage Provider's Miner Actor by `ownerId`
-	 * This function is triggered when sector is not extended by miner actor and initial pledge unlocked
-	 * @param ownerId Storage provider owner ID
-	 * @param amount Initial pledge amount
+	 * @notice Restakes `assets` for a specified `target` address
+	 * @param assets Amount of assets to restake
+	 * @param receiver f4 address to receive clFIL tokens
 	 */
-	function withdrawPledge(uint64 ownerId, uint256 amount) external;
+	function restake(uint256 assets, address receiver) external returns (uint256 shares);
+
+	/**
+	 * @notice Triggered when pledge is repaid on the Reward Collector
+	 * @param amount Amount of pledge repayment
+	 */
+	function repayPledge(uint256 amount) external;
 
 	/**
 	 * @notice Returns pool usage ratio to determine what percentage of FIL
@@ -89,13 +92,4 @@ interface ILiquidStaking {
 	 * @param _ownerId Storage Provider owner ID
 	 */
 	function totalFees(uint64 _ownerId) external view returns (uint256);
-
-	/**
-	 * @notice Triggers changeBeneficiary Miner actor call
-	 * @param minerId Miner actor ID
-	 * @param targetPool LSP smart contract address
-	 * @param quota Total beneficiary quota
-	 * @param expiration Expiration epoch
-	 */
-	function forwardChangeBeneficiary(uint64 minerId, address targetPool, uint256 quota, int64 expiration) external;
 }

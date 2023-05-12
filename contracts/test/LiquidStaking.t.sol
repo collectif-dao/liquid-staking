@@ -20,6 +20,7 @@ import {LiquidStakingController} from "../LiquidStakingController.sol";
 import {MinerActorMock} from "./mocks/MinerActorMock.sol";
 import {Resolver} from "../Resolver.sol";
 import {BeneficiaryManagerMock} from "./mocks/BeneficiaryManagerMock.sol";
+import {RewardCollectorMock} from "./mocks/RewardCollectorMock.sol";
 
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 import {ERC1967Proxy} from "@oz/contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -36,6 +37,7 @@ contract LiquidStakingTest is DSTestPlus {
 	Resolver public resolver;
 	LiquidStakingController public controller;
 	BeneficiaryManagerMock public beneficiaryManager;
+	RewardCollectorMock private rewardCollector;
 
 	bytes public owner;
 	uint64 public aliceOwnerId = 1508;
@@ -49,7 +51,6 @@ contract LiquidStakingTest is DSTestPlus {
 
 	uint256 private adminFee = 1000;
 	uint256 private profitShare = 2000;
-	address private rewardCollector = address(0x12523);
 
 	uint256 private constant MAX_STORAGE_PROVIDERS = 200;
 	uint256 private constant MAX_ALLOCATION = 10000 ether;
@@ -86,10 +87,15 @@ contract LiquidStakingTest is DSTestPlus {
 		beneficiaryManager = BeneficiaryManagerMock(address(bManagerProxy));
 		beneficiaryManager.initialize(address(minerMockAPI), aliceOwnerId, address(resolver));
 
+		RewardCollectorMock rCollectorImpl = new RewardCollectorMock();
+		ERC1967Proxy rCollectorProxy = new ERC1967Proxy(address(rCollectorImpl), "");
+		rewardCollector = RewardCollectorMock(payable(rCollectorProxy));
+		rewardCollector.initialize(address(minerActor), aliceOwnerId, aliceOwnerAddr, address(wfil), address(resolver));
+
 		LiquidStakingController controllerImpl = new LiquidStakingController();
 		ERC1967Proxy controllerProxy = new ERC1967Proxy(address(controllerImpl), "");
 		controller = LiquidStakingController(address(controllerProxy));
-		controller.initialize(adminFee, profitShare, rewardCollector, address(resolver));
+		controller.initialize(adminFee, profitShare, address(rewardCollector), address(resolver));
 
 		LiquidStakingMock stakingImpl = new LiquidStakingMock();
 		ERC1967Proxy stakingProxy = new ERC1967Proxy(address(stakingImpl), "");
@@ -121,7 +127,7 @@ contract LiquidStakingTest is DSTestPlus {
 		resolver.setBeneficiaryManagerAddress(address(beneficiaryManager));
 		resolver.setCollateralAddress(address(collateral));
 		resolver.setLiquidStakingAddress(address(staking));
-		resolver.setBigIntsAddress(address(bigIntsLib));
+		resolver.setRewardCollectorAddress(address(rewardCollector));
 		registry.registerPool(address(staking));
 
 		// prepare storage provider for getting FIL from liquid staking
@@ -338,7 +344,7 @@ contract LiquidStakingTest is DSTestPlus {
 		require(address(minerActor).balance == withdrawAmount + dailyAllocation, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 
-		staking.withdrawRewards(aliceOwnerId, withdrawAmount);
+		rewardCollector.withdrawRewards(aliceOwnerId, withdrawAmount);
 
 		uint256 protocolFees = (withdrawAmount * adminFee) / BASIS_POINTS;
 		uint256 stakingShare = (withdrawAmount * profitShare) / BASIS_POINTS;
@@ -346,7 +352,7 @@ contract LiquidStakingTest is DSTestPlus {
 
 		require(address(minerActor).balance == dailyAllocation, "INVALID_BALANCE");
 		require(aliceOwnerAddr.balance == spShare, "INVALID_BALANCE");
-		require(wfil.balanceOf(rewardCollector) == protocolFees, "INVALID_BALANCE");
+		require(wfil.balanceOf(address(rewardCollector)) == protocolFees, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount + stakingShare, "INVALID_BALANCE");
 
 		collateralAmount = (dailyAllocation * baseCollateralRequirements) / BASIS_POINTS;
@@ -376,7 +382,7 @@ contract LiquidStakingTest is DSTestPlus {
 		require(address(minerActor).balance == dailyAllocation, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 
-		staking.withdrawPledge(aliceOwnerId, dailyAllocation);
+		rewardCollector.withdrawPledge(aliceOwnerId, dailyAllocation);
 
 		require(address(minerActor).balance == 0, "INVALID_BALANCE");
 		require(wfil.balanceOf(address(staking)) == amount, "INVALID_BALANCE");
@@ -408,7 +414,7 @@ contract LiquidStakingTest is DSTestPlus {
 		staking.pledge(dailyAllocation);
 
 		hevm.expectRevert(abi.encodeWithSignature("AllocationOverflow()"));
-		staking.withdrawPledge(aliceOwnerId, dailyAllocation + 1);
+		rewardCollector.withdrawPledge(aliceOwnerId, dailyAllocation + 1);
 	}
 
 	function testWithdrawRewardsWithRestaking(uint256 amount) public {
@@ -448,7 +454,7 @@ contract LiquidStakingTest is DSTestPlus {
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 		require(wfil.balanceOf(address(staking)) == amount - dailyAllocation, "INVALID_BALANCE");
 
-		staking.withdrawRewards(aliceOwnerId, withdrawAmount);
+		rewardCollector.withdrawRewards(aliceOwnerId, withdrawAmount);
 
 		require(aliceOwnerAddr.balance == spShare, "INVALID_BALANCE");
 		require(

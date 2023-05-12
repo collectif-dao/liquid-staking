@@ -18,6 +18,7 @@ import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.
 import {Resolver} from "../Resolver.sol";
 import {LiquidStakingController} from "../LiquidStakingController.sol";
 import {BeneficiaryManagerMock} from "./mocks/BeneficiaryManagerMock.sol";
+import {RewardCollectorMock} from "./mocks/RewardCollectorMock.sol";
 
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 import {ERC1967Proxy} from "@oz/contracts/proxy/ERC1967/ERC1967Proxy.sol";
@@ -35,6 +36,7 @@ contract IntegrationTest is DSTestPlus {
 	Resolver public resolver;
 	LiquidStakingController public controller;
 	BeneficiaryManagerMock public beneficiaryManager;
+	RewardCollectorMock private rewardCollector;
 
 	bytes public owner;
 	uint64 public aliceOwnerId = 1508;
@@ -54,7 +56,6 @@ contract IntegrationTest is DSTestPlus {
 
 	uint256 private adminFee = 200;
 	uint256 private profitShare = 3000;
-	address private rewardCollector = address(0x12523);
 
 	uint256 private constant MAX_STORAGE_PROVIDERS = 200;
 	uint256 private constant MAX_ALLOCATION = 1000000 ether;
@@ -89,10 +90,15 @@ contract IntegrationTest is DSTestPlus {
 		beneficiaryManager = BeneficiaryManagerMock(address(bManagerProxy));
 		beneficiaryManager.initialize(address(minerMockAPI), aliceOwnerId, address(resolver));
 
+		RewardCollectorMock rCollectorImpl = new RewardCollectorMock();
+		ERC1967Proxy rCollectorProxy = new ERC1967Proxy(address(rCollectorImpl), "");
+		rewardCollector = RewardCollectorMock(payable(rCollectorProxy));
+		rewardCollector.initialize(address(minerActor), aliceOwnerId, aliceOwnerAddr, address(wfil), address(resolver));
+
 		LiquidStakingController controllerImpl = new LiquidStakingController();
 		ERC1967Proxy controllerProxy = new ERC1967Proxy(address(controllerImpl), "");
 		controller = LiquidStakingController(address(controllerProxy));
-		controller.initialize(adminFee, profitShare, rewardCollector, address(resolver));
+		controller.initialize(adminFee, profitShare, address(rewardCollector), address(resolver));
 
 		LiquidStakingMock stakingImpl = new LiquidStakingMock();
 		ERC1967Proxy stakingProxy = new ERC1967Proxy(address(stakingImpl), "");
@@ -123,6 +129,7 @@ contract IntegrationTest is DSTestPlus {
 		resolver.setCollateralAddress(address(collateral));
 		resolver.setLiquidStakingAddress(address(staking));
 		resolver.setBeneficiaryManagerAddress(address(beneficiaryManager));
+		resolver.setRewardCollectorAddress(address(rewardCollector));
 
 		hevm.prank(alice);
 		registry.register(aliceMinerId, address(staking), ALICE_TOTAL_ALLOCATION, ALICE_DAILY_ALLOCATION);
@@ -226,7 +233,7 @@ contract IntegrationTest is DSTestPlus {
 			);
 
 			if (i > 0) {
-				staking.withdrawRewards(aliceOwnerId, vars.availableRewardsPerDay);
+				rewardCollector.withdrawRewards(aliceOwnerId, vars.availableRewardsPerDay);
 				vars.rewardsDelta =
 					vars.totalAvailableRewards +
 					vars.totalAllocated -
@@ -339,7 +346,7 @@ contract IntegrationTest is DSTestPlus {
 			}
 
 			if (i > 0 && i < ALICE_ALLOCATION_PERIOD) {
-				staking.withdrawRewards(aliceOwnerId, vars.availableRewardsPerDay);
+				rewardCollector.withdrawRewards(aliceOwnerId, vars.availableRewardsPerDay);
 				vars.rewardsDelta =
 					vars.totalAvailableRewards +
 					vars.totalAllocated -
@@ -465,7 +472,7 @@ contract IntegrationTest is DSTestPlus {
 			}
 
 			if (i > 0) {
-				staking.withdrawRewards(aliceOwnerId, vars.availableRewardsPerDay);
+				rewardCollector.withdrawRewards(aliceOwnerId, vars.availableRewardsPerDay);
 				vars.rewardsDelta =
 					vars.totalAvailableRewards +
 					vars.totalAllocated -
@@ -583,7 +590,7 @@ contract IntegrationTest is DSTestPlus {
 			}
 
 			if (i > 0) {
-				staking.withdrawRewards(aliceOwnerId, vars.availableRewardsPerDay);
+				rewardCollector.withdrawRewards(aliceOwnerId, vars.availableRewardsPerDay);
 				vars.rewardsDelta =
 					vars.totalAvailableRewards +
 					vars.totalAllocated -
@@ -733,7 +740,7 @@ contract IntegrationTest is DSTestPlus {
 				rVars.clFILShares = rVars.restakingAmt.mulDivDown(rVars.clFILTotalSupply, rVars.totalStakingAssets);
 				rVars.totalclFILShares += rVars.clFILShares;
 
-				staking.withdrawRewards(aliceOwnerId, vars.availableRewardsPerDay);
+				rewardCollector.withdrawRewards(aliceOwnerId, vars.availableRewardsPerDay);
 				vars.rewardsDelta =
 					vars.totalAvailableRewards +
 					vars.totalAllocated -
@@ -841,7 +848,7 @@ contract IntegrationTest is DSTestPlus {
 			);
 
 			if (i > 0) {
-				staking.withdrawRewards(aliceOwnerId, vars.availableRewardsPerDay);
+				rewardCollector.withdrawRewards(aliceOwnerId, vars.availableRewardsPerDay);
 				pledgeDelta = (totalAllocation / 2) - (unPledged * (i));
 				vars.rewardsDelta =
 					vars.totalAllocated +
@@ -849,7 +856,7 @@ contract IntegrationTest is DSTestPlus {
 					vars.totalAvailableRewards -
 					(vars.availableRewardsPerDay * (i));
 
-				staking.withdrawPledge(aliceOwnerId, unPledged);
+				rewardCollector.withdrawPledge(aliceOwnerId, unPledged);
 
 				collateralRequirements =
 					((vars.totalAllocated - (unPledged * (i))) * collateral.collateralRequirements(aliceOwnerId)) /

@@ -84,7 +84,7 @@ contract StorageProviderCollateralMock is StorageProviderCollateral {
 		emit StorageProviderCollateralWithdraw(ownerId, finalAmount);
 	}
 
-	function increaseUserAllocation(uint64 ownerId, uint256 amount) public {
+	function increaseUsedAllocation(uint64 ownerId, uint256 amount) public {
 		IRegistryClient(resolver.getRegistry()).increaseUsedAllocation(ownerId, amount, block.timestamp);
 	}
 

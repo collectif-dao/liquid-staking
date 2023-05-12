@@ -17,9 +17,9 @@ contract Resolver is IResolver, Initializable, OwnableUpgradeable, UUPSUpgradeab
 	bytes32 private constant LIQUID_STAKING = "LIQUID_STAKING";
 	bytes32 private constant REGISTRY = "REGISTRY";
 	bytes32 private constant COLLATERAL = "COLLATERAL";
-	bytes32 private constant BIG_INTS = "BIG_INTS";
 	bytes32 private constant LIQUID_STAKING_CONTROLLER = "LIQUID_STAKING_CONTROLLER";
 	bytes32 private constant BENEFICIARY_MANAGER = "BENEFICIARY_MANAGER";
+	bytes32 private constant REWARD_COLLECTOR = "REWARD_COLLECTOR";
 
 	/**
 	 * @dev Contract initializer function.
@@ -107,24 +107,6 @@ contract Resolver is IResolver, Initializable, OwnableUpgradeable, UUPSUpgradeab
 	}
 
 	/**
-	 * @notice Update BigInts library address
-	 * @param newAddress BigInts smart contract address
-	 * @dev Only triggered by resolver owner
-	 */
-	function setBigIntsAddress(address newAddress) external override onlyOwner {
-		_setAddress(BIG_INTS, newAddress);
-
-		emit BigIntsAddressUpdated(newAddress);
-	}
-
-	/**
-	 * @notice Returns an address of a Liquid Staking contract
-	 */
-	function getBigInts() external view override returns (address) {
-		return getAddress(BIG_INTS);
-	}
-
-	/**
 	 * @notice Update LiquidStakingController address
 	 * @param newAddress LiquidStakingController smart contract address
 	 * @dev Only triggered by resolver owner
@@ -158,6 +140,24 @@ contract Resolver is IResolver, Initializable, OwnableUpgradeable, UUPSUpgradeab
 	 */
 	function getBeneficiaryManager() external view override returns (address) {
 		return getAddress(BENEFICIARY_MANAGER);
+	}
+
+	/**
+	 * @notice Update Reward Collector contract address
+	 * @param newAddress RewardCollector address
+	 * @dev Only triggered by resolver owner
+	 */
+	function setRewardCollectorAddress(address newAddress) external override onlyOwner {
+		_setAddress(REWARD_COLLECTOR, newAddress);
+
+		emit RewardCollectorAddressUpdated(newAddress);
+	}
+
+	/**
+	 * @notice Returns an address of a Reward Collector contract
+	 */
+	function getRewardCollector() external view override returns (address) {
+		return getAddress(REWARD_COLLECTOR);
 	}
 
 	function _setAddress(bytes32 id, address newAddr) internal {

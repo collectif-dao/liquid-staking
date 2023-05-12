@@ -14,11 +14,15 @@ interface ILiquidStakingClient {
 	function totalFilPledged() external view returns (uint256);
 
 	/**
-	 * @notice Triggers changeBeneficiary Miner actor call
-	 * @param minerId Miner actor ID
-	 * @param targetPool LSP smart contract address
-	 * @param quota Total beneficiary quota
-	 * @param expiration Expiration epoch
+	 * @notice Restakes `assets` for a specified `target` address
+	 * @param assets Amount of assets to restake
+	 * @param receiver f4 address to receive clFIL tokens
 	 */
-	function forwardChangeBeneficiary(uint64 minerId, address targetPool, uint256 quota, int64 expiration) external;
+	function restake(uint256 assets, address receiver) external returns (uint256 shares);
+
+	/**
+	 * @notice Triggered when pledge is repaid on the Reward Collector
+	 * @param amount Amount of pledge repayment
+	 */
+	function repayPledge(uint256 amount) external;
 }

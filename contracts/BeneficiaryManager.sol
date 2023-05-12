@@ -64,7 +64,7 @@ contract BeneficiaryManager is IBeneficiaryManager, Initializable, OwnableUpgrad
 		uint64 actualOwnerId = PrecompilesAPI.resolveAddress(ownerReturn.owner);
 		if (ownerId != actualOwnerId) revert InvalidOwner();
 
-		_executeChangeBeneficiary(actorId, targetPool, quota, lastEpoch);
+		_executeChangeBeneficiary(actorId, quota, lastEpoch);
 
 		emit BeneficiaryAddressUpdated(msg.sender, minerId, targetPool, quota, lastEpoch);
 	}
@@ -84,9 +84,9 @@ contract BeneficiaryManager is IBeneficiaryManager, Initializable, OwnableUpgrad
 		uint256 quota,
 		int64 expiration
 	) external virtual {
-		if (msg.sender != resolver.getLiquidStaking()) revert InvalidAccess();
+		if (msg.sender != resolver.getRewardCollector()) revert InvalidAccess();
 
-		_executeChangeBeneficiary(CommonTypes.FilActorId.wrap(minerId), targetPool, quota, expiration);
+		_executeChangeBeneficiary(CommonTypes.FilActorId.wrap(minerId), quota, expiration);
 
 		emit BeneficiaryAddressUpdated(msg.sender, minerId, targetPool, quota, expiration);
 	}
@@ -96,12 +96,11 @@ contract BeneficiaryManager is IBeneficiaryManager, Initializable, OwnableUpgrad
 	 */
 	function _executeChangeBeneficiary(
 		CommonTypes.FilActorId minerId,
-		address targetPool,
 		uint256 quota,
 		int64 expiration
 	) internal virtual {
 		MinerTypes.ChangeBeneficiaryParams memory params;
-		params.new_beneficiary = FilAddresses.fromEthAddress(targetPool);
+		params.new_beneficiary = FilAddresses.fromEthAddress(resolver.getRewardCollector());
 		params.new_quota = BigInts.fromUint256(quota);
 		params.new_expiration = CommonTypes.ChainEpoch.wrap(expiration);
 

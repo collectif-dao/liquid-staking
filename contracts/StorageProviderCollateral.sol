@@ -186,7 +186,7 @@ contract StorageProviderCollateral is
 	 * @param _ownerId Storage provider owner ID
 	 */
 	function fit(uint64 _ownerId) external activeStorageProvider(_ownerId) {
-		if (!IRegistryClient(resolver.getRegistry()).isActivePool(msg.sender)) revert InvalidAccess();
+		if (msg.sender != resolver.getRewardCollector()) revert InvalidAccess();
 
 		_rebalance(_ownerId, 0);
 	}

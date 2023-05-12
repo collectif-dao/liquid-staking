@@ -14,7 +14,7 @@ contract ResolverTest is DSTestPlus {
 	bytes32 private constant LIQUID_STAKING = "LIQUID_STAKING";
 	bytes32 private constant REGISTRY = "REGISTRY";
 	bytes32 private constant COLLATERAL = "COLLATERAL";
-	bytes32 private constant BIG_INTS = "BIG_INTS";
+	bytes32 private constant REWARD_COLLECTOR = "REWARD_COLLECTOR";
 
 	function setUp() public {
 		Resolver resolverImpl = new Resolver();
@@ -116,27 +116,27 @@ contract ResolverTest is DSTestPlus {
 		require(resolver.getAddress(LIQUID_STAKING) == address(0), "INVALID_ADDRESS_SET");
 	}
 
-	function testSetBigIntsAddress(address newAddr) public {
+	function testSetRewardCollectorAddress(address newAddr) public {
 		hevm.assume(newAddr != address(0));
 
-		resolver.setBigIntsAddress(newAddr);
-		require(resolver.getBigInts() == newAddr, "INVALID_ADDRESS_SET");
+		resolver.setRewardCollectorAddress(newAddr);
+		require(resolver.getRewardCollector() == newAddr, "INVALID_ADDRESS_SET");
 
 		// expect revert on set the same address
 		hevm.expectRevert(abi.encodeWithSignature("InvalidAddress()"));
-		resolver.setAddress(BIG_INTS, newAddr);
+		resolver.setAddress(REWARD_COLLECTOR, newAddr);
 	}
 
-	function testSetBigIntsAddressReverts(address newAddr) public {
+	function testSetRewardCollectorAddressReverts(address newAddr) public {
 		hevm.assume(newAddr != address(0));
 
 		hevm.prank(alice);
 		hevm.expectRevert("Ownable: caller is not the owner");
-		resolver.setBigIntsAddress(newAddr);
-		require(resolver.getBigInts() == address(0), "INVALID_ADDRESS_SET");
+		resolver.setRewardCollectorAddress(newAddr);
+		require(resolver.getRewardCollector() == address(0), "INVALID_ADDRESS_SET");
 
 		hevm.expectRevert(abi.encodeWithSignature("InvalidAddress()"));
-		resolver.setBigIntsAddress(address(0));
-		require(resolver.getBigInts() == address(0), "INVALID_ADDRESS_SET");
+		resolver.setRewardCollectorAddress(address(0));
+		require(resolver.getRewardCollector() == address(0), "INVALID_ADDRESS_SET");
 	}
 }

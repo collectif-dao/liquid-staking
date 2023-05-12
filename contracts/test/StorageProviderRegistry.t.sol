@@ -19,7 +19,9 @@ import {StorageProviderCollateralMock} from "./mocks/StorageProviderCollateralMo
 import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
 import {LiquidStakingController} from "../LiquidStakingController.sol";
+import {RewardCollectorMock} from "./mocks/RewardCollectorMock.sol";
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
+import {MinerActorMock} from "./mocks/MinerActorMock.sol";
 
 import {ERC1967Proxy} from "@oz/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
@@ -32,6 +34,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	Resolver public resolver;
 	LiquidStakingController public controller;
 	BeneficiaryManagerMock public beneficiaryManager;
+	RewardCollectorMock private rewardCollector;
+	MinerActorMock public minerActor;
 
 	LiquidStakingMock public staking;
 	IWFIL public wfil;
@@ -44,7 +48,6 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	address private aliceOwnerAddr = address(0x12341214212);
 	uint256 private adminFee = 1000;
 	uint256 private profitShare = 2000;
-	address private rewardCollector = address(0x12523);
 	uint64 public aliceOwnerId = 1508;
 	uint256 maxRestaking = 10000;
 
@@ -60,6 +63,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 
 		wfil = IWFIL(address(new WFIL(msg.sender)));
 		minerMockAPI = new MinerMockAPI(owner);
+		minerActor = new MinerActorMock();
 
 		bigIntsLib = new BigIntsClient();
 
@@ -73,10 +77,15 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		beneficiaryManager = BeneficiaryManagerMock(address(bManagerProxy));
 		beneficiaryManager.initialize(address(minerMockAPI), ownerId, address(resolver));
 
+		RewardCollectorMock rCollectorImpl = new RewardCollectorMock();
+		ERC1967Proxy rCollectorProxy = new ERC1967Proxy(address(rCollectorImpl), "");
+		rewardCollector = RewardCollectorMock(payable(rCollectorProxy));
+		rewardCollector.initialize(address(minerActor), aliceOwnerId, aliceOwnerAddr, address(wfil), address(resolver));
+
 		LiquidStakingController controllerImpl = new LiquidStakingController();
 		ERC1967Proxy controllerProxy = new ERC1967Proxy(address(controllerImpl), "");
 		controller = LiquidStakingController(address(controllerProxy));
-		controller.initialize(adminFee, profitShare, rewardCollector, address(resolver));
+		controller.initialize(adminFee, profitShare, address(rewardCollector), address(resolver));
 
 		// hevm.startPrank(proxyAdmin);
 		LiquidStakingMock stakingImpl = new LiquidStakingMock();
@@ -84,7 +93,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		staking = LiquidStakingMock(payable(stakingProxy));
 		staking.initialize(
 			address(wfil),
-			address(0x21421),
+			address(minerActor),
 			aliceOwnerId,
 			aliceOwnerAddr,
 			address(minerMockAPI),
@@ -107,6 +116,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		resolver.setRegistryAddress(address(registry));
 		resolver.setCollateralAddress(address(collateral));
 		resolver.setLiquidStakingAddress(address(staking));
+		resolver.setRewardCollectorAddress(address(rewardCollector));
 		registry.registerPool(address(staking));
 
 		callerMock = new StorageProviderRegistryCallerMock(address(registry));
@@ -608,6 +618,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		beneficiaryManager.changeBeneficiaryAddress();
 		registry.acceptBeneficiaryAddress(ownerId);
 
+		resolver.setRewardCollectorAddress(address(callerMock)); // Test case only
 		callerMock.increaseRewards(ownerId, _accruedRewards);
 
 		(, , , , uint256 accruedRewards, ) = registry.allocations(ownerId);
@@ -686,6 +697,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 
 		resolver.setCollateralAddress(address(callerMock)); // Test case only
 		callerMock.increaseUsedAllocation(ownerId, _repaidPledge, block.timestamp);
+
+		resolver.setRewardCollectorAddress(address(callerMock)); // Test case only
 		callerMock.increasePledgeRepayment(ownerId, _repaidPledge);
 
 		(, , , , , uint256 repaidPledge) = registry.allocations(ownerId);
@@ -732,6 +745,8 @@ contract StorageProviderRegistryTest is DSTestPlus {
 
 		uint256 _usedAllocation = _repaidPledge / 2;
 		callerMock.increaseUsedAllocation(ownerId, _usedAllocation, block.timestamp);
+
+		resolver.setRewardCollectorAddress(address(callerMock)); // Test case only
 
 		hevm.expectRevert(abi.encodeWithSignature("AllocationOverflow()"));
 		callerMock.increasePledgeRepayment(ownerId, _repaidPledge);

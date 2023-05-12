@@ -19,6 +19,7 @@ import {MinerActorMock} from "./mocks/MinerActorMock.sol";
 import {BeneficiaryManagerMock} from "./mocks/BeneficiaryManagerMock.sol";
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 import {ERC1967Proxy} from "@oz/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {RewardCollectorMock} from "./mocks/RewardCollectorMock.sol";
 
 contract StorageProviderCollateralTest is DSTestPlus {
 	StorageProviderCollateralMock public collateral;
@@ -34,6 +35,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	Resolver public resolver;
 	LiquidStakingController public controller;
 	BeneficiaryManagerMock public beneficiaryManager;
+	RewardCollectorMock private rewardCollector;
 
 	bytes public owner;
 	uint64 public aliceOwnerId = 1508;
@@ -44,7 +46,6 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	address private alice = address(0x122);
 	bytes private aliceBytesAddress = abi.encodePacked(alice);
 	address private bob = address(0x123);
-	address private rewardCollector = address(0x12523);
 	address private aliceOwnerAddr = address(0x12341214212);
 	int64 private lastEpoch = 897999909;
 
@@ -77,10 +78,15 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		beneficiaryManager = BeneficiaryManagerMock(address(bManagerProxy));
 		beneficiaryManager.initialize(address(minerMockAPI), aliceOwnerId, address(resolver));
 
+		RewardCollectorMock rCollectorImpl = new RewardCollectorMock();
+		ERC1967Proxy rCollectorProxy = new ERC1967Proxy(address(rCollectorImpl), "");
+		rewardCollector = RewardCollectorMock(payable(rCollectorProxy));
+		rewardCollector.initialize(address(minerActor), aliceOwnerId, aliceOwnerAddr, address(wfil), address(resolver));
+
 		LiquidStakingController controllerImpl = new LiquidStakingController();
 		ERC1967Proxy controllerProxy = new ERC1967Proxy(address(controllerImpl), "");
 		controller = LiquidStakingController(address(controllerProxy));
-		controller.initialize(1000, 3000, rewardCollector, address(resolver));
+		controller.initialize(1000, 3000, address(rewardCollector), address(resolver));
 
 		LiquidStakingMock stakingImpl = new LiquidStakingMock();
 		ERC1967Proxy stakingProxy = new ERC1967Proxy(address(stakingImpl), "");
@@ -113,6 +119,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		resolver.setRegistryAddress(address(registry));
 		resolver.setCollateralAddress(address(collateral));
 		resolver.setLiquidStakingAddress(address(staking));
+		resolver.setRewardCollectorAddress(address(rewardCollector));
 		registry.registerPool(address(staking));
 
 		hevm.prank(alice);
@@ -239,12 +246,13 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		require(wfil.balanceOf(address(collateral)) == SAMPLE_DAILY_ALLOCATION, "INVALID_BALANCE");
 		require(wfil.balanceOf(alice) == 0, "INVALID_BALANCE");
 
-		registry.registerPool(address(registryCallerMock));
+		resolver.setRewardCollectorAddress(address(registryCallerMock)); // bypassing registry checks on reward collector address
 
 		uint256 pledgeRepayment = FixedPointMathLib.mulDivDown(SAMPLE_DAILY_ALLOCATION, percentage, BASIS_POINTS);
 		// reduce collateral requirements by initial pledge repayment
 		registryCallerMock.increasePledgeRepayment(aliceOwnerId, pledgeRepayment);
 
+		resolver.setRewardCollectorAddress(address(callerMock)); // bypassing collateral fit checks on reward collector address
 		callerMock.fit(aliceOwnerId);
 
 		uint256 adjAmt = FixedPointMathLib.mulDivDown(lockedAmount, percentage, BASIS_POINTS);
@@ -283,8 +291,9 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		require(wfil.balanceOf(address(collateral)) == SAMPLE_DAILY_ALLOCATION, "INVALID_BALANCE");
 		require(wfil.balanceOf(alice) == 0, "INVALID_BALANCE");
 
-		collateral.increaseUserAllocation(aliceOwnerId, additionalAllocation);
+		collateral.increaseUsedAllocation(aliceOwnerId, additionalAllocation);
 
+		resolver.setRewardCollectorAddress(address(callerMock)); // bypassing collateral fit checks on reward collector address
 		callerMock.fit(aliceOwnerId);
 
 		uint256 usedAllocation = additionalAllocation + SAMPLE_DAILY_ALLOCATION;

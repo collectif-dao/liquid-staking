@@ -5,10 +5,12 @@ import {Buffer} from "@ensdomains/buffer/contracts/Buffer.sol";
 import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {Resolver} from "../Resolver.sol";
 import {BeneficiaryManagerMock} from "./mocks/BeneficiaryManagerMock.sol";
-import {LiquidStakingMock, LiquidStakingCallerMock} from "./mocks/LiquidStakingMock.sol";
-import {StorageProviderRegistryMock} from "./mocks/StorageProviderRegistryMock.sol";
+import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
+import {RewardCollectorMock} from "./mocks/RewardCollectorMock.sol";
+import {StorageProviderRegistryMock, StorageProviderRegistryCallerMock} from "./mocks/StorageProviderRegistryMock.sol";
 import {StorageProviderCollateralMock} from "./mocks/StorageProviderCollateralMock.sol";
 import {LiquidStakingController} from "../LiquidStakingController.sol";
+import {MinerActorMock} from "./mocks/MinerActorMock.sol";
 
 import {WFIL} from "fevmate/token/WFIL.sol";
 import {IWFIL} from "../libraries/tokens/IWFIL.sol";
@@ -26,9 +28,12 @@ contract BeneficiaryManagerTest is DSTestPlus {
 	LiquidStakingMock public staking;
 	IWFIL public wfil;
 	BigIntsClient private bigIntsLib;
-	LiquidStakingCallerMock private stakingCaller;
 	StorageProviderCollateralMock public collateral;
+	StorageProviderRegistryCallerMock private registryCaller;
+	RewardCollectorMock private rewardCollector;
 	LiquidStakingController public controller;
+	MinerActorMock public minerActor;
+	MinerMockAPI private minerMockAPI;
 
 	uint64 public aliceOwnerId = 1508;
 	address private aliceOwnerAddr = address(0x12341214212);
@@ -40,9 +45,6 @@ contract BeneficiaryManagerTest is DSTestPlus {
 
 	uint256 private adminFee = 1000;
 	uint256 private profitShare = 2000;
-	address private rewardCollector = address(0x12523);
-
-	MinerMockAPI private minerMockAPI;
 
 	function setUp() public {
 		Buffer.buffer memory ownerBytes = Leb128.encodeUnsignedLeb128FromUInt64(aliceOwnerId);
@@ -52,6 +54,7 @@ contract BeneficiaryManagerTest is DSTestPlus {
 
 		minerMockAPI = new MinerMockAPI(owner);
 		bigIntsLib = new BigIntsClient();
+		minerActor = new MinerActorMock();
 
 		Resolver resolverImpl = new Resolver();
 		ERC1967Proxy resolverProxy = new ERC1967Proxy(address(resolverImpl), "");
@@ -63,17 +66,22 @@ contract BeneficiaryManagerTest is DSTestPlus {
 		beneficiaryManager = BeneficiaryManagerMock(address(bManagerProxy));
 		beneficiaryManager.initialize(address(minerMockAPI), aliceOwnerId, address(resolver));
 
+		RewardCollectorMock rCollectorImpl = new RewardCollectorMock();
+		ERC1967Proxy rCollectorProxy = new ERC1967Proxy(address(rCollectorImpl), "");
+		rewardCollector = RewardCollectorMock(payable(rCollectorProxy));
+		rewardCollector.initialize(address(minerActor), aliceOwnerId, aliceOwnerAddr, address(wfil), address(resolver));
+
 		LiquidStakingController controllerImpl = new LiquidStakingController();
 		ERC1967Proxy controllerProxy = new ERC1967Proxy(address(controllerImpl), "");
 		controller = LiquidStakingController(address(controllerProxy));
-		controller.initialize(adminFee, profitShare, rewardCollector, address(resolver));
+		controller.initialize(adminFee, profitShare, address(rewardCollector), address(resolver));
 
 		LiquidStakingMock stakingImpl = new LiquidStakingMock();
 		ERC1967Proxy stakingProxy = new ERC1967Proxy(address(stakingImpl), "");
 		staking = LiquidStakingMock(payable(stakingProxy));
 		staking.initialize(
 			address(wfil),
-			address(0x21421),
+			address(minerActor),
 			aliceOwnerId,
 			aliceOwnerAddr,
 			address(minerMockAPI),
@@ -81,12 +89,12 @@ contract BeneficiaryManagerTest is DSTestPlus {
 			address(resolver)
 		);
 
-		stakingCaller = new LiquidStakingCallerMock(address(staking));
-
 		StorageProviderRegistryMock registryImpl = new StorageProviderRegistryMock();
 		ERC1967Proxy registryProxy = new ERC1967Proxy(address(registryImpl), "");
 		registry = StorageProviderRegistryMock(address(registryProxy));
 		registry.initialize(address(minerMockAPI), aliceOwnerId, MAX_ALLOCATION, address(resolver));
+
+		registryCaller = new StorageProviderRegistryCallerMock(address(registry));
 
 		StorageProviderCollateralMock collateralImpl = new StorageProviderCollateralMock();
 		ERC1967Proxy collateralProxy = new ERC1967Proxy(address(collateralImpl), "");
@@ -99,6 +107,7 @@ contract BeneficiaryManagerTest is DSTestPlus {
 		registry.registerPool(address(staking));
 		resolver.setLiquidStakingControllerAddress(address(controller));
 		resolver.setCollateralAddress(address(collateral));
+		resolver.setRewardCollectorAddress(address(rewardCollector));
 	}
 
 	function testChangeBeneficiaryAddress(uint64 minerId, int64 lastEpoch) public {
@@ -135,8 +144,7 @@ contract BeneficiaryManagerTest is DSTestPlus {
 		(, address targetPool, , ) = registry.getStorageProvider(aliceOwnerId);
 		assertEq(targetPool, address(staking));
 
-		resolver.setRegistryAddress(address(stakingCaller)); // bypassing the registry address checks
-		stakingCaller.forwardChangeBeneficiary(minerId, targetPool, repayment, lastEpoch);
+		registryCaller.forwardChangeBeneficiary(minerId, targetPool, repayment, lastEpoch);
 
 		MinerTypes.GetBeneficiaryReturn memory beneficiary = minerMockAPI.getBeneficiary();
 		(uint256 quota, bool err) = BigInts.toUint256(beneficiary.active.term.quota);
@@ -145,17 +153,6 @@ contract BeneficiaryManagerTest is DSTestPlus {
 	}
 
 	function testForwardChangeBeneficiaryReverts(uint64 minerId, int64 lastEpoch) public {
-		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
-
-		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
-		registry.onboardStorageProvider(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION, repayment, lastEpoch);
-		beneficiaryManager.changeBeneficiaryAddress();
-
-		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
-		stakingCaller.forwardChangeBeneficiary(minerId, address(staking), repayment, lastEpoch);
-	}
-
-	function testForwardChangeBeneficiaryRevertsWithDirectCall(uint64 minerId, int64 lastEpoch) public {
 		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
 
 		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
@@ -173,9 +170,7 @@ contract BeneficiaryManagerTest is DSTestPlus {
 		registry.onboardStorageProvider(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION, repayment, lastEpoch);
 		beneficiaryManager.changeBeneficiaryAddress();
 
-		resolver.setRegistryAddress(address(stakingCaller)); // bypassing the registry address checks
-
-		hevm.expectRevert(abi.encodeWithSignature("InvalidAddress()"));
-		stakingCaller.forwardChangeBeneficiary(minerId, address(this), repayment, lastEpoch);
+		hevm.expectRevert(abi.encodeWithSignature("InactivePool()"));
+		registryCaller.forwardChangeBeneficiary(minerId, address(this), repayment, lastEpoch);
 	}
 }

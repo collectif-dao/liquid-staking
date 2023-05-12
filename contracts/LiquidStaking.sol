@@ -13,7 +13,6 @@ import {FilAddress} from "fevmate/utils/FilAddress.sol";
 import {SendAPI} from "filecoin-solidity/contracts/v0.8/SendAPI.sol";
 
 import {ILiquidStaking} from "./interfaces/ILiquidStaking.sol";
-import {IBeneficiaryManager} from "./interfaces/IBeneficiaryManager.sol";
 import {ILiquidStakingControllerClient as IStakingControllerClient} from "./interfaces/ILiquidStakingControllerClient.sol";
 import {IStorageProviderCollateralClient as ICollateralClient} from "./interfaces/IStorageProviderCollateralClient.sol";
 import {IStorageProviderRegistryClient as IRegistryClient} from "./interfaces/IStorageProviderRegistryClient.sol";
@@ -48,8 +47,6 @@ contract LiquidStaking is
 	error ERC4626ZeroShares();
 	error InactiveActor();
 	error ActiveSlashing();
-	error IncorrectWithdrawal();
-	error BigNumConversion();
 	error InsufficientFunds();
 
 	uint256 private constant BASIS_POINTS = 10000;
@@ -194,111 +191,12 @@ contract LiquidStaking is
 	}
 
 	/**
-	 * @notice Withdraw initial pledge from Storage Provider's Miner Actor by `ownerId`
-	 * This function is triggered when sector is not extended by miner actor and initial pledge unlocked
-	 * @param ownerId Storage provider owner ID
-	 * @param amount Initial pledge amount
-	 * @dev Please note that pledge amount withdrawn couldn't exceed used allocation by SP
-	 */
-	function withdrawPledge(uint64 ownerId, uint256 amount) external virtual nonReentrant {
-		if (!hasRole(FEE_DISTRIBUTOR, msg.sender)) revert InvalidAccess();
-		if (amount == 0) revert InvalidParams();
-
-		IRegistryClient registry = IRegistryClient(resolver.getRegistry());
-
-		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
-
-		CommonTypes.BigInt memory withdrawnBInt = MinerAPI.withdrawBalance(
-			CommonTypes.FilActorId.wrap(minerId),
-			BigInts.fromUint256(amount)
-		);
-
-		(uint256 withdrawn, bool abort) = BigInts.toUint256(withdrawnBInt);
-		if (abort) revert BigNumConversion();
-		if (withdrawn != amount) revert IncorrectWithdrawal();
-
-		WFIL.deposit{value: withdrawn}();
-
-		registry.increasePledgeRepayment(ownerId, amount);
-
-		totalFilPledged -= amount;
-
-		ICollateralClient(resolver.getCollateral()).fit(ownerId);
-
-		emit PledgeRepayment(ownerId, minerId, amount);
-	}
-
-	struct WithdrawRewardsLocalVars {
-		uint256 restakingRatio;
-		address restakingAddress;
-		uint256 withdrawn;
-		bool abort;
-		bool isRestaking;
-		uint256 protocolFees;
-		uint256 stakingProfit;
-		uint256 restakingAmt;
-		uint256 protocolShare;
-		uint256 spShare;
-	}
-
-	/**
-	 * @notice Withdraw FIL assets from Storage Provider by `ownerId` and it's Miner actor
-	 * and restake `restakeAmount` into the Storage Provider specified f4 address
-	 * @param ownerId Storage provider owner ID
-	 * @param amount Withdrawal amount
-	 */
-	function withdrawRewards(uint64 ownerId, uint256 amount) external virtual nonReentrant {
-		if (!hasRole(FEE_DISTRIBUTOR, msg.sender)) revert InvalidAccess();
-
-		WithdrawRewardsLocalVars memory vars;
-		IRegistryClient registry = IRegistryClient(resolver.getRegistry());
-
-		(, , uint64 minerId, ) = registry.getStorageProvider(ownerId);
-
-		CommonTypes.BigInt memory withdrawnBInt = MinerAPI.withdrawBalance(
-			CommonTypes.FilActorId.wrap(minerId),
-			BigInts.fromUint256(amount)
-		);
-
-		(vars.withdrawn, vars.abort) = BigInts.toUint256(withdrawnBInt);
-		if (vars.abort) revert BigNumConversion();
-		if (vars.withdrawn != amount) revert IncorrectWithdrawal();
-
-		IStakingControllerClient controller = IStakingControllerClient(resolver.getLiquidStakingController());
-
-		vars.stakingProfit = (vars.withdrawn * controller.getProfitShares(ownerId, address(this))) / BASIS_POINTS;
-		vars.protocolFees = (vars.withdrawn * controller.adminFee()) / BASIS_POINTS;
-		vars.protocolShare = vars.stakingProfit + vars.protocolFees;
-
-		(vars.restakingRatio, vars.restakingAddress) = registry.restakings(ownerId);
-
-		vars.isRestaking = vars.restakingRatio > 0 && vars.restakingAddress != address(0);
-
-		if (vars.isRestaking) {
-			vars.restakingAmt = ((vars.withdrawn - vars.protocolShare) * vars.restakingRatio) / BASIS_POINTS;
-		}
-
-		vars.spShare = vars.withdrawn - (vars.protocolShare + vars.restakingAmt);
-
-		WFIL.deposit{value: vars.protocolShare}();
-		WFIL.transfer(controller.rewardCollector(), vars.protocolFees);
-
-		SendAPI.send(CommonTypes.FilActorId.wrap(ownerId), vars.spShare);
-
-		registry.increaseRewards(ownerId, vars.stakingProfit);
-		ICollateralClient(resolver.getCollateral()).fit(ownerId);
-
-		if (vars.isRestaking) {
-			_restake(vars.restakingAmt, vars.restakingAddress);
-		}
-	}
-
-	/**
 	 * @notice Restakes `assets` for a specified `target` address
 	 * @param assets Amount of assets to restake
 	 * @param receiver f4 address to receive clFIL tokens
 	 */
-	function _restake(uint256 assets, address receiver) internal returns (uint256 shares) {
+	function restake(uint256 assets, address receiver) external returns (uint256 shares) {
+		if (msg.sender != resolver.getRewardCollector()) revert InvalidAccess();
 		if (assets > maxDeposit(receiver)) revert ERC4626Overflow();
 		shares = previewDeposit(assets);
 		if (shares == 0) revert ERC4626ZeroShares();
@@ -306,6 +204,18 @@ contract LiquidStaking is
 		_mint(receiver, shares);
 
 		emit Deposit(receiver, receiver, assets, shares);
+	}
+
+	/**
+	 * @notice Triggered when pledge is repaid on the Reward Collector
+	 * @param amount Amount of pledge repayment
+	 */
+	function repayPledge(uint256 amount) external {
+		if (msg.sender != resolver.getRewardCollector()) revert InvalidAccess();
+
+		totalFilPledged -= amount;
+
+		emit PledgeRepayment(amount);
 	}
 
 	/**
@@ -337,30 +247,6 @@ contract LiquidStaking is
 	 */
 	function totalFilAvailable() public view returns (uint256) {
 		return WFIL.balanceOf(address(this));
-	}
-
-	/**
-	 * @notice Forwards the changeBeneficiary Miner actor call as Liquid Staking
-	 * @param minerId Miner actor ID
-	 * @param targetPool LSP smart contract address
-	 * @param quota Total beneficiary quota
-	 * @param expiration Expiration epoch
-	 */
-	function forwardChangeBeneficiary(
-		uint64 minerId,
-		address targetPool,
-		uint256 quota,
-		int64 expiration
-	) external virtual {
-		if (msg.sender != resolver.getRegistry()) revert InvalidAccess();
-		if (targetPool != address(this)) revert InvalidAddress();
-
-		IBeneficiaryManager(resolver.getBeneficiaryManager()).forwardChangeBeneficiary(
-			minerId,
-			targetPool,
-			quota,
-			expiration
-		);
 	}
 
 	/**

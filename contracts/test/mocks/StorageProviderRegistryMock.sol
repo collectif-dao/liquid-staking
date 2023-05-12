@@ -7,6 +7,10 @@ import {FilAddresses} from "filecoin-solidity/contracts/v0.8/utils/FilAddresses.
 import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 
+interface IStorageProviderRegistryExtended is IStorageProviderRegistry {
+	function forwardChangeBeneficiary(uint64 minerId, address targetPool, uint256 quota, int64 expiration) external;
+}
+
 /**
  * @title Storage Provider Registry Mock contract that works with mock Filecoin Miner API
  * @author Collective DAO
@@ -140,7 +144,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_ownerId];
 		if (!storageProvider.onboarded) revert InactiveSP();
 
-		ILiquidStakingClient(storageProviders[ownerId].targetPool).forwardChangeBeneficiary(
+		IRewardCollectorClient(resolver.getRewardCollector()).forwardChangeBeneficiary(
 			storageProvider.minerId,
 			storageProvider.targetPool,
 			allocations[ownerId].repayment,
@@ -204,7 +208,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_ownerId];
 
-		ILiquidStakingClient(storageProviders[_ownerId].targetPool).forwardChangeBeneficiary(
+		IRewardCollectorClient(resolver.getRewardCollector()).forwardChangeBeneficiary(
 			storageProvider.minerId,
 			storageProvider.targetPool,
 			_repaymentAmount,
@@ -257,6 +261,22 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 
 		emit StorageProviderMinerAddressUpdate(_ownerId, _minerId);
 	}
+
+	/**
+	 * @notice Forwards the changeBeneficiary call to RewardCollector
+	 * @param minerId Miner actor ID
+	 * @param targetPool LSP smart contract address
+	 * @param quota Total beneficiary quota
+	 * @param expiration Expiration epoch
+	 */
+	function forwardChangeBeneficiary(uint64 minerId, address targetPool, uint256 quota, int64 expiration) public {
+		IRewardCollectorClient(resolver.getRewardCollector()).forwardChangeBeneficiary(
+			minerId,
+			targetPool,
+			quota,
+			expiration
+		);
+	}
 }
 
 /**
@@ -264,7 +284,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
  * @author Collective DAO
  */
 contract StorageProviderRegistryCallerMock {
-	IStorageProviderRegistry public registry;
+	IStorageProviderRegistryExtended public registry;
 
 	/**
 	 * @dev Contract constructor function.
@@ -272,7 +292,7 @@ contract StorageProviderRegistryCallerMock {
 	 *
 	 */
 	constructor(address _registry) {
-		registry = IStorageProviderRegistry(_registry);
+		registry = IStorageProviderRegistryExtended(_registry);
 	}
 
 	/**
@@ -300,5 +320,16 @@ contract StorageProviderRegistryCallerMock {
 	 */
 	function increaseUsedAllocation(uint64 _ownerId, uint256 _allocated, uint256 _timestamp) external {
 		registry.increaseUsedAllocation(_ownerId, _allocated, _timestamp);
+	}
+
+	/**
+	 * @notice Forwards the changeBeneficiary Miner actor call as RewardCollector
+	 * @param minerId Miner actor ID
+	 * @param targetPool LSP smart contract address
+	 * @param quota Total beneficiary quota
+	 * @param expiration Expiration epoch
+	 */
+	function forwardChangeBeneficiary(uint64 minerId, address targetPool, uint256 quota, int64 expiration) public {
+		registry.forwardChangeBeneficiary(minerId, targetPool, quota, expiration);
 	}
 }

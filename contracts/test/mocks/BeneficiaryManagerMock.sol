@@ -46,7 +46,7 @@ contract BeneficiaryManagerMock is BeneficiaryManager, DSTestPlus {
 		bytes memory ownerBytes = FilAddresses.fromBytes(ownerReturn.owner.data).data;
 		if (keccak256(senderBytes) != keccak256(ownerBytes)) revert InvalidOwner();
 
-		_executeChangeBeneficiary(CommonTypes.FilActorId.wrap(minerId), targetPool, quota, lastEpoch);
+		_executeChangeBeneficiary(CommonTypes.FilActorId.wrap(minerId), quota, lastEpoch);
 	}
 
 	/**
@@ -54,13 +54,12 @@ contract BeneficiaryManagerMock is BeneficiaryManager, DSTestPlus {
 	 */
 	function _executeChangeBeneficiary(
 		CommonTypes.FilActorId minerId,
-		address targetPool,
 		uint256 quota,
 		int64 expiration
 	) internal override {
 		MinerTypes.ChangeBeneficiaryParams memory params;
 
-		params.new_beneficiary = FilAddresses.fromEthAddress(targetPool);
+		params.new_beneficiary = FilAddresses.fromEthAddress(resolver.getRewardCollector());
 		params.new_quota = BigInts.fromUint256(quota);
 		params.new_expiration = CommonTypes.ChainEpoch.wrap(expiration);
 

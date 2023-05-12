@@ -9,7 +9,7 @@ import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/se
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {BokkyPooBahsDateTimeLibrary} from "./libraries/DateTimeLibraryCompressed.sol";
 import {IStorageProviderRegistry} from "./interfaces/IStorageProviderRegistry.sol";
-import {ILiquidStakingClient} from "./interfaces/ILiquidStakingClient.sol";
+import {IRewardCollectorClient} from "./interfaces/IRewardCollectorClient.sol";
 import {IStorageProviderCollateralClient} from "./interfaces/IStorageProviderCollateralClient.sol";
 import {IResolverClient} from "./interfaces/IResolverClient.sol";
 import {ILiquidStakingControllerClient as IStakingControllerClient} from "./interfaces/ILiquidStakingControllerClient.sol";
@@ -216,7 +216,7 @@ contract StorageProviderRegistry is
 		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[_ownerId];
 		if (!storageProvider.onboarded) revert InactiveSP();
 
-		ILiquidStakingClient(storageProvider.targetPool).forwardChangeBeneficiary(
+		IRewardCollectorClient(resolver.getRewardCollector()).forwardChangeBeneficiary(
 			storageProvider.minerId,
 			storageProvider.targetPool,
 			allocations[_ownerId].repayment,
@@ -321,7 +321,7 @@ contract StorageProviderRegistry is
 
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_ownerId];
 
-		ILiquidStakingClient(storageProvider.targetPool).forwardChangeBeneficiary(
+		IRewardCollectorClient(resolver.getRewardCollector()).forwardChangeBeneficiary(
 			storageProvider.minerId,
 			storageProvider.targetPool,
 			_repaymentAmount,
@@ -385,7 +385,7 @@ contract StorageProviderRegistry is
 	 * @param _accuredRewards Withdrawn rewards from SP's miner actor
 	 */
 	function increaseRewards(uint64 _ownerId, uint256 _accuredRewards) external {
-		if (!pools[msg.sender]) revert InvalidAccess();
+		if (msg.sender != resolver.getRewardCollector()) revert InvalidAccess();
 
 		StorageProviderTypes.SPAllocation storage spAllocation = allocations[_ownerId];
 		spAllocation.accruedRewards = spAllocation.accruedRewards + _accuredRewards;
@@ -399,7 +399,7 @@ contract StorageProviderRegistry is
 	 * @param _repaidPledge Withdrawn initial pledge after sector termination
 	 */
 	function increasePledgeRepayment(uint64 _ownerId, uint256 _repaidPledge) external {
-		if (!pools[msg.sender]) revert InvalidAccess();
+		if (msg.sender != resolver.getRewardCollector()) revert InvalidAccess();
 
 		StorageProviderTypes.SPAllocation storage spAllocation = allocations[_ownerId];
 		spAllocation.repaidPledge = spAllocation.repaidPledge + _repaidPledge;
