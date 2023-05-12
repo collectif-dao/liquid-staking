@@ -77,11 +77,6 @@ interface IStorageProviderRegistry {
 	) external;
 
 	/**
-	 * @notice Transfer beneficiary address of a miner to the target pool
-	 */
-	function changeBeneficiaryAddress() external;
-
-	/**
 	 * @notice Accept beneficiary address transfer and activate FIL allocation
 	 * @param _ownerId Storage Provider owner ID
 	 * @dev Only triggered by owner contract
@@ -135,16 +130,6 @@ interface IStorageProviderRegistry {
 	function setRestaking(uint256 _restakingRatio, address _restakingAddress) external;
 
 	/**
-	 * @notice Return total number of storage providers in liquid staking
-	 */
-	function getTotalStorageProviders() external view returns (uint256);
-
-	/**
-	 * @notice Return total number of currently active storage providers
-	 */
-	function getTotalActiveStorageProviders() external view returns (uint256);
-
-	/**
 	 * @notice Return Storage Provider information with `_ownerId`
 	 */
 	function getStorageProvider(uint64 _ownerId) external view returns (bool, address, uint64, int64);
@@ -175,13 +160,6 @@ interface IStorageProviderRegistry {
 	 * @param _timestamp Transaction timestamp
 	 */
 	function increaseUsedAllocation(uint64 _ownerId, uint256 _allocated, uint256 _timestamp) external;
-
-	/**
-	 * @notice Update StorageProviderCollateral smart contract
-	 * @param _collateral StorageProviderCollateral smart contract address
-	 * @dev Only triggered by owner contract
-	 */
-	function setCollateralAddress(address _collateral) external;
 
 	/**
 	 * @notice Register new liquid staking pool

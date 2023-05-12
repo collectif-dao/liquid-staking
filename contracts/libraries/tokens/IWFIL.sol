@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0;
 
-// import {ERC20} from "./ERC20.sol";
+import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import {WFIL} from "fevmate/token/WFIL.sol";
 
-interface IWFIL {
+interface IWFIL is IERC20Upgradeable {
 	/**
 	 * @notice Deposit Fil into the contract, and mint WFIL 1:1.
 	 */
@@ -31,14 +31,4 @@ interface IWFIL {
 	 * and EVM contracts can use this method normally)
 	 */
 	function withdraw(uint256 amount) external;
-
-	function transfer(address _to, uint _amount) external returns (bool);
-
-	function transferFrom(address _owner, address _to, uint _amount) external returns (bool);
-
-	function approve(address _spender, uint _amount) external returns (bool);
-
-	function balanceOf(address _a) external view returns (uint);
-
-	function allowance(address _owner, address _spender) external view returns (uint);
 }

@@ -9,7 +9,7 @@ pragma solidity >=0.8.0;
  * tokens could be sent to the native actors.
  */
 
-import {ERC20} from "./tokens/ERC20.sol";
+import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 
 /// @notice Safe ETH and ERC20 transfer library that gracefully handles missing return values.
 /// @author Solmate (https://github.com/transmissions11/solmate/blob/main/src/utils/SafeTransferLib.sol)
@@ -36,7 +36,7 @@ library SafeTransferLib {
                             ERC20 OPERATIONS
     //////////////////////////////////////////////////////////////*/
 
-	function safeTransferFrom(ERC20 token, address from, address to, uint256 amount) internal {
+	function safeTransferFrom(ERC20Upgradeable token, address from, address to, uint256 amount) internal {
 		bool success;
 
 		/// @solidity memory-safe-assembly
@@ -65,7 +65,7 @@ library SafeTransferLib {
 		require(success, "TRANSFER_FROM_FAILED");
 	}
 
-	function safeTransfer(ERC20 token, address to, uint256 amount) internal {
+	function safeTransfer(ERC20Upgradeable token, address to, uint256 amount) internal {
 		bool success;
 
 		/// @solidity memory-safe-assembly
@@ -93,7 +93,7 @@ library SafeTransferLib {
 		require(success, "TRANSFER_FAILED");
 	}
 
-	function safeApprove(ERC20 token, address to, uint256 amount) internal {
+	function safeApprove(ERC20Upgradeable token, address to, uint256 amount) internal {
 		bool success;
 
 		/// @solidity memory-safe-assembly

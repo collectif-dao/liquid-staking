@@ -16,9 +16,14 @@ import {IERC4626RouterBase, ERC4626RouterBase, IERC4626, SelfPermit, PeripheryPa
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
 import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {LiquidStaking} from "../LiquidStaking.sol";
+import {LiquidStakingController} from "../LiquidStakingController.sol";
 import {MinerActorMock} from "./mocks/MinerActorMock.sol";
+import {Resolver} from "../Resolver.sol";
+import {BeneficiaryManagerMock} from "./mocks/BeneficiaryManagerMock.sol";
+import {RewardCollectorMock} from "./mocks/RewardCollectorMock.sol";
 
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
+import {ERC1967Proxy} from "@oz/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 
 contract LiquidStakingTest is DSTestPlus {
 	LiquidStakingMock public staking;
@@ -29,6 +34,10 @@ contract LiquidStakingTest is DSTestPlus {
 	MinerActorMock public minerActor;
 	MinerMockAPI private minerMockAPI;
 	BigIntsClient private bigIntsLib;
+	Resolver public resolver;
+	LiquidStakingController public controller;
+	BeneficiaryManagerMock public beneficiaryManager;
+	RewardCollectorMock private rewardCollector;
 
 	bytes public owner;
 	uint64 public aliceOwnerId = 1508;
@@ -42,7 +51,6 @@ contract LiquidStakingTest is DSTestPlus {
 
 	uint256 private adminFee = 1000;
 	uint256 private profitShare = 2000;
-	address private rewardCollector = address(0x12523);
 
 	uint256 private constant MAX_STORAGE_PROVIDERS = 200;
 	uint256 private constant MAX_ALLOCATION = 10000 ether;
@@ -69,28 +77,58 @@ contract LiquidStakingTest is DSTestPlus {
 
 		bigIntsLib = new BigIntsClient();
 
-		staking = new LiquidStakingMock(
+		Resolver resolverImpl = new Resolver();
+		ERC1967Proxy resolverProxy = new ERC1967Proxy(address(resolverImpl), "");
+		resolver = Resolver(address(resolverProxy));
+		resolver.initialize();
+
+		BeneficiaryManagerMock bManagerImpl = new BeneficiaryManagerMock();
+		ERC1967Proxy bManagerProxy = new ERC1967Proxy(address(bManagerImpl), "");
+		beneficiaryManager = BeneficiaryManagerMock(address(bManagerProxy));
+		beneficiaryManager.initialize(address(minerMockAPI), aliceOwnerId, address(resolver));
+
+		RewardCollectorMock rCollectorImpl = new RewardCollectorMock();
+		ERC1967Proxy rCollectorProxy = new ERC1967Proxy(address(rCollectorImpl), "");
+		rewardCollector = RewardCollectorMock(payable(rCollectorProxy));
+		rewardCollector.initialize(address(minerActor), aliceOwnerId, aliceOwnerAddr, address(wfil), address(resolver));
+
+		LiquidStakingController controllerImpl = new LiquidStakingController();
+		ERC1967Proxy controllerProxy = new ERC1967Proxy(address(controllerImpl), "");
+		controller = LiquidStakingController(address(controllerProxy));
+		controller.initialize(adminFee, profitShare, address(rewardCollector), address(resolver));
+
+		LiquidStakingMock stakingImpl = new LiquidStakingMock();
+		ERC1967Proxy stakingProxy = new ERC1967Proxy(address(stakingImpl), "");
+		staking = LiquidStakingMock(payable(stakingProxy));
+		staking.initialize(
 			address(wfil),
 			address(minerActor),
 			aliceOwnerId,
-			adminFee,
-			profitShare,
-			rewardCollector,
 			aliceOwnerAddr,
 			address(minerMockAPI),
-			address(bigIntsLib)
+			address(bigIntsLib),
+			address(resolver)
 		);
 
-		registry = new StorageProviderRegistryMock(address(minerMockAPI), aliceOwnerId, MAX_ALLOCATION);
+		StorageProviderRegistryMock registryImpl = new StorageProviderRegistryMock();
+		ERC1967Proxy registryProxy = new ERC1967Proxy(address(registryImpl), "");
+		registry = StorageProviderRegistryMock(address(registryProxy));
+		registry.initialize(address(minerMockAPI), aliceOwnerId, MAX_ALLOCATION, address(resolver));
 
-		collateral = new StorageProviderCollateralMock(wfil, address(registry), baseCollateralRequirements);
+		StorageProviderCollateralMock collateralImpl = new StorageProviderCollateralMock();
+		ERC1967Proxy collateralProxy = new ERC1967Proxy(address(collateralImpl), "");
+		collateral = StorageProviderCollateralMock(payable(collateralProxy));
+		collateral.initialize(wfil, address(resolver), baseCollateralRequirements);
 
 		// router = new StakingRouter("Collective DAO Router", wfil);
 
-		registry.setCollateralAddress(address(collateral));
+		resolver.setLiquidStakingControllerAddress(address(controller));
+		resolver.setRegistryAddress(address(registry));
+		resolver.setBeneficiaryManagerAddress(address(beneficiaryManager));
+		resolver.setCollateralAddress(address(collateral));
+		resolver.setLiquidStakingAddress(address(staking));
+		resolver.setRewardCollectorAddress(address(rewardCollector));
 		registry.registerPool(address(staking));
-		staking.setCollateralAddress(address(collateral));
-		staking.setRegistryAddress(address(registry));
 
 		// prepare storage provider for getting FIL from liquid staking
 		hevm.prank(alice);
@@ -105,7 +143,7 @@ contract LiquidStakingTest is DSTestPlus {
 		);
 
 		hevm.prank(alice);
-		registry.changeBeneficiaryAddress();
+		beneficiaryManager.changeBeneficiaryAddress();
 		registry.acceptBeneficiaryAddress(aliceOwnerId);
 	}
 
@@ -188,7 +226,7 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.assume(amount == 0);
 		hevm.deal(address(this), 1 ether);
 
-		hevm.expectRevert("ZERO_SHARES");
+		hevm.expectRevert(abi.encodeWithSignature("ERC4626ZeroShares()"));
 		staking.stake{value: amount}();
 	}
 
@@ -199,7 +237,7 @@ contract LiquidStakingTest is DSTestPlus {
 		wfil.deposit{value: amount}();
 		wfil.approve(address(staking), amount);
 
-		hevm.expectRevert("ZERO_SHARES");
+		hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
 		staking.deposit(amount, address(this));
 	}
 
@@ -306,7 +344,7 @@ contract LiquidStakingTest is DSTestPlus {
 		require(address(minerActor).balance == withdrawAmount + dailyAllocation, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 
-		staking.withdrawRewards(aliceOwnerId, withdrawAmount);
+		rewardCollector.withdrawRewards(aliceOwnerId, withdrawAmount);
 
 		uint256 protocolFees = (withdrawAmount * adminFee) / BASIS_POINTS;
 		uint256 stakingShare = (withdrawAmount * profitShare) / BASIS_POINTS;
@@ -314,7 +352,7 @@ contract LiquidStakingTest is DSTestPlus {
 
 		require(address(minerActor).balance == dailyAllocation, "INVALID_BALANCE");
 		require(aliceOwnerAddr.balance == spShare, "INVALID_BALANCE");
-		require(wfil.balanceOf(rewardCollector) == protocolFees, "INVALID_BALANCE");
+		require(wfil.balanceOf(address(rewardCollector)) == protocolFees, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount + stakingShare, "INVALID_BALANCE");
 
 		collateralAmount = (dailyAllocation * baseCollateralRequirements) / BASIS_POINTS;
@@ -344,7 +382,7 @@ contract LiquidStakingTest is DSTestPlus {
 		require(address(minerActor).balance == dailyAllocation, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 
-		staking.withdrawPledge(aliceOwnerId, dailyAllocation);
+		rewardCollector.withdrawPledge(aliceOwnerId, dailyAllocation);
 
 		require(address(minerActor).balance == 0, "INVALID_BALANCE");
 		require(wfil.balanceOf(address(staking)) == amount, "INVALID_BALANCE");
@@ -375,8 +413,8 @@ contract LiquidStakingTest is DSTestPlus {
 		hevm.prank(address(minerActor));
 		staking.pledge(dailyAllocation);
 
-		hevm.expectRevert("PLEDGE_REPAYMENT_OVERFLOW");
-		staking.withdrawPledge(aliceOwnerId, dailyAllocation + 1);
+		hevm.expectRevert(abi.encodeWithSignature("AllocationOverflow()"));
+		rewardCollector.withdrawPledge(aliceOwnerId, dailyAllocation + 1);
 	}
 
 	function testWithdrawRewardsWithRestaking(uint256 amount) public {
@@ -416,7 +454,7 @@ contract LiquidStakingTest is DSTestPlus {
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 		require(wfil.balanceOf(address(staking)) == amount - dailyAllocation, "INVALID_BALANCE");
 
-		staking.withdrawRewards(aliceOwnerId, withdrawAmount);
+		rewardCollector.withdrawRewards(aliceOwnerId, withdrawAmount);
 
 		require(aliceOwnerAddr.balance == spShare, "INVALID_BALANCE");
 		require(
@@ -426,98 +464,6 @@ contract LiquidStakingTest is DSTestPlus {
 
 		uint256 stakingAssets = amount + stakingProfit + restakingAmt;
 		require(staking.totalAssets() == stakingAssets, "INVALID_BALANCE");
-	}
-
-	function testReportSlashing(uint128 amount) public {
-		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
-		uint256 collateralAmount = (amount * baseCollateralRequirements) / BASIS_POINTS;
-
-		hevm.deal(address(this), amount);
-		hevm.deal(alice, collateralAmount);
-
-		hevm.prank(alice);
-		collateral.deposit{value: collateralAmount}(aliceOwnerId);
-
-		staking.stake{value: amount}();
-
-		hevm.prank(alice);
-		staking.pledge(amount);
-
-		require(wfil.balanceOf(address(this)) == 0, "INVALID_BALANCE");
-		require(wfil.balanceOf(address(staking)) == 0, "INVALID_BALANCE");
-		require(address(minerActor).balance == amount, "INVALID_BALANCE");
-		require(staking.totalAssets() == amount, "INVALID_BALANCE");
-
-		uint256 slashingAmt = (collateralAmount * 5000) / BASIS_POINTS;
-		staking.reportSlashing(aliceOwnerId, slashingAmt);
-
-		require(staking.totalAssets() == amount + slashingAmt, "INVALID_BALANCE");
-		require(wfil.balanceOf(address(staking)) == slashingAmt, "INVALID_BALANCE");
-		require(address(minerActor).balance == amount, "INVALID_BALANCE");
-
-		assertEq(collateral.getLockedCollateral(aliceOwnerId), collateralAmount - slashingAmt);
-		assertEq(collateral.slashings(aliceOwnerId), slashingAmt);
-	}
-
-	function testReportSlashingReverts(uint128 amount) public {
-		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
-		uint256 collateralAmount = (amount * baseCollateralRequirements) / BASIS_POINTS;
-
-		hevm.deal(address(this), amount);
-		hevm.deal(alice, collateralAmount);
-
-		hevm.prank(alice);
-		collateral.deposit{value: collateralAmount}(aliceOwnerId);
-
-		staking.stake{value: amount}();
-
-		hevm.prank(alice);
-		staking.pledge(amount);
-
-		hevm.expectRevert("NOT_ENOUGH_COLLATERAL");
-		staking.reportSlashing(aliceOwnerId, collateralAmount + 1);
-	}
-
-	function testReportSlashingRevertsInvalidAccess(uint128 amount) public {
-		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
-		uint256 collateralAmount = (amount * baseCollateralRequirements) / BASIS_POINTS;
-
-		hevm.deal(address(this), amount);
-		hevm.deal(alice, collateralAmount);
-
-		hevm.prank(alice);
-		collateral.deposit{value: collateralAmount}(aliceOwnerId);
-
-		staking.stake{value: amount}();
-
-		hevm.prank(alice);
-		staking.pledge(amount);
-
-		hevm.prank(alice);
-		hevm.expectRevert("INVALID_ACCESS");
-		staking.reportSlashing(aliceOwnerId, collateralAmount + 1);
-	}
-
-	function testUpdateProfitShare(uint256 share) public {
-		hevm.assume(share <= 8000 && share > 0 && share != profitShare);
-
-		staking.updateProfitShare(aliceOwnerId, share);
-
-		require(staking.profitShares(aliceOwnerId) == share, "INVALID_PROFIT_SHARE");
-	}
-
-	function testUpdateProfitShareReverts(uint256 share) public {
-		hevm.assume(share > 10000);
-
-		hevm.expectRevert("PROFIT_SHARE_OVERFLOW");
-		staking.updateProfitShare(aliceOwnerId, share);
-	}
-
-	function testUpdateProfitShareRevertsWithSameRequirements() public {
-		staking.updateProfitShare(aliceOwnerId, 0);
-
-		hevm.expectRevert("SAME_PROFIT_SHARE");
-		staking.updateProfitShare(aliceOwnerId, profitShare);
 	}
 
 	function testPledgeRevertsAfterReportSlashing(uint128 amount) public {
@@ -543,7 +489,7 @@ contract LiquidStakingTest is DSTestPlus {
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 
 		uint256 slashingAmt = (collateralAmount * 500000000000000000) / 1000000000000000000;
-		staking.reportSlashing(aliceOwnerId, slashingAmt);
+		collateral.reportSlashing(aliceOwnerId, slashingAmt);
 
 		require(staking.totalAssets() == amount + slashingAmt, "INVALID_BALANCE");
 		// emit log_named_uint("wfil.balanceOf(address(staking))", wfil.balanceOf(address(staking)));
@@ -552,148 +498,9 @@ contract LiquidStakingTest is DSTestPlus {
 
 		assertEq(collateral.getLockedCollateral(aliceOwnerId), collateralAmount - slashingAmt);
 		assertEq(collateral.slashings(aliceOwnerId), slashingAmt);
-		assertBoolEq(staking.activeSlashings(aliceOwnerId), true);
+		assertBoolEq(collateral.activeSlashings(aliceOwnerId), true);
 
-		hevm.expectRevert("ACTIVE_SLASHING");
+		hevm.expectRevert(abi.encodeWithSignature("ActiveSlashing()"));
 		staking.pledge(pledgeAmt);
-	}
-
-	function testReportRecovery(uint128 amount) public {
-		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
-		uint256 collateralAmount = (amount * baseCollateralRequirements) / BASIS_POINTS;
-
-		hevm.deal(address(this), amount);
-		hevm.deal(alice, collateralAmount);
-
-		hevm.prank(alice);
-		collateral.deposit{value: collateralAmount}(aliceOwnerId);
-
-		staking.stake{value: amount}();
-
-		hevm.prank(alice);
-		staking.pledge(amount);
-
-		uint256 slashingAmt = (collateralAmount * 5000) / BASIS_POINTS;
-		staking.reportSlashing(aliceOwnerId, slashingAmt);
-
-		assertEq(collateral.getLockedCollateral(aliceOwnerId), collateralAmount - slashingAmt);
-		assertEq(collateral.slashings(aliceOwnerId), slashingAmt);
-		assertBoolEq(staking.activeSlashings(aliceOwnerId), true);
-
-		staking.reportRecovery(aliceOwnerId);
-		assertBoolEq(staking.activeSlashings(aliceOwnerId), false);
-	}
-
-	function testReportRecoveryReverts(uint128 amount) public {
-		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
-
-		hevm.expectRevert("NO_ACTIVE_SLASHINGS");
-		staking.reportRecovery(aliceOwnerId);
-	}
-
-	function testReportRecoveryRevertsWithInvalidAccess(uint128 amount) public {
-		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount > 1 ether);
-
-		hevm.prank(alice);
-		hevm.expectRevert("INVALID_ACCESS");
-		staking.reportRecovery(aliceOwnerId);
-	}
-
-	function testSetCollateralAddress(address collateralAddr) public {
-		hevm.assume(collateralAddr != address(0) && collateralAddr != address(collateral));
-		hevm.etch(collateralAddr, bytes("0x10378"));
-
-		staking.setCollateralAddress(collateralAddr);
-	}
-
-	function testCollateralAddressReverts() public {
-		address collateralAddr = address(0x94812417984127);
-		hevm.etch(collateralAddr, bytes("0x103789851206015297"));
-
-		hevm.prank(alice);
-		hevm.expectRevert("INVALID_ACCESS");
-		staking.setCollateralAddress(collateralAddr);
-
-		hevm.expectRevert("SAME_ADDRESS");
-		staking.setCollateralAddress(address(collateral));
-	}
-
-	function testSetRegistryAddress(address registryAddr) public {
-		hevm.assume(registryAddr != address(0) && registryAddr != address(registry));
-		hevm.etch(registryAddr, bytes("0x10378"));
-
-		staking.setRegistryAddress(registryAddr);
-	}
-
-	function testSetRegistryAddressReverts() public {
-		address registryAddr = address(0x94812417984127);
-
-		hevm.prank(alice);
-		hevm.expectRevert("INVALID_ACCESS");
-		staking.setRegistryAddress(registryAddr);
-
-		hevm.expectRevert("SAME_ADDRESS");
-		staking.setRegistryAddress(address(registry));
-	}
-
-	function testUpdateAdminFee(uint256 fee) public {
-		hevm.assume(fee <= 2000 && fee != adminFee);
-
-		staking.updateAdminFee(fee);
-	}
-
-	function testUpdateAdminFeeReverts(uint256 fee) public {
-		hevm.assume(fee > 2000 || fee == adminFee);
-
-		if (fee == adminFee) {
-			hevm.expectRevert("SAME_ADMIN_FEE");
-			staking.updateAdminFee(fee);
-		} else {
-			hevm.prank(alice);
-			hevm.expectRevert("INVALID_ACCESS");
-			staking.updateAdminFee(fee);
-
-			hevm.expectRevert("ADMIN_FEE_OVERFLOW");
-			staking.updateAdminFee(fee);
-		}
-	}
-
-	function testBaseProfitShare(uint256 share) public {
-		hevm.assume(share <= 8000 && share != profitShare && share > 0);
-
-		staking.updateBaseProfitShare(share);
-	}
-
-	function testBaseProfitShareReverts(uint256 share) public {
-		hevm.assume(share > 8000 || share == profitShare);
-
-		if (share == profitShare) {
-			hevm.expectRevert("SAME_PROFIT_SHARE");
-			staking.updateBaseProfitShare(profitShare);
-		} else {
-			hevm.prank(alice);
-			hevm.expectRevert("INVALID_ACCESS");
-			staking.updateBaseProfitShare(share);
-
-			hevm.expectRevert("PROFIT_SHARE_OVERFLOW");
-			staking.updateBaseProfitShare(share);
-		}
-	}
-
-	function testUpdateRewardsCollector(address collector) public {
-		hevm.assume(collector != address(0) && collector != rewardCollector);
-		staking.updateRewardsCollector(collector);
-	}
-
-	function testUpdateRewardsCollectorReverts() public {
-		hevm.expectRevert("SAME_COLLECTOR_ADDRESS");
-		staking.updateRewardsCollector(rewardCollector);
-
-		hevm.prank(alice);
-		hevm.expectRevert("INVALID_ACCESS");
-		staking.updateRewardsCollector(address(0));
-
-		hevm.expectRevert("INVALID_ADDRESS");
-		staking.updateRewardsCollector(address(0));
 	}
 }
