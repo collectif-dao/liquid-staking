@@ -7,6 +7,7 @@ import {IWFIL} from "../libraries/tokens/IWFIL.sol";
 import {Buffer} from "@ensdomains/buffer/contracts/Buffer.sol";
 import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
+import {stdError} from "forge-std/StdError.sol";
 
 import {Resolver} from "../Resolver.sol";
 import {StorageProviderCollateralMock, IStorageProviderCollateral, StorageProviderCollateralCallerMock} from "./mocks/StorageProviderCollateralMock.sol";
@@ -55,6 +56,10 @@ contract StorageProviderCollateralTest is DSTestPlus {
 
 	uint256 public baseCollateralRequirements = 1500;
 	uint256 public constant BASIS_POINTS = 10000;
+
+	receive() external payable virtual {}
+
+	fallback() external payable virtual {}
 
 	function setUp() public {
 		Buffer.buffer memory ownerBytes = Leb128.encodeUnsignedLeb128FromUInt64(aliceOwnerId);
@@ -203,6 +208,57 @@ contract StorageProviderCollateralTest is DSTestPlus {
 
 		require(wfil.balanceOf(address(collateral)) == 0, "INVALID_BALANCE");
 		require(wfil.balanceOf(alice) == 0, "INVALID_BALANCE");
+	}
+
+	function testWithdrawAfterIncreasingCollateralRequirements(uint128 amount) public {
+		hevm.assume(amount >= 1 ether && amount < SAMPLE_DAILY_ALLOCATION);
+		hevm.deal(alice, amount);
+
+		uint256 additionalAllocation = (amount * 1000) / BASIS_POINTS;
+
+		hevm.prank(alice);
+		collateral.deposit{value: amount}(aliceOwnerId);
+
+		collateral.increaseUsedAllocation(aliceOwnerId, additionalAllocation);
+
+		assertEq(collateral.getAvailableCollateral(aliceOwnerId), amount);
+		assertEq(collateral.getLockedCollateral(aliceOwnerId), 0);
+
+		uint256 collateralRequirements = collateral.getCollateralRequirements(aliceOwnerId);
+		uint256 lockedAmount = ((additionalAllocation * collateralRequirements) / BASIS_POINTS);
+		uint256 balanceAfter = amount - lockedAmount;
+
+		hevm.prank(alice);
+		collateral.withdraw(aliceOwnerId, amount);
+
+		assertEq(alice.balance, balanceAfter);
+		assertEq(collateral.getLockedCollateral(aliceOwnerId), lockedAmount);
+
+		emit log_named_uint("wfil.balanceOf(address(collateral): ", wfil.balanceOf(address(collateral)));
+		emit log_named_uint("lockedAmount: ", lockedAmount);
+
+		require(wfil.balanceOf(address(collateral)) == lockedAmount, "INVALID_BALANCE");
+		require(wfil.balanceOf(alice) == 0, "INVALID_BALANCE");
+	}
+
+	function testWithdrawUnderwaterCase(uint128 amount) public {
+		hevm.assume(amount >= 1 ether && amount < SAMPLE_DAILY_ALLOCATION);
+		hevm.deal(alice, amount);
+
+		uint256 collateralRequirements = collateral.getCollateralRequirements(aliceOwnerId);
+		uint256 depositAmount = (amount * (collateralRequirements / 2)) / BASIS_POINTS;
+
+		hevm.prank(alice);
+		collateral.deposit{value: depositAmount}(aliceOwnerId);
+
+		collateral.increaseUsedAllocation(aliceOwnerId, SAMPLE_DAILY_ALLOCATION);
+
+		assertEq(collateral.getAvailableCollateral(aliceOwnerId), depositAmount);
+		assertEq(collateral.getLockedCollateral(aliceOwnerId), 0);
+
+		hevm.prank(alice);
+		hevm.expectRevert(stdError.arithmeticError);
+		collateral.withdraw(aliceOwnerId, amount);
 	}
 
 	function testLock(uint256 amount) public {

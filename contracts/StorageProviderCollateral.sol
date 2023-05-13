@@ -144,7 +144,8 @@ contract StorageProviderCollateral is
 		if (!isID) revert InactiveActor();
 		if (!IRegistryClient(resolver.getRegistry()).isActiveProvider(ownerId)) revert InactiveSP();
 
-		(uint256 lockedWithdraw, uint256 availableWithdraw, bool isUnlock) = calcMaximumWithdraw(ownerId);
+		(uint256 lockedWithdraw, uint256 availableWithdraw, bool isUnlock) = calcMaximumWithdrawAndRebalance(ownerId);
+
 		uint256 maxWithdraw = lockedWithdraw + availableWithdraw;
 		uint256 finalAmount = _amount > maxWithdraw ? maxWithdraw : _amount;
 		uint256 delta;
@@ -153,11 +154,11 @@ contract StorageProviderCollateral is
 			delta = finalAmount - lockedWithdraw;
 			collaterals[ownerId].lockedCollateral = collaterals[ownerId].lockedCollateral - lockedWithdraw;
 			collaterals[ownerId].availableCollateral = collaterals[ownerId].availableCollateral - delta;
-
-			_unwrapWFIL(msg.sender, finalAmount);
 		} else {
 			collaterals[ownerId].availableCollateral = collaterals[ownerId].availableCollateral - finalAmount;
 		}
+
+		_unwrapWFIL(msg.sender, finalAmount);
 
 		emit StorageProviderCollateralWithdraw(ownerId, finalAmount);
 	}
@@ -267,6 +268,13 @@ contract StorageProviderCollateral is
 	}
 
 	/**
+	 * @notice Return Storage Provider Collateral requirements for SP with `_ownerId
+	 */
+	function getCollateralRequirements(uint64 _ownerId) public view returns (uint256) {
+		return collateralRequirements[_ownerId];
+	}
+
+	/**
 	 * @notice Return Storage Provider Available Collateral information with `_provider` address
 	 */
 	function getAvailableCollateral(uint64 _ownerId) public view returns (uint256) {
@@ -303,7 +311,7 @@ contract StorageProviderCollateral is
 	 * total used FIL allocation and locked rewards.
 	 * @param _ownerId Storage Provider owner address
 	 */
-	function calcMaximumWithdraw(uint64 _ownerId) internal view returns (uint256, uint256, bool) {
+	function calcMaximumWithdrawAndRebalance(uint64 _ownerId) internal returns (uint256, uint256, bool) {
 		(, , uint256 usedAllocation, , , uint256 repaidPledge) = IRegistryClient(resolver.getRegistry()).allocations(
 			_ownerId
 		);
@@ -315,9 +323,12 @@ contract StorageProviderCollateral is
 		(uint256 adjAmt, bool isUnlock) = calcCollateralAdjustment(collateral.lockedCollateral, requirements);
 
 		if (!isUnlock) {
-			adjAmt = collateral.availableCollateral - adjAmt;
+			uint256 maxWithdraw = collateral.availableCollateral - adjAmt;
 
-			return (0, adjAmt, isUnlock);
+			collaterals[_ownerId].lockedCollateral = collateral.lockedCollateral + adjAmt;
+			collaterals[_ownerId].availableCollateral = collateral.availableCollateral - adjAmt;
+
+			return (0, maxWithdraw, isUnlock);
 		} else {
 			return (adjAmt, collateral.availableCollateral, isUnlock);
 		}

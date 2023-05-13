@@ -65,21 +65,21 @@ contract StorageProviderCollateralMock is StorageProviderCollateral {
 		if (_amount == 0) revert InvalidParams();
 		if (!IRegistryClient(resolver.getRegistry()).isActiveProvider(ownerId)) revert InactiveSP();
 
-		(uint256 lockedWithdraw, uint256 availableWithdraw, bool isUnlock) = calcMaximumWithdraw(ownerId);
+		(uint256 lockedWithdraw, uint256 availableWithdraw, bool isUnlock) = calcMaximumWithdrawAndRebalance(ownerId);
+
 		uint256 maxWithdraw = lockedWithdraw + availableWithdraw;
 		uint256 finalAmount = _amount > maxWithdraw ? maxWithdraw : _amount;
 		uint256 delta;
 
 		if (isUnlock) {
 			delta = finalAmount - lockedWithdraw;
-
-			collaterals[ownerId].lockedCollateral = collaterals[ownerId].lockedCollateral - lockedWithdraw; // 10 - 2 == 8
-			collaterals[ownerId].availableCollateral = collaterals[ownerId].availableCollateral - delta; // 5 + 1 == 6
-
-			_unwrapWFIL(msg.sender, finalAmount);
+			collaterals[ownerId].lockedCollateral = collaterals[ownerId].lockedCollateral - lockedWithdraw;
+			collaterals[ownerId].availableCollateral = collaterals[ownerId].availableCollateral - delta;
 		} else {
 			collaterals[ownerId].availableCollateral = collaterals[ownerId].availableCollateral - finalAmount;
 		}
+
+		_unwrapWFIL(msg.sender, finalAmount);
 
 		emit StorageProviderCollateralWithdraw(ownerId, finalAmount);
 	}
