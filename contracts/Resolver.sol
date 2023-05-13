@@ -161,8 +161,7 @@ contract Resolver is IResolver, Initializable, OwnableUpgradeable, UUPSUpgradeab
 	}
 
 	function _setAddress(bytes32 id, address newAddr) internal {
-		address prevAddr = _addresses[id];
-		if (prevAddr == newAddr || newAddr == address(0)) revert InvalidAddress();
+		if (newAddr == _addresses[id] || newAddr == address(0)) revert InvalidAddress();
 
 		_addresses[id] = newAddr;
 	}

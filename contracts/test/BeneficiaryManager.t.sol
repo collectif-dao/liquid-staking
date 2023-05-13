@@ -80,7 +80,7 @@ contract BeneficiaryManagerTest is DSTestPlus {
 		LiquidStakingController controllerImpl = new LiquidStakingController();
 		ERC1967Proxy controllerProxy = new ERC1967Proxy(address(controllerImpl), "");
 		controller = LiquidStakingController(address(controllerProxy));
-		controller.initialize(adminFee, profitShare, address(rewardCollector), address(resolver));
+		controller.initialize(adminFee, profitShare, address(resolver));
 
 		LiquidStakingMock stakingImpl = new LiquidStakingMock();
 		ERC1967Proxy stakingProxy = new ERC1967Proxy(address(stakingImpl), "");

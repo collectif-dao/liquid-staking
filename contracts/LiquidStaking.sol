@@ -41,8 +41,6 @@ contract LiquidStaking is
 	using FilAddress for address;
 
 	error InvalidAccess();
-	error InvalidCall();
-	error InvalidAddress();
 	error ERC4626ZeroShares();
 	error InactiveActor();
 	error ActiveSlashing();

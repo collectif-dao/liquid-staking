@@ -21,6 +21,7 @@ contract BeneficiaryManager is IBeneficiaryManager, Initializable, OwnableUpgrad
 	using FilAddress for address;
 
 	error InvalidAccess();
+	error InvalidParams();
 	error InactiveActor();
 	error InvalidOwner();
 	error OwnerProposed();
@@ -97,6 +98,8 @@ contract BeneficiaryManager is IBeneficiaryManager, Initializable, OwnableUpgrad
 	 */
 	function updateBeneficiaryStatus(uint64 minerId, bool status) external virtual {
 		if (msg.sender != resolver.getRegistry() && msg.sender != resolver.getRewardCollector()) revert InvalidAccess();
+		if (status == beneficiaryStatus[minerId]) revert InvalidParams();
+
 		beneficiaryStatus[minerId] = status;
 
 		emit BeneficiaryStatusUpdated(minerId, status);

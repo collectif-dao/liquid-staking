@@ -13,11 +13,9 @@ import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/U
 contract LiquidStakingController is ILiquidStakingController, Initializable, AccessControlUpgradeable, UUPSUpgradeable {
 	error InvalidParams();
 	error InvalidAccess();
-	error InvalidAddress();
 
 	uint256 public adminFee;
 	uint256 public baseProfitShare;
-	address public rewardCollector;
 
 	IResolverClient internal resolver;
 
@@ -34,21 +32,14 @@ contract LiquidStakingController is ILiquidStakingController, Initializable, Acc
 	 * @dev Contract initializer function.
 	 * @param _adminFee Admin fee percentage
 	 * @param _baseProfitShare Base profit sharing percentage
-	 * @param _rewardCollector Rewards collector address
 	 */
-	function initialize(
-		uint256 _adminFee,
-		uint256 _baseProfitShare,
-		address _rewardCollector,
-		address _resolver
-	) public initializer {
+	function initialize(uint256 _adminFee, uint256 _baseProfitShare, address _resolver) public initializer {
 		__AccessControl_init();
 		__UUPSUpgradeable_init();
 
-		if (_adminFee > 2000 || _baseProfitShare > 8000 || _rewardCollector == address(0)) revert InvalidParams();
+		if (_adminFee > 2000 || _baseProfitShare > 8000) revert InvalidParams();
 		adminFee = _adminFee;
 		baseProfitShare = _baseProfitShare;
-		rewardCollector = _rewardCollector;
 
 		resolver = IResolverClient(_resolver);
 
@@ -90,8 +81,7 @@ contract LiquidStakingController is ILiquidStakingController, Initializable, Acc
 	 * @dev Make sure that admin fee is not greater than 20%
 	 */
 	function updateAdminFee(uint256 fee) external onlyAdmin {
-		uint256 prevFee = adminFee;
-		if (fee > 2000 || fee == prevFee) revert InvalidParams();
+		if (fee > 2000 || fee == adminFee) revert InvalidParams();
 
 		adminFee = fee;
 
@@ -104,25 +94,11 @@ contract LiquidStakingController is ILiquidStakingController, Initializable, Acc
 	 * @dev Make sure that profit sharing is not greater than 80%
 	 */
 	function updateBaseProfitShare(uint256 share) external onlyAdmin {
-		uint256 prevShare = baseProfitShare;
-		if (share > 8000 || share == 0 || share == prevShare) revert InvalidParams();
+		if (share > 8000 || share == 0 || share == baseProfitShare) revert InvalidParams();
 
 		baseProfitShare = share;
 
 		emit UpdateBaseProfitShare(share);
-	}
-
-	/**
-	 * @notice Updates reward collector address of the protocol revenue
-	 * @param collector New rewards collector address
-	 */
-	function updateRewardsCollector(address collector) external onlyAdmin {
-		address prevAddr = rewardCollector;
-		if (collector == address(0) || prevAddr == collector) revert InvalidAddress();
-
-		rewardCollector = collector;
-
-		emit UpdateRewardCollector(collector);
 	}
 
 	/**

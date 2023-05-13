@@ -29,7 +29,7 @@ contract LiquidStakingControllerTest is DSTestPlus {
 		LiquidStakingController controllerImpl = new LiquidStakingController();
 		ERC1967Proxy controllerProxy = new ERC1967Proxy(address(controllerImpl), "");
 		controller = LiquidStakingController(address(controllerProxy));
-		controller.initialize(adminFee, profitShare, rewardCollector, address(resolver));
+		controller.initialize(adminFee, profitShare, address(resolver));
 	}
 
 	function testUpdateProfitShare(uint256 share) public {
@@ -95,23 +95,9 @@ contract LiquidStakingControllerTest is DSTestPlus {
 
 			hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
 			controller.updateBaseProfitShare(share);
+
+			hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
+			controller.updateBaseProfitShare(0);
 		}
-	}
-
-	function testUpdateRewardsCollector(address collector) public {
-		hevm.assume(collector != address(0) && collector != rewardCollector);
-		controller.updateRewardsCollector(collector);
-	}
-
-	function testUpdateRewardsCollectorReverts() public {
-		hevm.expectRevert(abi.encodeWithSignature("InvalidAddress()"));
-		controller.updateRewardsCollector(rewardCollector);
-
-		hevm.prank(alice);
-		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
-		controller.updateRewardsCollector(address(0));
-
-		hevm.expectRevert(abi.encodeWithSignature("InvalidAddress()"));
-		controller.updateRewardsCollector(address(0));
 	}
 }

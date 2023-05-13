@@ -61,9 +61,9 @@ contract StorageProviderCollateral is
 	bytes32 private constant SLASHING_AGENT = keccak256("SLASHING_AGENT");
 
 	uint256 public baseRequirements; // Number in basis points (10000 = 100%)
-	uint256 public constant BASIS_POINTS = 10000;
+	uint256 private constant BASIS_POINTS = 10000;
 
-	IResolverClient public resolver;
+	IResolverClient internal resolver;
 	IWFIL public WFIL; // WFIL implementation
 
 	// Storage Provider parameters
@@ -469,8 +469,7 @@ contract StorageProviderCollateral is
 	 * @param requirements New base collateral requirements for SP
 	 */
 	function updateBaseCollateralRequirements(uint256 requirements) public onlyAdmin {
-		uint256 prevRequirements = baseRequirements;
-		if (requirements == 0 || requirements == prevRequirements) revert InvalidParams();
+		if (requirements == 0 || requirements == baseRequirements) revert InvalidParams();
 
 		baseRequirements = requirements;
 

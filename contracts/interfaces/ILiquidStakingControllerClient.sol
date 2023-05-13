@@ -34,9 +34,4 @@ interface ILiquidStakingControllerClient {
 	 * @notice Returns the base profit sharing ratio on Liquid Staking
 	 */
 	function baseProfitShare() external view returns (uint256);
-
-	/**
-	 * @notice Returns the reward collector address on Liquid Staking
-	 */
-	function rewardCollector() external view returns (address);
 }

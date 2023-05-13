@@ -88,7 +88,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		LiquidStakingController controllerImpl = new LiquidStakingController();
 		ERC1967Proxy controllerProxy = new ERC1967Proxy(address(controllerImpl), "");
 		controller = LiquidStakingController(address(controllerProxy));
-		controller.initialize(adminFee, profitShare, address(rewardCollector), address(resolver));
+		controller.initialize(adminFee, profitShare, address(resolver));
 
 		// hevm.startPrank(proxyAdmin);
 		LiquidStakingMock stakingImpl = new LiquidStakingMock();
@@ -766,6 +766,9 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	function testUpdateMaxAllocationReverts() public {
 		hevm.expectRevert(abi.encodeWithSignature("InvalidAllocation()"));
 		registry.updateMaxAllocation(MAX_ALLOCATION);
+
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAllocation()"));
+		registry.updateMaxAllocation(0);
 
 		hevm.prank(aliceOwnerAddr);
 		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));

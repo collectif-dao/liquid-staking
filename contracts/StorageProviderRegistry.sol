@@ -74,7 +74,7 @@ contract StorageProviderRegistry is
 
 	uint256 public maxAllocation;
 
-	IResolverClient public resolver;
+	IResolverClient internal resolver;
 
 	modifier activeStorageProvider(uint64 _ownerId) {
 		if (!storageProviders[_ownerId].active) revert InactiveSP();
@@ -452,9 +452,7 @@ contract StorageProviderRegistry is
 	 */
 	function updateMaxAllocation(uint256 allocation) public onlyAdmin {
 		if (allocation == 0) revert InvalidAllocation();
-
-		uint256 prevAllocation = maxAllocation;
-		if (allocation == prevAllocation) revert InvalidAllocation();
+		if (allocation == maxAllocation) revert InvalidAllocation();
 
 		maxAllocation = allocation;
 
