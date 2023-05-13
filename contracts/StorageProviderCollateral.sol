@@ -126,7 +126,7 @@ contract StorageProviderCollateral is
 		SPCollateral storage collateral = collaterals[ownerId];
 		collateral.availableCollateral = collateral.availableCollateral + amount;
 
-		_wrapFIL(address(this));
+		WFIL.deposit{value: amount}();
 
 		emit StorageProviderCollateralDeposit(ownerId, amount);
 	}
@@ -151,8 +151,8 @@ contract StorageProviderCollateral is
 
 		if (isUnlock) {
 			delta = finalAmount - lockedWithdraw;
-			collaterals[ownerId].lockedCollateral = collaterals[ownerId].lockedCollateral - lockedWithdraw; // 10 - 2 == 8
-			collaterals[ownerId].availableCollateral = collaterals[ownerId].availableCollateral - delta; // 5 + 1 == 6
+			collaterals[ownerId].lockedCollateral = collaterals[ownerId].lockedCollateral - lockedWithdraw;
+			collaterals[ownerId].availableCollateral = collaterals[ownerId].availableCollateral - delta;
 
 			_unwrapWFIL(msg.sender, finalAmount);
 		} else {
@@ -437,17 +437,6 @@ contract StorageProviderCollateral is
 
 			emit StorageProviderCollateralUpdate(_ownerId, prevRequirements, requirements);
 		}
-	}
-
-	/**
-	 * @notice Wraps FIL into WFIL and transfers it to the `_recipient` address
-	 * @param _recipient WFIL recipient address
-	 */
-	function _wrapFIL(address _recipient) internal {
-		uint256 amount = msg.value;
-
-		WFIL.deposit{value: amount}();
-		WFIL.transfer(_recipient, amount);
 	}
 
 	/**

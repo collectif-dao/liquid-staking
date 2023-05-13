@@ -51,7 +51,7 @@ contract StorageProviderCollateralMock is StorageProviderCollateral {
 		SPCollateral storage collateral = collaterals[ownerId];
 		collateral.availableCollateral = collateral.availableCollateral + amount;
 
-		_wrapFIL(address(this));
+		WFIL.deposit{value: amount}();
 
 		emit StorageProviderCollateralDeposit(ownerId, amount);
 	}
