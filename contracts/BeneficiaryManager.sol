@@ -28,6 +28,9 @@ contract BeneficiaryManager is IBeneficiaryManager, Initializable, OwnableUpgrad
 
 	IResolverClient internal resolver;
 
+	// Mapping of beneficiary status to miner IDs
+	mapping(uint64 => bool) public beneficiaryStatus;
+
 	/**
 	 * @dev Contract initializer function.
 	 */
@@ -83,6 +86,20 @@ contract BeneficiaryManager is IBeneficiaryManager, Initializable, OwnableUpgrad
 		params.new_expiration = CommonTypes.ChainEpoch.wrap(expiration);
 
 		MinerAPI.changeBeneficiary(minerId, params);
+	}
+
+	/**
+	 * @notice Triggers update of beneficiary status for SP with `minerId`
+	 * @param minerId SP miner ID (not owner)
+	 * @param status Beneficiary status to indicate wether beneficiary address is synced with actual repayments
+	 *
+	 * @dev This function could be triggered by StorageProviderRegistry or RewardCollector contracts
+	 */
+	function updateBeneficiaryStatus(uint64 minerId, bool status) external virtual {
+		if (msg.sender != resolver.getRegistry() && msg.sender != resolver.getRewardCollector()) revert InvalidAccess();
+		beneficiaryStatus[minerId] = status;
+
+		emit BeneficiaryStatusUpdated(minerId, status);
 	}
 
 	/**

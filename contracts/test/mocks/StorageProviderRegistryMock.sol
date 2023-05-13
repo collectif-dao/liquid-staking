@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {StorageProviderRegistry, IStorageProviderRegistry, FilAddress, MinerTypes, IResolverClient, IStakingControllerClient, IStorageProviderCollateralClient, IRewardCollectorClient, StorageProviderTypes} from "../../StorageProviderRegistry.sol";
+import {StorageProviderRegistry, IStorageProviderRegistry, IBeneficiaryManager, FilAddress, MinerTypes, IResolverClient, IStakingControllerClient, IStorageProviderCollateralClient, IRewardCollectorClient, StorageProviderTypes} from "../../StorageProviderRegistry.sol";
 import {MinerMockAPI as MockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {FilAddresses} from "filecoin-solidity/contracts/v0.8/utils/FilAddresses.sol";
 import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
@@ -179,51 +179,6 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 		allocationRequest.dailyAllocation = _dailyAllocation;
 
 		emit StorageProviderAllocationLimitRequest(ownerId, _allocationLimit, _dailyAllocation);
-	}
-
-	/**
-	 * @notice Update storage provider FIL allocation with `_allocationLimit`
-	 * @param _ownerId Storage provider owner ID
-	 * @param _allocationLimit New FIL allocation for storage provider
-	 * @param _dailyAllocation New daily FIL allocation for storage provider
-	 * @param _repaymentAmount New FIL repayment amount for storage provider
-	 * @dev Only triggered by owner contract
-	 */
-	function updateAllocationLimit(
-		uint64 _ownerId,
-		uint256 _allocationLimit,
-		uint256 _dailyAllocation,
-		uint256 _repaymentAmount
-	) public virtual override activeStorageProvider(_ownerId) onlyAdmin {
-		if (_allocationLimit == 0 || _allocationLimit > maxAllocation) revert InvalidAllocation();
-		if (_dailyAllocation == 0 || _dailyAllocation > _allocationLimit) revert InvalidDailyAllocation();
-		if (_repaymentAmount <= _allocationLimit) revert InvalidRepayment();
-
-		StorageProviderTypes.AllocationRequest memory allocationRequest = allocationRequests[_ownerId];
-
-		if (allocationRequest.allocationLimit > 0) {
-			// If SP requested allocation update should fulfil their request first
-			if (allocationRequest.allocationLimit != _allocationLimit) revert InvalidAllocation();
-			if (allocationRequest.dailyAllocation != _dailyAllocation) revert InvalidDailyAllocation();
-		}
-
-		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_ownerId];
-
-		IRewardCollectorClient(resolver.getRewardCollector()).forwardChangeBeneficiary(
-			storageProvider.minerId,
-			storageProvider.targetPool,
-			_repaymentAmount,
-			storageProvider.lastEpoch
-		);
-
-		StorageProviderTypes.SPAllocation storage spAllocation = allocations[_ownerId];
-		spAllocation.allocationLimit = _allocationLimit;
-		spAllocation.dailyAllocation = _dailyAllocation;
-		spAllocation.repayment = _repaymentAmount;
-
-		delete allocationRequests[_ownerId];
-
-		emit StorageProviderAllocationLimitUpdate(_ownerId, _allocationLimit, _dailyAllocation, _repaymentAmount);
 	}
 
 	/**

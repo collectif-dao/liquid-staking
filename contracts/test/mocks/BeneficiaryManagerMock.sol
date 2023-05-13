@@ -66,3 +66,31 @@ contract BeneficiaryManagerMock is BeneficiaryManager, DSTestPlus {
 		mockAPI.changeBeneficiary(params);
 	}
 }
+
+/**
+ * @title Beneficiary Manager Caller Mock contract that routes calls to BeneficiaryManager
+ * @author Collective DAO
+ */
+contract BeneficiaryManagerCallerMock {
+	IBeneficiaryManager public manager;
+
+	/**
+	 * @dev Contract constructor function.
+	 * @param _manager BeneficiaryManagerCallerMock address to route calls
+	 *
+	 */
+	constructor(address _manager) {
+		manager = IBeneficiaryManager(_manager);
+	}
+
+	/**
+	 * @notice Triggers update of beneficiary status for SP with `minerId`
+	 * @param minerId SP miner ID (not owner)
+	 * @param status Beneficiary status to indicate wether beneficiary address is synced with actual repayments
+	 *
+	 * @dev This function could be triggered by StorageProviderRegistry or RewardCollector contracts
+	 */
+	function updateBeneficiaryStatus(uint64 minerId, bool status) external {
+		manager.updateBeneficiaryStatus(minerId, status);
+	}
+}

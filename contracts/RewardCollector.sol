@@ -6,6 +6,7 @@ import {IStorageProviderCollateralClient as ICollateralClient} from "./interface
 import {IStorageProviderRegistryClient as IRegistryClient} from "./interfaces/IStorageProviderRegistryClient.sol";
 import {IResolverClient} from "./interfaces/IResolverClient.sol";
 import {IRewardCollector} from "./interfaces/IRewardCollector.sol";
+import {IBeneficiaryManager} from "./interfaces/IBeneficiaryManager.sol";
 import {ILiquidStakingClient} from "./interfaces/ILiquidStakingClient.sol";
 import {IWFIL} from "./libraries/tokens/IWFIL.sol";
 
@@ -197,6 +198,8 @@ contract RewardCollector is
 		params.new_expiration = CommonTypes.ChainEpoch.wrap(expiration);
 
 		MinerAPI.changeBeneficiary(CommonTypes.FilActorId.wrap(minerId), params);
+
+		IBeneficiaryManager(resolver.getBeneficiaryManager()).updateBeneficiaryStatus(minerId, true);
 
 		emit BeneficiaryAddressUpdated(address(this), targetPool, minerId, quota, expiration);
 	}

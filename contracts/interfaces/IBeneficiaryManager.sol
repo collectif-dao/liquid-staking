@@ -19,9 +19,25 @@ interface IBeneficiaryManager {
 	);
 
 	/**
+	 * @notice Emitted when beneficiary status has been updated
+	 * @param minerId SP miner ID (not owner)
+	 * @param status Beneficiary status to indicate wether beneficiary address is synced with actual repayments
+	 */
+	event BeneficiaryStatusUpdated(uint64 minerId, bool status);
+
+	/**
 	 * @notice Triggers changeBeneficiary call on Miner actor as SP
 	 *
 	 * @dev This function could be triggered by miner owner address
 	 */
 	function changeBeneficiaryAddress() external;
+
+	/**
+	 * @notice Triggers update of beneficiary status for SP with `minerId`
+	 * @param minerId SP miner ID (not owner)
+	 * @param status Beneficiary status to indicate wether beneficiary address is synced with actual repayments
+	 *
+	 * @dev This function could be triggered by StorageProviderRegistry or RewardCollector contracts
+	 */
+	function updateBeneficiaryStatus(uint64 minerId, bool status) external;
 }

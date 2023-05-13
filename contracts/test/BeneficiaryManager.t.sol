@@ -4,7 +4,7 @@ pragma solidity ^0.8.17;
 import {Buffer} from "@ensdomains/buffer/contracts/Buffer.sol";
 import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {Resolver} from "../Resolver.sol";
-import {BeneficiaryManagerMock} from "./mocks/BeneficiaryManagerMock.sol";
+import {BeneficiaryManagerMock, BeneficiaryManagerCallerMock} from "./mocks/BeneficiaryManagerMock.sol";
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
 import {RewardCollectorMock} from "./mocks/RewardCollectorMock.sol";
 import {StorageProviderRegistryMock} from "./mocks/StorageProviderRegistryMock.sol";
@@ -22,6 +22,7 @@ import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 
 contract BeneficiaryManagerTest is DSTestPlus {
 	BeneficiaryManagerMock public beneficiaryManager;
+	BeneficiaryManagerCallerMock public bManagerCaller;
 	Resolver public resolver;
 	StorageProviderRegistryMock public registry;
 	LiquidStakingMock public staking;
@@ -61,6 +62,8 @@ contract BeneficiaryManagerTest is DSTestPlus {
 		ERC1967Proxy bManagerProxy = new ERC1967Proxy(address(bManagerImpl), "");
 		beneficiaryManager = BeneficiaryManagerMock(address(bManagerProxy));
 		beneficiaryManager.initialize(address(minerMockAPI), aliceOwnerId, address(resolver));
+
+		bManagerCaller = new BeneficiaryManagerCallerMock(address(beneficiaryManager));
 
 		RewardCollectorMock rCollectorImpl = new RewardCollectorMock();
 		ERC1967Proxy rCollectorProxy = new ERC1967Proxy(address(rCollectorImpl), "");
@@ -132,5 +135,22 @@ contract BeneficiaryManagerTest is DSTestPlus {
 
 		hevm.expectRevert(abi.encodeWithSignature("InactiveSP()"));
 		beneficiaryManager.changeBeneficiaryAddress();
+	}
+
+	function testUpdateBeneficiaryStatus(uint64 minerId) public {
+		hevm.assume(minerId > 1 && minerId < 2115248121211227543);
+
+		resolver.setRegistryAddress(address(bManagerCaller));
+		bManagerCaller.updateBeneficiaryStatus(minerId, true);
+
+		resolver.setRewardCollectorAddress(address(bManagerCaller));
+		bManagerCaller.updateBeneficiaryStatus(minerId, false);
+	}
+
+	function testUpdateBeneficiaryStatusReverts(uint64 minerId) public {
+		hevm.assume(minerId > 1 && minerId < 2115248121211227543);
+
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
+		bManagerCaller.updateBeneficiaryStatus(minerId, true);
 	}
 }

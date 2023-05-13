@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {RewardCollector, IRewardCollector, MinerTypes, FilAddresses, IRegistryClient, CommonTypes, BigInts, ICollateralClient, IResolverClient, IWFIL, IStakingControllerClient, ILiquidStakingClient} from "../../RewardCollector.sol";
+import {RewardCollector, IRewardCollector, IBeneficiaryManager, MinerTypes, FilAddresses, IRegistryClient, CommonTypes, BigInts, ICollateralClient, IResolverClient, IWFIL, IStakingControllerClient, ILiquidStakingClient} from "../../RewardCollector.sol";
 import {IMinerActorMock} from "./MinerActorMock.sol";
 import {MinerMockAPI as MockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -163,5 +163,9 @@ contract RewardCollectorMock is RewardCollector {
 		params.new_expiration = CommonTypes.ChainEpoch.wrap(expiration);
 
 		mockAPI.changeBeneficiary(params);
+
+		IBeneficiaryManager(resolver.getBeneficiaryManager()).updateBeneficiaryStatus(minerId, true);
+
+		emit BeneficiaryAddressUpdated(address(this), targetPool, minerId, quota, expiration);
 	}
 }

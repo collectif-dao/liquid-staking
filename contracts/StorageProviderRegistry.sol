@@ -13,6 +13,7 @@ import {IRewardCollectorClient} from "./interfaces/IRewardCollectorClient.sol";
 import {IStorageProviderCollateralClient} from "./interfaces/IStorageProviderCollateralClient.sol";
 import {IResolverClient} from "./interfaces/IResolverClient.sol";
 import {ILiquidStakingControllerClient as IStakingControllerClient} from "./interfaces/ILiquidStakingControllerClient.sol";
+import {IBeneficiaryManager} from "./interfaces/IBeneficiaryManager.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
@@ -319,21 +320,17 @@ contract StorageProviderRegistry is
 			if (allocationRequest.dailyAllocation != _dailyAllocation) revert InvalidDailyAllocation();
 		}
 
-		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_ownerId];
-
-		IRewardCollectorClient(resolver.getRewardCollector()).forwardChangeBeneficiary(
-			storageProvider.minerId,
-			storageProvider.targetPool,
-			_repaymentAmount,
-			storageProvider.lastEpoch
-		);
-
 		StorageProviderTypes.SPAllocation storage spAllocation = allocations[_ownerId];
 		spAllocation.allocationLimit = _allocationLimit;
 		spAllocation.dailyAllocation = _dailyAllocation;
 		spAllocation.repayment = _repaymentAmount;
 
 		delete allocationRequests[_ownerId];
+
+		IBeneficiaryManager(resolver.getBeneficiaryManager()).updateBeneficiaryStatus(
+			storageProviders[_ownerId].minerId,
+			false
+		);
 
 		emit StorageProviderAllocationLimitUpdate(_ownerId, _allocationLimit, _dailyAllocation, _repaymentAmount);
 	}
