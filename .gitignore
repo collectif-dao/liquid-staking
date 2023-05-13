@@ -63,3 +63,6 @@ abi/
 
 # Local deployments artifacts
 deployments/localnet
+
+# Open zeppelin artefacts
+.openzeppelin

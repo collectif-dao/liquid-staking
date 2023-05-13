@@ -7,15 +7,14 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 	const { deployments, ethers } = hre;
 
 	const resolver = await deployments.get("Resolver");
-	const rewardCollector = await deployments.get("RewardCollector");
 
 	const adminFee = 0;
 	const baseProfitShare = 3000;
 
-	await deployAndSaveContract("LiquidStakingController", [adminFee, baseProfitShare, rewardCollector.address, resolver.address], hre);
+	await deployAndSaveContract("LiquidStakingController", [adminFee, baseProfitShare, resolver.address], hre);
 };
 
 export default deployFunction;
 
 deployFunction.tags = ["LiquidStakingController"];
-deployFunction.dependencies = ["Resolver", "BeneficiaryManager", "WFIL", "RewardCollector"];
+deployFunction.dependencies = ["Resolver", "BeneficiaryManager", "WFIL"];

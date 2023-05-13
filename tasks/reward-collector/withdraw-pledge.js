@@ -2,7 +2,7 @@ import { callRpc } from "../utils";
 
 task("withdraw-pledge", "Withdraw miner's pledge")
 	.addParam("ownerId", "miner's ownerId", "t0100")
-	.addParam("amount", "withdraw amount in FIL", "1")
+	.addParam("amount", "withdraw amount in FIL", "0.5")
 	.setAction(async (taskArgs) => {
 		const accounts = await ethers.getSigners();
 		const signer = accounts[0];

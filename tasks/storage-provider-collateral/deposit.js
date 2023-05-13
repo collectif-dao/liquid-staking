@@ -1,5 +1,5 @@
 task("deposit", "Deposit collateral to the pool")
-	.addParam("amount", "deposit amount in FIL", "200")
+	.addParam("amount", "deposit amount in FIL", "2")
 	.setAction(async (taskArgs) => {
 		let { amount } = taskArgs;
 		amount = ethers.utils.parseEther(amount);
