@@ -382,7 +382,7 @@ contract StorageProviderCollateral is
 		uint256 _allocationToUse,
 		uint256 _collateralRequirements
 	) internal pure returns (uint256) {
-		uint256 usedAllocation = _allocationToUse > 0 ? _usedAllocation + _allocationToUse : _usedAllocation;
+		uint256 usedAllocation = _usedAllocation + _allocationToUse;
 		uint256 req = usedAllocation - _repaidPledge;
 
 		if (req > 0) {
