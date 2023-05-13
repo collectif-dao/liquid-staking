@@ -45,7 +45,7 @@ contract LiquidStakingController is ILiquidStakingController, Initializable, Acc
 		__AccessControl_init();
 		__UUPSUpgradeable_init();
 
-		if (_adminFee > 2000 || _rewardCollector == address(0)) revert InvalidParams();
+		if (_adminFee > 2000 || _baseProfitShare > 8000 || _rewardCollector == address(0)) revert InvalidParams();
 		adminFee = _adminFee;
 		baseProfitShare = _baseProfitShare;
 		rewardCollector = _rewardCollector;
