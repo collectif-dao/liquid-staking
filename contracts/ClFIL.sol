@@ -1,25 +1,26 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {ERC4626} from "./libraries/tokens/ERC4626.sol";
-import {ERC20} from "./libraries/tokens/ERC20.sol";
 import {IWFIL} from "./libraries/tokens/IWFIL.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {ERC4626Upgradeable, IERC20Upgradeable} from "./libraries/tokens/ERC4626Upgradeable.sol";
 
 /**
  * @title clFIL token contract is the main wrapper over staked FIL in the liquid staking system
  *
- * Staking strategies could include the following:
- *     - Liquid Staking Pool
- *     - Direct OTC under-collateralized loans
- *     - Self-stake by Storage Providers
- *
  * @notice The clFIL token vault works with wrapped version of Filecoin (FIL)
  * as it's an ultimate requirement of the ERC4626 standard.
  */
-contract ClFILToken is ERC4626 {
-	IWFIL public immutable WFIL; // WFIL implementation
+abstract contract ClFILToken is Initializable, ERC4626Upgradeable {
+	IWFIL public WFIL; // WFIL implementation
 
-	constructor(address _wFIL) ERC4626(ERC20(_wFIL), "Collective Staked FIL", "clFIL") {
+	/**
+	 * @dev Contract initializer function.
+	 * @param _wFIL WFIL token implementation
+	 */
+	function __ClFILToken_init(address _wFIL) internal onlyInitializing {
+		__ERC20_init("Collective Staked FIL", "clFIL");
+		__ERC4626_init(IERC20Upgradeable(_wFIL));
 		WFIL = IWFIL(_wFIL);
 	}
 

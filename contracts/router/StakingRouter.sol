@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
-import {ERC4626RouterBase, SafeTransferLib, ERC20, IWETH9, PeripheryPayments} from "fei-protocol/erc4626/ERC4626RouterBase.sol";
-import {IStakingRouter, IERC4626} from "../interfaces/IStakingRouter.sol";
+import {ERC4626RouterBase, IERC4626, SafeTransferLib, ERC20, IWETH9, PeripheryPayments} from "fei-protocol/erc4626/ERC4626RouterBase.sol";
+import {IStakingRouter} from "./IStakingRouter.sol";
 
 /**
  * @title StakingRouter contract allows users to perform multi-call operations in a similar manner like Uniswap V3

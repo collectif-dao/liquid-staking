@@ -3,6 +3,8 @@ name: test
 on:
   push:
   pull_request:
+    branches:
+      - master
 
 env:
   FOUNDRY_PROFILE: ci

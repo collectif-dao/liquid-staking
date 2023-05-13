@@ -2,14 +2,17 @@
 pragma solidity ^0.8.17;
 
 import {IStorageProviderCollateral} from "./interfaces/IStorageProviderCollateral.sol";
-import {IStorageProviderRegistryClient} from "./interfaces/IStorageProviderRegistryClient.sol";
+import {IStorageProviderRegistryClient as IRegistryClient} from "./interfaces/IStorageProviderRegistryClient.sol";
+import {IResolverClient} from "./interfaces/IResolverClient.sol";
+import {IWFIL} from "./libraries/tokens/IWFIL.sol";
 import {SafeTransferLib} from "./libraries/SafeTransferLib.sol";
 import {StorageProviderTypes} from "./types/StorageProviderTypes.sol";
-import {IWFIL} from "./libraries/tokens/IWFIL.sol";
-import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {FilAddress} from "fevmate/utils/FilAddress.sol";
 import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 /**
  * @title Storage Provider Collateral stores collateral for covering potential
@@ -23,10 +26,26 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
  * making it a good option for collateralization in the system.
  *
  */
-contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl, ReentrancyGuard {
+contract StorageProviderCollateral is
+	IStorageProviderCollateral,
+	Initializable,
+	AccessControlUpgradeable,
+	ReentrancyGuardUpgradeable,
+	UUPSUpgradeable
+{
 	using SafeTransferLib for address;
 	using FixedPointMathLib for uint256;
 	using FilAddress for address;
+
+	error AllocationOverflow();
+	error InvalidParams();
+	error InactiveActor();
+	error InactiveSP();
+	error InactivePool();
+	error InvalidAccess();
+	error InsufficientFunds();
+	error InsufficientCollateral();
+	error InactiveSlashing();
 
 	// Mapping of storage provider collateral information to their owner ID
 	mapping(uint64 => SPCollateral) public collaterals;
@@ -36,13 +55,17 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 
 	mapping(uint64 => uint256) public collateralRequirements;
 
+	// Mapping of storage providers slashing flags to owner ID
+	mapping(uint64 => bool) public activeSlashings;
+
 	bytes32 private constant COLLATERAL_ADMIN = keccak256("COLLATERAL_ADMIN");
+	bytes32 private constant SLASHING_AGENT = keccak256("SLASHING_AGENT");
 
 	uint256 public baseRequirements; // Number in basis points (10000 = 100%)
 	uint256 public constant BASIS_POINTS = 10000;
-	IStorageProviderRegistryClient public registry;
 
-	IWFIL public immutable WFIL; // WFIL implementation
+	IResolverClient public resolver;
+	IWFIL public WFIL; // WFIL implementation
 
 	// Storage Provider parameters
 	struct SPCollateral {
@@ -51,24 +74,37 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	}
 
 	modifier activeStorageProvider(uint64 _ownerId) {
-		require(registry.isActiveProvider(_ownerId), "INACTIVE_STORAGE_PROVIDER");
+		if (!IRegistryClient(resolver.getRegistry()).isActiveProvider(_ownerId)) revert InactiveSP();
+		_;
+	}
+
+	modifier onlyAdmin() {
+		if (!hasRole(COLLATERAL_ADMIN, msg.sender)) revert InvalidAccess();
 		_;
 	}
 
 	/**
-	 * @dev Contract constructor function.
+	 * @dev Contract initializer function.
 	 * @param _wFIL WFIL token implementation
-	 *
+	 * @param _resolver Resolver contract implementation
+	 * @param _baseRequirements Base collateral requirements for SPs
 	 */
-	constructor(IWFIL _wFIL, address _registry, uint256 _baseRequirements) {
-		WFIL = _wFIL;
-		registry = IStorageProviderRegistryClient(_registry);
+	function initialize(IWFIL _wFIL, address _resolver, uint256 _baseRequirements) public virtual initializer {
+		__AccessControl_init();
+		__ReentrancyGuard_init();
+		__UUPSUpgradeable_init();
 
-		require(_baseRequirements > 0 || _baseRequirements <= 10000, "BASE_REQUIREMENTS_OVERFLOW");
+		WFIL = _wFIL;
+		resolver = IResolverClient(_resolver);
+
+		if (_baseRequirements == 0 || _baseRequirements > 10000) revert InvalidParams();
 		baseRequirements = _baseRequirements;
 
 		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+		_setRoleAdmin(COLLATERAL_ADMIN, DEFAULT_ADMIN_ROLE);
 		grantRole(COLLATERAL_ADMIN, msg.sender);
+		grantRole(SLASHING_AGENT, msg.sender);
+		_setRoleAdmin(SLASHING_AGENT, DEFAULT_ADMIN_ROLE);
 	}
 
 	receive() external payable virtual {}
@@ -81,12 +117,12 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	 */
 	function deposit() public payable nonReentrant {
 		uint256 amount = msg.value;
-		require(amount > 0, "INVALID_AMOUNT");
+		if (amount == 0) revert InvalidParams();
 
 		address ownerAddr = msg.sender.normalize();
 		(bool isID, uint64 ownerId) = ownerAddr.getActorID();
-		require(isID, "INACTIVE_ACTOR_ID");
-		require(registry.isActiveProvider(ownerId), "INACTIVE_STORAGE_PROVIDER");
+		if (!isID) revert InactiveActor();
+		if (!IRegistryClient(resolver.getRegistry()).isActiveProvider(ownerId)) revert InactiveSP();
 
 		SPCollateral storage collateral = collaterals[ownerId];
 		collateral.availableCollateral = collateral.availableCollateral + amount;
@@ -102,12 +138,12 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	 * delivers maximum amount of FIL available for withdrawal if `_amount` is bigger.
 	 */
 	function withdraw(uint256 _amount) public nonReentrant {
-		require(_amount > 0, "ZERO_AMOUNT");
+		if (_amount == 0) revert InvalidParams();
 
 		address ownerAddr = msg.sender.normalize();
 		(bool isID, uint64 ownerId) = ownerAddr.getActorID();
-		require(isID, "INACTIVE_ACTOR_ID");
-		require(registry.isActiveProvider(ownerId), "INACTIVE_STORAGE_PROVIDER");
+		if (!isID) revert InactiveActor();
+		if (!IRegistryClient(resolver.getRegistry()).isActiveProvider(ownerId)) revert InactiveSP();
 
 		(uint256 lockedWithdraw, uint256 availableWithdraw, bool isUnlock) = calcMaximumWithdraw(ownerId);
 		uint256 maxWithdraw = lockedWithdraw + availableWithdraw;
@@ -134,8 +170,9 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	 * @param _allocated FIL amount that is going to be pledged for Storage Provider
 	 */
 	function lock(uint64 _ownerId, uint256 _allocated) external activeStorageProvider(_ownerId) {
-		require(registry.isActivePool(msg.sender), "INVALID_ACCESS");
-		require(_allocated > 0, "ZERO_ALLOCATION");
+		IRegistryClient registry = IRegistryClient(resolver.getRegistry());
+		if (!registry.isActivePool(msg.sender)) revert InvalidAccess();
+		if (_allocated == 0) revert InvalidParams();
 
 		_rebalance(_ownerId, _allocated);
 		registry.increaseUsedAllocation(_ownerId, _allocated, block.timestamp);
@@ -147,9 +184,49 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	 * @param _ownerId Storage provider owner ID
 	 */
 	function fit(uint64 _ownerId) external activeStorageProvider(_ownerId) {
-		require(registry.isActivePool(msg.sender), "INVALID_ACCESS");
+		if (msg.sender != resolver.getRewardCollector()) revert InvalidAccess();
 
 		_rebalance(_ownerId, 0);
+	}
+
+	/**
+	 * @notice Report slashing of SP accured on the Filecoin network
+	 * This function is triggered when SP get continiously slashed by faulting it's sectors
+	 * @param _ownerId Storage provider owner ID
+	 * @param _slashingAmt Slashing amount
+	 *
+	 * @dev Please note that slashing amount couldn't exceed the total amount of collateral provided by SP.
+	 * If sector has been slashed for 42 days and automatically terminated both operations
+	 * would take place after one another: slashing report and initial pledge withdrawal
+	 * which is the remaining pledge for a terminated sector.
+	 */
+	function reportSlashing(
+		uint64 _ownerId,
+		uint256 _slashingAmt
+	) external virtual nonReentrant activeStorageProvider(_ownerId) {
+		if (!hasRole(SLASHING_AGENT, msg.sender)) revert InvalidAccess();
+		if (_slashingAmt == 0) revert InvalidParams();
+		(, , uint64 minerId, ) = IRegistryClient(resolver.getRegistry()).getStorageProvider(_ownerId);
+
+		_slash(_ownerId, _slashingAmt, resolver.getLiquidStaking());
+
+		activeSlashings[_ownerId] = true;
+
+		emit ReportSlashing(_ownerId, minerId, _slashingAmt);
+	}
+
+	/**
+	 * @notice Report recovery of previously slashed sectors for SP with `_ownerId`
+	 * @param _ownerId Storage provider owner ID
+	 */
+	function reportRecovery(uint64 _ownerId) external virtual activeStorageProvider(_ownerId) {
+		if (!hasRole(SLASHING_AGENT, msg.sender)) revert InvalidAccess();
+		if (!activeSlashings[_ownerId]) revert InactiveSlashing();
+		(, , uint64 minerId, ) = IRegistryClient(resolver.getRegistry()).getStorageProvider(_ownerId);
+
+		activeSlashings[_ownerId] = false;
+
+		emit ReportRecovery(_ownerId, minerId);
 	}
 
 	/**
@@ -157,16 +234,17 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	 * @notice Doesn't perform a rebalancing checks
 	 * @param _ownerId Storage provider owner ID
 	 * @param _slashingAmt Slashing amount for SP
+	 * @param _pool Liquid staking pool address
 	 */
-	function slash(uint64 _ownerId, uint256 _slashingAmt) external activeStorageProvider(_ownerId) {
-		require(registry.isActivePool(msg.sender), "INVALID_ACCESS");
+	function _slash(uint64 _ownerId, uint256 _slashingAmt, address _pool) internal {
+		if (!IRegistryClient(resolver.getRegistry()).isActivePool(_pool)) revert InactivePool();
 
 		SPCollateral memory collateral = collaterals[_ownerId];
 		if (_slashingAmt <= collateral.lockedCollateral) {
 			collateral.lockedCollateral = collateral.lockedCollateral - _slashingAmt;
 		} else {
 			uint256 totalCollateral = collateral.lockedCollateral + collateral.availableCollateral;
-			require(_slashingAmt <= totalCollateral, "NOT_ENOUGH_COLLATERAL"); // TODO: introduce debt for SP to cover worst case scenario
+			if (_slashingAmt > totalCollateral) revert InsufficientCollateral(); // TODO: introduce debt for SP to cover worst case scenario
 			uint256 delta = _slashingAmt - collateral.lockedCollateral;
 
 			collateral.lockedCollateral = 0;
@@ -176,9 +254,9 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 		collaterals[_ownerId] = collateral;
 		slashings[_ownerId] += _slashingAmt;
 
-		WFIL.transfer(msg.sender, _slashingAmt);
+		WFIL.transfer(_pool, _slashingAmt);
 
-		emit StorageProviderCollateralSlash(_ownerId, _slashingAmt, msg.sender);
+		emit StorageProviderCollateralSlash(_ownerId, _slashingAmt, _pool);
 	}
 
 	/**
@@ -204,7 +282,9 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	}
 
 	function getDebt(uint64 _ownerId) public view returns (uint256) {
-		(, , uint256 usedAllocation, , , uint256 repaidPledge) = registry.allocations(_ownerId);
+		(, , uint256 usedAllocation, , , uint256 repaidPledge) = IRegistryClient(resolver.getRegistry()).allocations(
+			_ownerId
+		);
 
 		uint256 _collateralRequirements = collateralRequirements[_ownerId];
 		uint256 requirements = calcCollateralRequirements(usedAllocation, repaidPledge, 0, _collateralRequirements);
@@ -225,7 +305,9 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	 * @param _ownerId Storage Provider owner address
 	 */
 	function calcMaximumWithdraw(uint64 _ownerId) internal view returns (uint256, uint256, bool) {
-		(, , uint256 usedAllocation, , , uint256 repaidPledge) = registry.allocations(_ownerId);
+		(, , uint256 usedAllocation, , , uint256 repaidPledge) = IRegistryClient(resolver.getRegistry()).allocations(
+			_ownerId
+		);
 
 		uint256 _collateralRequirements = collateralRequirements[_ownerId];
 		uint256 requirements = calcCollateralRequirements(usedAllocation, repaidPledge, 0, _collateralRequirements);
@@ -248,10 +330,12 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	 * @param _allocated Hypothetical allocation for SP
 	 */
 	function _rebalance(uint64 _ownerId, uint256 _allocated) internal {
-		(uint256 allocationLimit, , uint256 usedAllocation, , , uint256 repaidPledge) = registry.allocations(_ownerId);
+		(uint256 allocationLimit, , uint256 usedAllocation, , , uint256 repaidPledge) = IRegistryClient(
+			resolver.getRegistry()
+		).allocations(_ownerId);
 
 		if (_allocated > 0) {
-			require(usedAllocation + _allocated <= allocationLimit, "ALLOCATION_OVERFLOW");
+			if (usedAllocation + _allocated > allocationLimit) revert AllocationOverflow();
 		}
 		uint256 _collateralRequirements = collateralRequirements[_ownerId];
 		uint256 totalRequirements = calcCollateralRequirements(
@@ -262,10 +346,8 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 		);
 
 		SPCollateral memory collateral = collaterals[_ownerId];
-		require(
-			totalRequirements <= collateral.lockedCollateral + collateral.availableCollateral,
-			"INSUFFICIENT_COLLATERAL"
-		);
+		if (totalRequirements > collateral.lockedCollateral + collateral.availableCollateral)
+			revert InsufficientCollateral();
 
 		(uint256 adjAmt, bool isUnlock) = calcCollateralAdjustment(collateral.lockedCollateral, totalRequirements);
 
@@ -342,7 +424,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	 * @param requirements Percentage of collateral requirements
 	 */
 	function updateCollateralRequirements(uint64 _ownerId, uint256 requirements) external {
-		require(hasRole(COLLATERAL_ADMIN, msg.sender) || msg.sender == address(registry), "INVALID_ACCESS");
+		if (msg.sender != resolver.getRegistry() && !hasRole(COLLATERAL_ADMIN, msg.sender)) revert InvalidAccess();
 
 		if (requirements == 0) {
 			collateralRequirements[_ownerId] = baseRequirements;
@@ -350,8 +432,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 			emit StorageProviderCollateralUpdate(_ownerId, 0, baseRequirements);
 		} else {
 			uint256 prevRequirements = collateralRequirements[_ownerId];
-			require(requirements <= 10000, "COLLATERAL_REQUIREMENTS_OVERFLOW");
-			require(requirements != prevRequirements, "SAME_COLLATERAL_REQUIREMENTS");
+			if (requirements > 10000 || requirements == prevRequirements) revert InvalidParams();
 
 			collateralRequirements[_ownerId] = requirements;
 
@@ -376,7 +457,7 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	 */
 	function _unwrapWFIL(address _recipient, uint256 _amount) internal {
 		uint256 balanceWETH9 = WFIL.balanceOf(address(this));
-		require(balanceWETH9 >= _amount, "Insufficient WETH9");
+		if (balanceWETH9 < _amount) revert InsufficientFunds();
 
 		if (balanceWETH9 > 0) {
 			WFIL.withdraw(_amount);
@@ -388,31 +469,22 @@ contract StorageProviderCollateral is IStorageProviderCollateral, AccessControl,
 	 * @notice Updates base collateral requirements amount for Storage Providers
 	 * @param requirements New base collateral requirements for SP
 	 */
-	function updateBaseCollateralRequirements(uint256 requirements) public {
-		require(hasRole(COLLATERAL_ADMIN, msg.sender), "INVALID_ACCESS");
-		require(requirements > 0, "INVALID_REQUIREMENTS");
-
+	function updateBaseCollateralRequirements(uint256 requirements) public onlyAdmin {
 		uint256 prevRequirements = baseRequirements;
-		require(requirements != prevRequirements, "SAME_REQUIREMENTS");
+		if (requirements == 0 || requirements == prevRequirements) revert InvalidParams();
 
 		baseRequirements = requirements;
 
 		emit UpdateBaseCollateralRequirements(requirements);
 	}
 
-	/**
-	 * @notice Updates StorageProviderRegistry contract address
-	 * @param newAddr StorageProviderRegistry contract address
-	 */
-	function setRegistryAddress(address newAddr) public {
-		require(hasRole(COLLATERAL_ADMIN, msg.sender), "INVALID_ACCESS");
-		require(newAddr != address(0), "INVALID_ADDRESS");
+	function _authorizeUpgrade(address newImplementation) internal override onlyAdmin {}
 
-		address prevRegistry = address(registry);
-		require(prevRegistry != newAddr, "SAME_ADDRESS");
+	function version() external pure virtual returns (string memory) {
+		return "v1";
+	}
 
-		registry = IStorageProviderRegistryClient(newAddr);
-
-		emit SetRegistryAddress(newAddr);
+	function getImplementation() external view returns (address) {
+		return _getImplementation();
 	}
 }

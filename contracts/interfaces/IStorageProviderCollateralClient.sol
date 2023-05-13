@@ -18,18 +18,15 @@ interface IStorageProviderCollateralClient {
 	function fit(uint64 _ownerId) external;
 
 	/**
-	 * @dev Slashes SP for a `_slashingAmt` and delivers WFIL amount to the `msg.sender` LSP
-	 * @notice Doesn't perform a rebalancing checks
-	 * @param _ownerId Storage provider owner ID
-	 * @param _slashingAmt Slashing amount for SP
-	 */
-	function slash(uint64 _ownerId, uint256 _slashingAmt) external;
-
-	/**
 	 * @dev Updates collateral requirements for SP with `_ownerId` by `requirements` percentage
 	 * @notice Only triggered by Collateral admin or registry contract while registering SP
 	 * @param _ownerId Storage provider owner ID
 	 * @param requirements Percentage of collateral requirements
 	 */
 	function updateCollateralRequirements(uint64 _ownerId, uint256 requirements) external;
+
+	/**
+	 * @notice Return a slashing flag for a storage provider
+	 */
+	function activeSlashings(uint64 ownerId) external view returns (bool);
 }

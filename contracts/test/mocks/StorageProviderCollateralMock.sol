@@ -4,28 +4,39 @@ pragma solidity ^0.8.17;
 import "../../StorageProviderCollateral.sol";
 import {FilAddresses} from "filecoin-solidity/contracts/v0.8/utils/FilAddresses.sol";
 import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
-
-import "@openzeppelin/contracts/utils/Counters.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 /**
  * @title Storage Provider Registry Mock contract that works with mock Filecoin Miner API
  * @author Collective DAO
  */
 contract StorageProviderCollateralMock is StorageProviderCollateral {
-	using Counters for Counters.Counter;
-	using Address for address;
+	bytes32 private constant COLLATERAL_ADMIN = keccak256("COLLATERAL_ADMIN");
+	bytes32 private constant SLASHING_AGENT = keccak256("SLASHING_AGENT");
 
 	/**
-	 * @dev Contract constructor function.
+	 * @dev Contract initializer function.
 	 * @param _wFIL WFIL token implementation
-	 *
+	 * @param _resolver Resolver contract implementation
+	 * @param _baseRequirements Base collateral requirements for SPs
 	 */
-	constructor(
-		IWFIL _wFIL,
-		address _registry,
-		uint256 _baseCollateralRequirements
-	) StorageProviderCollateral(_wFIL, _registry, _baseCollateralRequirements) {}
+	function initialize(IWFIL _wFIL, address _resolver, uint256 _baseRequirements) public override initializer {
+		__AccessControl_init();
+		__ReentrancyGuard_init();
+		__UUPSUpgradeable_init();
+
+		WFIL = _wFIL;
+		resolver = IResolverClient(_resolver);
+
+		if (_baseRequirements == 0 || _baseRequirements > 10000) revert InvalidParams();
+		baseRequirements = _baseRequirements;
+
+		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+		_setRoleAdmin(COLLATERAL_ADMIN, DEFAULT_ADMIN_ROLE);
+		grantRole(COLLATERAL_ADMIN, msg.sender);
+		grantRole(SLASHING_AGENT, msg.sender);
+		_setRoleAdmin(SLASHING_AGENT, DEFAULT_ADMIN_ROLE);
+	}
 
 	/**
 	 * @dev Deposit `msg.value` FIL funds by the msg.sender into collateral
@@ -33,9 +44,9 @@ contract StorageProviderCollateralMock is StorageProviderCollateral {
 	 */
 	function deposit(uint64 ownerId) public payable virtual {
 		uint256 amount = msg.value;
-		require(amount > 0, "INVALID_AMOUNT");
+		if (amount == 0) revert InvalidParams();
 
-		require(registry.isActiveProvider(ownerId), "INACTIVE_STORAGE_PROVIDER");
+		if (!IRegistryClient(resolver.getRegistry()).isActiveProvider(ownerId)) revert InactiveSP();
 
 		SPCollateral storage collateral = collaterals[ownerId];
 		collateral.availableCollateral = collateral.availableCollateral + amount;
@@ -51,8 +62,8 @@ contract StorageProviderCollateralMock is StorageProviderCollateral {
 	 * delivers maximum amount of FIL available for withdrawal if `_amount` is bigger.
 	 */
 	function withdraw(uint64 ownerId, uint256 _amount) public virtual {
-		require(_amount > 0, "ZERO_AMOUNT");
-		require(registry.isActiveProvider(ownerId), "INACTIVE_STORAGE_PROVIDER");
+		if (_amount == 0) revert InvalidParams();
+		if (!IRegistryClient(resolver.getRegistry()).isActiveProvider(ownerId)) revert InactiveSP();
 
 		(uint256 lockedWithdraw, uint256 availableWithdraw, bool isUnlock) = calcMaximumWithdraw(ownerId);
 		uint256 maxWithdraw = lockedWithdraw + availableWithdraw;
@@ -73,9 +84,35 @@ contract StorageProviderCollateralMock is StorageProviderCollateral {
 		emit StorageProviderCollateralWithdraw(ownerId, finalAmount);
 	}
 
-	function increaseUserAllocation(uint64 ownerId, uint256 amount) public {
-		registry.increaseUsedAllocation(ownerId, amount, block.timestamp);
+	function increaseUsedAllocation(uint64 ownerId, uint256 amount) public {
+		IRegistryClient(resolver.getRegistry()).increaseUsedAllocation(ownerId, amount, block.timestamp);
 	}
+
+	/**
+	 * @dev Slashes SP for a `_slashingAmt` and delivers WFIL amount to the `msg.sender` LSP
+	 * @notice Doesn't perform a rebalancing checks
+	 * @param _ownerId Storage provider owner ID
+	 * @param _slashingAmt Slashing amount for SP
+	 * @param _pool Liquid staking pool address
+	 */
+	function slash(
+		uint64 _ownerId,
+		uint256 _slashingAmt,
+		address _pool
+	) external nonReentrant activeStorageProvider(_ownerId) {
+		_slash(_ownerId, _slashingAmt, _pool);
+	}
+}
+
+interface IStorageProviderCollateralMock is IStorageProviderCollateral {
+	/**
+	 * @dev Slashes SP for a `_slashingAmt` and delivers WFIL amount to the `msg.sender` LSP
+	 * @notice Doesn't perform a rebalancing checks
+	 * @param _ownerId Storage provider owner ID
+	 * @param _slashingAmt Slashing amount for SP
+	 * @param _pool Liquid staking pool address
+	 */
+	function slash(uint64 _ownerId, uint256 _slashingAmt, address _pool) external;
 }
 
 /**
@@ -83,7 +120,7 @@ contract StorageProviderCollateralMock is StorageProviderCollateral {
  * @author Collective DAO
  */
 contract StorageProviderCollateralCallerMock {
-	IStorageProviderCollateral public collateral;
+	IStorageProviderCollateralMock public collateral;
 
 	/**
 	 * @dev Contract constructor function.
@@ -91,7 +128,7 @@ contract StorageProviderCollateralCallerMock {
 	 *
 	 */
 	constructor(address _collateral) {
-		collateral = IStorageProviderCollateral(_collateral);
+		collateral = IStorageProviderCollateralMock(_collateral);
 	}
 
 	/**
@@ -119,7 +156,7 @@ contract StorageProviderCollateralCallerMock {
 	 * @param _ownerId Storage provider owner ID
 	 * @param _slashingAmt Slashing amount for SP
 	 */
-	function slash(uint64 _ownerId, uint256 _slashingAmt) public {
-		collateral.slash(_ownerId, _slashingAmt);
+	function slash(uint64 _ownerId, uint256 _slashingAmt, address _pool) public {
+		collateral.slash(_ownerId, _slashingAmt, _pool);
 	}
 }

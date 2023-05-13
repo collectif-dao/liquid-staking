@@ -5,14 +5,17 @@ import {MinerAPI, MinerTypes, CommonTypes} from "filecoin-solidity/contracts/v0.
 import {PrecompilesAPI} from "filecoin-solidity/contracts/v0.8/PrecompilesAPI.sol";
 import {StorageProviderTypes} from "./types/StorageProviderTypes.sol";
 import {FilAddress} from "fevmate/utils/FilAddress.sol";
-import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
-
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {BokkyPooBahsDateTimeLibrary} from "./libraries/DateTimeLibraryCompressed.sol";
 import {IStorageProviderRegistry} from "./interfaces/IStorageProviderRegistry.sol";
-import {ILiquidStakingClient} from "./interfaces/ILiquidStakingClient.sol";
+import {IRewardCollectorClient} from "./interfaces/IRewardCollectorClient.sol";
 import {IStorageProviderCollateralClient} from "./interfaces/IStorageProviderCollateralClient.sol";
+import {IResolverClient} from "./interfaces/IResolverClient.sol";
+import {ILiquidStakingControllerClient as IStakingControllerClient} from "./interfaces/ILiquidStakingControllerClient.sol";
+import {IBeneficiaryManager} from "./interfaces/IBeneficiaryManager.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
 /**
  * @title Storage Provider Registry contract allows storage providers to register
@@ -22,9 +25,29 @@ import {IStorageProviderCollateralClient} from "./interfaces/IStorageProviderCol
  * it needs to transfer
  *
  */
-contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, ReentrancyGuard {
-	using Counters for Counters.Counter;
+contract StorageProviderRegistry is
+	Initializable,
+	IStorageProviderRegistry,
+	AccessControlUpgradeable,
+	ReentrancyGuardUpgradeable,
+	UUPSUpgradeable
+{
 	using FilAddress for address;
+
+	error InvalidAccess();
+	error InvalidAddress();
+	error ActivePool();
+	error InactivePool();
+	error InactiveSP();
+	error RegisteredSP();
+	error InactiveActor();
+	error InvalidAllocation();
+	error InvalidDailyAllocation();
+	error InvalidRepayment();
+	error InvalidOwner();
+	error InvalidParams();
+	error AllocationOverflow();
+	error OwnerProposed();
 
 	// Mapping of storage provider IDs to their storage provider info
 	mapping(uint64 => StorageProviderTypes.StorageProvider) public storageProviders;
@@ -44,30 +67,39 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 	// Mapping of storage providers daily allocation usage to date hashes
 	mapping(bytes32 => uint256) public dailyUsages;
 
+	// Mapping of liquid staking pools to it addresses
 	mapping(address => bool) public pools;
-
-	Counters.Counter public totalStorageProviders;
-	Counters.Counter public totalInactiveStorageProviders;
 
 	bytes32 private constant REGISTRY_ADMIN = keccak256("REGISTRY_ADMIN");
 
 	uint256 public maxAllocation;
 
-	IStorageProviderCollateralClient public collateral;
+	IResolverClient public resolver;
 
 	modifier activeStorageProvider(uint64 _ownerId) {
-		require(storageProviders[_ownerId].active, "INACTIVE_STORAGE_PROVIDER");
+		if (!storageProviders[_ownerId].active) revert InactiveSP();
+		_;
+	}
+
+	modifier onlyAdmin() {
+		if (!hasRole(REGISTRY_ADMIN, msg.sender)) revert InvalidAccess();
 		_;
 	}
 
 	/**
-	 * @dev Contract constructor function.
+	 * @dev Contract initializer function.
 	 * @param _maxAllocation Number of maximum FIL allocated to a single storage provider
 	 */
-	constructor(uint256 _maxAllocation) {
+	function initialize(uint256 _maxAllocation, address _resolver) public initializer {
+		__AccessControl_init();
+		__ReentrancyGuard_init();
+		__UUPSUpgradeable_init();
+
 		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+		_setRoleAdmin(REGISTRY_ADMIN, DEFAULT_ADMIN_ROLE);
 		grantRole(REGISTRY_ADMIN, msg.sender);
 		maxAllocation = _maxAllocation;
+		resolver = IResolverClient(_resolver);
 	}
 
 	struct RegisterLocalVars {
@@ -92,24 +124,24 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 		uint256 _allocationLimit,
 		uint256 _dailyAllocation
 	) public virtual override nonReentrant {
-		require(_allocationLimit > 0 && _allocationLimit <= maxAllocation, "INCORRECT_ALLOCATION");
-		require(_dailyAllocation > 0 && _dailyAllocation <= _allocationLimit, "INCORRECT_DAILY_ALLOCATION");
-		require(pools[_targetPool], "INVALID_TARGET_POOL");
+		if (_allocationLimit == 0 || _allocationLimit > maxAllocation) revert InvalidAllocation();
+		if (_dailyAllocation == 0 || _dailyAllocation > _allocationLimit) revert InvalidDailyAllocation();
+		if (!pools[_targetPool]) revert InactivePool();
 
 		RegisterLocalVars memory vars;
 
 		vars.ownerAddr = msg.sender.normalize();
 		(vars.isID, vars.msgSenderId) = vars.ownerAddr.getActorID();
-		require(vars.isID, "INACTIVE_ACTOR_ID");
+		if (!vars.isID) revert InactiveActor();
 
 		CommonTypes.FilActorId actorId = CommonTypes.FilActorId.wrap(_minerId);
 
 		MinerTypes.GetOwnerReturn memory ownerReturn = MinerAPI.getOwner(actorId);
-		require(keccak256(ownerReturn.proposed.data) == keccak256(bytes("")), "PROPOSED_NEW_OWNER");
+		if (keccak256(ownerReturn.proposed.data) != keccak256(bytes(""))) revert OwnerProposed();
 
 		vars.ownerId = PrecompilesAPI.resolveAddress(ownerReturn.owner);
-		require(vars.ownerId == vars.msgSenderId, "INVALID_MINER_OWNERSHIP");
-		require(!storageProviders[vars.ownerId].onboarded, "ALREADY_REGISTERED");
+		if (vars.ownerId != vars.msgSenderId) revert InvalidOwner();
+		if (storageProviders[vars.ownerId].onboarded) revert RegisteredSP();
 
 		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[vars.ownerId];
 		storageProvider.minerId = _minerId;
@@ -122,11 +154,8 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 		vars.sectorSize = MinerAPI.getSectorSize(actorId);
 		sectorSizes[vars.ownerId] = vars.sectorSize;
 
-		totalStorageProviders.increment();
-		totalInactiveStorageProviders.increment();
-
-		collateral.updateCollateralRequirements(vars.ownerId, 0);
-		ILiquidStakingClient(_targetPool).updateProfitShare(vars.ownerId, 0);
+		IStorageProviderCollateralClient(resolver.getCollateral()).updateCollateralRequirements(vars.ownerId, 0);
+		IStakingControllerClient(resolver.getLiquidStakingController()).updateProfitShare(vars.ownerId, 0, _targetPool);
 
 		emit StorageProviderRegistered(
 			ownerReturn.owner.data,
@@ -153,22 +182,21 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 		uint256 _dailyAllocation,
 		uint256 _repayment,
 		int64 _lastEpoch
-	) public virtual nonReentrant {
-		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
-		require(_allocationLimit > 0 && _allocationLimit <= maxAllocation, "INCORRECT_ALLOCATION");
-		require(_dailyAllocation > 0 && _dailyAllocation <= _allocationLimit, "INCORRECT_DAILY_ALLOCATION");
-		require(_repayment > _allocationLimit, "INCORRECT_REPAYMENT");
+	) public virtual onlyAdmin nonReentrant {
+		if (_allocationLimit == 0 || _allocationLimit > maxAllocation) revert InvalidAllocation();
+		if (_dailyAllocation == 0 || _dailyAllocation > _allocationLimit) revert InvalidDailyAllocation();
+		if (_repayment <= _allocationLimit) revert InvalidRepayment();
 
 		CommonTypes.FilActorId actorId = CommonTypes.FilActorId.wrap(_minerId);
 
 		MinerTypes.GetOwnerReturn memory ownerReturn = MinerAPI.getOwner(actorId);
-		require(keccak256(bytes("")) == keccak256(ownerReturn.proposed.data), "PROPOSED_NEW_OWNER");
+		if (keccak256(ownerReturn.proposed.data) != keccak256(bytes(""))) revert OwnerProposed();
 
 		uint64 ownerId = PrecompilesAPI.resolveAddress(ownerReturn.owner);
 
 		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[ownerId];
 		StorageProviderTypes.SPAllocation storage spAllocation = allocations[ownerId];
-		require(!storageProviders[ownerId].onboarded, "ALREADY_REGISTERED");
+		if (storageProviders[ownerId].onboarded) revert RegisteredSP();
 
 		storageProvider.onboarded = true;
 		storageProvider.lastEpoch = _lastEpoch;
@@ -181,46 +209,22 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 	}
 
 	/**
-	 * @notice Transfer beneficiary address of a miner to the target pool
-	 */
-	function changeBeneficiaryAddress() public virtual override nonReentrant {
-		address ownerAddr = msg.sender.normalize();
-		(bool isID, uint64 ownerId) = ownerAddr.getActorID();
-		require(isID, "INACTIVE_ACTOR_ID");
-
-		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[ownerId];
-		require(storageProvider.onboarded, "NON_ONBOARDED_SP");
-
-		ILiquidStakingClient(storageProviders[ownerId].targetPool).forwardChangeBeneficiary(
-			storageProvider.minerId,
-			storageProvider.targetPool,
-			allocations[ownerId].repayment,
-			storageProvider.lastEpoch
-		);
-
-		emit StorageProviderBeneficiaryAddressUpdated(storageProvider.targetPool);
-	}
-
-	/**
 	 * @notice Accept beneficiary address transfer and activate FIL allocation
 	 * @param _ownerId Storage Provider owner ID
 	 * @dev Only triggered by registry admin
 	 */
-	function acceptBeneficiaryAddress(uint64 _ownerId) public virtual override nonReentrant {
-		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
+	function acceptBeneficiaryAddress(uint64 _ownerId) public virtual override onlyAdmin nonReentrant {
+		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[_ownerId];
+		if (!storageProvider.onboarded) revert InactiveSP();
 
-		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_ownerId];
-		require(storageProvider.onboarded, "NON_ONBOARDED_SP");
-
-		ILiquidStakingClient(storageProviders[_ownerId].targetPool).forwardChangeBeneficiary(
+		IRewardCollectorClient(resolver.getRewardCollector()).forwardChangeBeneficiary(
 			storageProvider.minerId,
 			storageProvider.targetPool,
 			allocations[_ownerId].repayment,
 			storageProvider.lastEpoch
 		);
 
-		storageProviders[_ownerId].active = true;
-		totalInactiveStorageProviders.decrement();
+		storageProvider.active = true;
 
 		emit StorageProviderBeneficiaryAddressAccepted(_ownerId);
 	}
@@ -230,10 +234,8 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 	 * @param _ownerId Storage Provider owner ID
 	 * @dev Only triggered by registry admin
 	 */
-	function deactivateStorageProvider(uint64 _ownerId) public activeStorageProvider(_ownerId) {
-		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
+	function deactivateStorageProvider(uint64 _ownerId) public onlyAdmin activeStorageProvider(_ownerId) {
 		storageProviders[_ownerId].active = false;
-		totalInactiveStorageProviders.increment();
 
 		emit StorageProviderDeactivated(_ownerId);
 	}
@@ -244,18 +246,20 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 	 * @param _minerId Storage Provider new miner ID
 	 * @dev Only triggered by registry admin
 	 */
-	function setMinerAddress(uint64 _ownerId, uint64 _minerId) public virtual activeStorageProvider(_ownerId) {
-		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
+	function setMinerAddress(
+		uint64 _ownerId,
+		uint64 _minerId
+	) public virtual onlyAdmin activeStorageProvider(_ownerId) {
 		uint64 prevMiner = storageProviders[_ownerId].minerId;
-		require(prevMiner != _minerId, "SAME_MINER");
+		if (prevMiner == _minerId) revert InvalidParams();
 
 		CommonTypes.FilActorId actorId = CommonTypes.FilActorId.wrap(_minerId);
 
 		MinerTypes.GetOwnerReturn memory ownerReturn = MinerAPI.getOwner(actorId);
-		require(keccak256(ownerReturn.proposed.data) == keccak256(bytes("")), "PROPOSED_NEW_OWNER");
+		if (keccak256(ownerReturn.proposed.data) != keccak256(bytes(""))) revert OwnerProposed();
 
 		uint64 ownerId = PrecompilesAPI.resolveAddress(ownerReturn.owner);
-		require(ownerId == _ownerId, "INVALID_MINER_OWNERSHIP");
+		if (ownerId != _ownerId) revert InvalidOwner();
 
 		storageProviders[_ownerId].minerId = _minerId;
 
@@ -269,21 +273,19 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 	 * @dev Only triggered by Storage Provider owner
 	 */
 	function requestAllocationLimitUpdate(uint256 _allocationLimit, uint256 _dailyAllocation) public virtual override {
-		require(_allocationLimit > 0 && _allocationLimit <= maxAllocation, "INCORRECT_ALLOCATION");
-		require(_dailyAllocation > 0 && _dailyAllocation <= _allocationLimit, "INCORRECT_DAILY_ALLOCATION");
+		if (_allocationLimit == 0 || _allocationLimit > maxAllocation) revert InvalidAllocation();
+		if (_dailyAllocation == 0 || _dailyAllocation > _allocationLimit) revert InvalidDailyAllocation();
+
 		address ownerAddr = msg.sender.normalize();
 		(bool isID, uint64 ownerId) = ownerAddr.getActorID();
-		require(isID, "INACTIVE_ACTOR_ID");
+		if (!isID) revert InactiveActor();
 
 		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[ownerId];
-		require(storageProvider.active, "INACTIVE_STORAGE_PROVIDER");
+		if (!storageProvider.active) revert InactiveSP();
 
 		StorageProviderTypes.SPAllocation memory spAllocation = allocations[ownerId];
-		require(
-			spAllocation.allocationLimit != _allocationLimit || spAllocation.dailyAllocation != _dailyAllocation,
-			"SAME_ALLOCATION_LIMIT"
-		);
-		require(_allocationLimit <= maxAllocation, "ALLOCATION_OVERFLOW");
+		if (spAllocation.allocationLimit == _allocationLimit && spAllocation.dailyAllocation == _dailyAllocation)
+			revert InvalidParams();
 
 		StorageProviderTypes.AllocationRequest storage allocationRequest = allocationRequests[ownerId];
 		allocationRequest.allocationLimit = _allocationLimit;
@@ -305,28 +307,18 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 		uint256 _allocationLimit,
 		uint256 _dailyAllocation,
 		uint256 _repaymentAmount
-	) public virtual override activeStorageProvider(_ownerId) nonReentrant {
-		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS"); // 0xFf0000000000000000009bd -> ID: 2455 -> t02455
-		require(_allocationLimit > 0 && _allocationLimit <= maxAllocation, "INCORRECT_ALLOCATION");
-		require(_dailyAllocation > 0 && _dailyAllocation <= _allocationLimit, "INCORRECT_DAILY_ALLOCATION");
-		require(_repaymentAmount > _allocationLimit, "INCORRECT_REPAYMENT");
+	) public virtual override onlyAdmin activeStorageProvider(_ownerId) nonReentrant {
+		if (_allocationLimit == 0 || _allocationLimit > maxAllocation) revert InvalidAllocation();
+		if (_dailyAllocation == 0 || _dailyAllocation > _allocationLimit) revert InvalidDailyAllocation();
+		if (_repaymentAmount <= _allocationLimit) revert InvalidRepayment();
 
 		StorageProviderTypes.AllocationRequest memory allocationRequest = allocationRequests[_ownerId];
 
 		if (allocationRequest.allocationLimit > 0) {
 			// If SP requested allocation update should fulfil their request first
-			require(allocationRequest.allocationLimit == _allocationLimit, "INVALID_ALLOCATION");
-			require(allocationRequest.dailyAllocation == _dailyAllocation, "INVALID_DAILY_ALLOCATION");
+			if (allocationRequest.allocationLimit != _allocationLimit) revert InvalidAllocation();
+			if (allocationRequest.dailyAllocation != _dailyAllocation) revert InvalidDailyAllocation();
 		}
-
-		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_ownerId];
-
-		ILiquidStakingClient(storageProviders[_ownerId].targetPool).forwardChangeBeneficiary(
-			storageProvider.minerId,
-			storageProvider.targetPool,
-			_repaymentAmount,
-			storageProvider.lastEpoch
-		);
 
 		StorageProviderTypes.SPAllocation storage spAllocation = allocations[_ownerId];
 		spAllocation.allocationLimit = _allocationLimit;
@@ -334,6 +326,11 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 		spAllocation.repayment = _repaymentAmount;
 
 		delete allocationRequests[_ownerId];
+
+		IBeneficiaryManager(resolver.getBeneficiaryManager()).updateBeneficiaryStatus(
+			storageProviders[_ownerId].minerId,
+			false
+		);
 
 		emit StorageProviderAllocationLimitUpdate(_ownerId, _allocationLimit, _dailyAllocation, _repaymentAmount);
 	}
@@ -345,30 +342,18 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 	 * @dev Only triggered by Storage Provider
 	 */
 	function setRestaking(uint256 _restakingRatio, address _restakingAddress) public virtual override {
-		uint64 ownerId = PrecompilesAPI.resolveEthAddress(msg.sender);
+		address ownerAddr = msg.sender.normalize();
+		(bool isID, uint64 ownerId) = ownerAddr.getActorID();
+		if (!isID) revert InactiveActor();
 
-		require(_restakingRatio <= 10000, "INVALID_RESTAKING_RATIO");
-		require(_restakingAddress != address(0), "INVALID_ADDRESS");
+		if (_restakingRatio > 10000) revert InvalidParams();
+		if (_restakingAddress == address(0)) revert InvalidAddress();
 
 		StorageProviderTypes.SPRestaking storage restaking = restakings[ownerId];
 		restaking.restakingRatio = _restakingRatio;
 		restaking.restakingAddress = _restakingAddress;
 
 		emit StorageProviderMinerRestakingRatioUpdate(ownerId, _restakingRatio, _restakingAddress);
-	}
-
-	/**
-	 * @notice Return total number of storage providers in liquid staking
-	 */
-	function getTotalStorageProviders() public view returns (uint256) {
-		return totalStorageProviders.current();
-	}
-
-	/**
-	 * @notice Return total number of currently active storage providers
-	 */
-	function getTotalActiveStorageProviders() public view returns (uint256) {
-		return totalStorageProviders.current() - totalInactiveStorageProviders.current();
 	}
 
 	/**
@@ -387,12 +372,19 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 	}
 
 	/**
+	 * @notice Return a repayment amount for Storage Provider
+	 */
+	function getRepayment(uint64 _ownerId) external view returns (uint256) {
+		return allocations[_ownerId].repayment;
+	}
+
+	/**
 	 * @notice Increase collected rewards by Storage Provider
 	 * @param _ownerId Storage Provider owner ID
 	 * @param _accuredRewards Withdrawn rewards from SP's miner actor
 	 */
 	function increaseRewards(uint64 _ownerId, uint256 _accuredRewards) external {
-		require(pools[msg.sender], "INVALID_ACCESS");
+		if (msg.sender != resolver.getRewardCollector()) revert InvalidAccess();
 
 		StorageProviderTypes.SPAllocation storage spAllocation = allocations[_ownerId];
 		spAllocation.accruedRewards = spAllocation.accruedRewards + _accuredRewards;
@@ -406,11 +398,11 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 	 * @param _repaidPledge Withdrawn initial pledge after sector termination
 	 */
 	function increasePledgeRepayment(uint64 _ownerId, uint256 _repaidPledge) external {
-		require(pools[msg.sender], "INVALID_ACCESS");
+		if (msg.sender != resolver.getRewardCollector()) revert InvalidAccess();
 
 		StorageProviderTypes.SPAllocation storage spAllocation = allocations[_ownerId];
 		spAllocation.repaidPledge = spAllocation.repaidPledge + _repaidPledge;
-		require(spAllocation.repaidPledge <= spAllocation.usedAllocation, "PLEDGE_REPAYMENT_OVERFLOW");
+		if (spAllocation.repaidPledge > spAllocation.usedAllocation) revert AllocationOverflow();
 
 		emit StorageProviderRepaidPledge(_ownerId, _repaidPledge);
 	}
@@ -422,7 +414,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 	 * @param _timestamp Transaction timestamp
 	 */
 	function increaseUsedAllocation(uint64 _ownerId, uint256 _allocated, uint256 _timestamp) external {
-		require(msg.sender == address(collateral), "INVALID_ACCESS");
+		if (msg.sender != resolver.getCollateral()) revert InvalidAccess();
 
 		(uint year, uint month, uint day) = BokkyPooBahsDateTimeLibrary.timestampToDate(_timestamp);
 		bytes32 dateHash = keccak256(abi.encodePacked(year, month, day));
@@ -432,8 +424,7 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 
 		StorageProviderTypes.SPAllocation storage spAllocation = allocations[_ownerId];
 
-		require(totalDailyUsage <= spAllocation.dailyAllocation, "DAILY_ALLOCATION_OVERFLOW");
-		// require(spAllocation.usedAllocation + _allocated <= spAllocation.allocationLimit, "TOTAL_ALLOCATION_OVERFLOW");
+		if (totalDailyUsage > spAllocation.dailyAllocation) revert AllocationOverflow();
 
 		spAllocation.usedAllocation = spAllocation.usedAllocation + _allocated;
 		dailyUsages[dateHash] += _allocated;
@@ -442,31 +433,13 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 	}
 
 	/**
-	 * @notice Update StorageProviderCollateral smart contract
-	 * @param _collateral StorageProviderCollateral smart contract address
-	 * @dev Only triggered by registry admin
-	 */
-	function setCollateralAddress(address _collateral) public {
-		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
-		require(_collateral != address(0), "INVALID_ADDRESS");
-
-		address prevCollateral = address(collateral);
-		require(prevCollateral != _collateral, "SAME_ADDRESS");
-
-		collateral = IStorageProviderCollateralClient(_collateral);
-
-		emit CollateralAddressUpdated(_collateral);
-	}
-
-	/**
 	 * @notice Register new liquid staking pool
 	 * @param _pool Address of pool smart contract
 	 * @dev Only triggered by registry admin
 	 */
-	function registerPool(address _pool) public {
-		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
-		require(_pool != address(0), "INVALID_ADDRESS");
-		require(!pools[_pool], "ALREADY_ACTIVE_POOL");
+	function registerPool(address _pool) public onlyAdmin {
+		if (_pool == address(0)) revert InvalidAddress();
+		if (pools[_pool]) revert ActivePool();
 
 		pools[_pool] = true;
 
@@ -477,12 +450,11 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 	 * @notice Updates maximum allocation amount for SP
 	 * @param allocation New max allocation per SP
 	 */
-	function updateMaxAllocation(uint256 allocation) public {
-		require(hasRole(REGISTRY_ADMIN, msg.sender), "INVALID_ACCESS");
-		require(allocation > 0, "INVALID_ALLOCATION");
+	function updateMaxAllocation(uint256 allocation) public onlyAdmin {
+		if (allocation == 0) revert InvalidAllocation();
 
 		uint256 prevAllocation = maxAllocation;
-		require(allocation != prevAllocation, "SAME_ALLOCATION");
+		if (allocation == prevAllocation) revert InvalidAllocation();
 
 		maxAllocation = allocation;
 
@@ -494,5 +466,15 @@ contract StorageProviderRegistry is IStorageProviderRegistry, AccessControl, Ree
 	 */
 	function isActivePool(address _pool) external view returns (bool) {
 		return pools[_pool];
+	}
+
+	function _authorizeUpgrade(address newImplementation) internal override onlyAdmin {}
+
+	function version() external pure virtual returns (string memory) {
+		return "v1";
+	}
+
+	function getImplementation() external view returns (address) {
+		return _getImplementation();
 	}
 }

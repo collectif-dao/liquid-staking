@@ -1,28 +1,18 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
-import '@nomiclabs/hardhat-ethers';
+import "@nomiclabs/hardhat-ethers";
+import { deployAndSaveContract } from "../utils";
 
-const deployFunction: DeployFunction = async function ({ deployments, getNamedAccounts, ethers, network }: HardhatRuntimeEnvironment) {
-    const { deployer } = await getNamedAccounts();
-    const { deploy } = deployments;
-    const feeData = await ethers.provider.getFeeData();
+const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+	const { deployments, ethers } = hre;
 
-    const maxAllocation = ethers.BigNumber.from("1000000000000000000000000");
+	const resolver = await deployments.get("Resolver");
+	const maxAllocation = ethers.utils.parseEther("1000000");
 
-    // StorageProviderRegistry deployment
-    const registry = await deploy('StorageProviderRegistry', {
-        from: deployer,
-        deterministicDeployment: false,
-        skipIfAlreadyDeployed: true,
-        args: [maxAllocation],
-        maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
-        maxFeePerGas: feeData.maxFeePerGas,
-    })
-
-    console.log("StorageProviderRegistry Address--->" + registry.address)
+	await deployAndSaveContract("StorageProviderRegistry", [maxAllocation, resolver.address], hre);
 };
 
 export default deployFunction;
 
-// deployFunction.dependencies = ['LiquidStaking'];
-deployFunction.tags = ['Registry'];
+deployFunction.dependencies = ["Resolver"];
+deployFunction.tags = ["StorageProviderRegistry"];

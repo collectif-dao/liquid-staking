@@ -9,19 +9,20 @@ interface ILiquidStakingClient {
 	function totalFees(uint64 _ownerId) external view returns (uint256);
 
 	/**
-	 * @dev Updates profit sharing requirements for SP with `_ownerId` by `_profitShare` percentage
-	 * @notice Only triggered by Liquid Staking admin or registry contract while registering SP
-	 * @param _ownerId Storage provider owner ID
-	 * @param _profitShare Percentage of profit sharing
+	 * @notice Returns the total amount of FIL pledged by SPs
 	 */
-	function updateProfitShare(uint64 _ownerId, uint256 _profitShare) external;
+	function totalFilPledged() external view returns (uint256);
 
 	/**
-	 * @notice Triggers changeBeneficiary Miner actor call
-	 * @param minerId Miner actor ID
-	 * @param targetPool LSP smart contract address
-	 * @param quota Total beneficiary quota
-	 * @param expiration Expiration epoch
+	 * @notice Restakes `assets` for a specified `target` address
+	 * @param assets Amount of assets to restake
+	 * @param receiver f4 address to receive clFIL tokens
 	 */
-	function forwardChangeBeneficiary(uint64 minerId, address targetPool, uint256 quota, int64 expiration) external;
+	function restake(uint256 assets, address receiver) external returns (uint256 shares);
+
+	/**
+	 * @notice Triggered when pledge is repaid on the Reward Collector
+	 * @param amount Amount of pledge repayment
+	 */
+	function repayPledge(uint256 amount) external;
 }

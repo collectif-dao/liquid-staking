@@ -48,4 +48,14 @@ interface IStorageProviderRegistryClient {
 	 * @notice Return allocation information for a storage provider
 	 */
 	function allocations(uint64 ownerId) external view returns (uint256, uint256, uint256, uint256, uint256, uint256);
+
+	/**
+	 * @notice Return a repayment amount for Storage Provider
+	 */
+	function getRepayment(uint64 ownerId) external view returns (uint256);
+
+	/**
+	 * @notice Return a repayment amount for Storage Provider
+	 */
+	function storageProviders(uint64 ownerId) external view returns (bool, bool, address, uint64, int64);
 }
