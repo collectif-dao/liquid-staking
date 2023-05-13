@@ -417,7 +417,7 @@ contract StorageProviderRegistry is
 		if (msg.sender != resolver.getCollateral()) revert InvalidAccess();
 
 		(uint year, uint month, uint day) = BokkyPooBahsDateTimeLibrary.timestampToDate(_timestamp);
-		bytes32 dateHash = keccak256(abi.encodePacked(year, month, day));
+		bytes32 dateHash = keccak256(abi.encodePacked(year, month, day, _ownerId));
 
 		uint256 usedDailyAlloc = dailyUsages[dateHash];
 		uint256 totalDailyUsage = usedDailyAlloc + _allocated;
