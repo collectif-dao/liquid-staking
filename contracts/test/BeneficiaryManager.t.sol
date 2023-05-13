@@ -7,7 +7,7 @@ import {Resolver} from "../Resolver.sol";
 import {BeneficiaryManagerMock} from "./mocks/BeneficiaryManagerMock.sol";
 import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
 import {RewardCollectorMock} from "./mocks/RewardCollectorMock.sol";
-import {StorageProviderRegistryMock, StorageProviderRegistryCallerMock} from "./mocks/StorageProviderRegistryMock.sol";
+import {StorageProviderRegistryMock} from "./mocks/StorageProviderRegistryMock.sol";
 import {StorageProviderCollateralMock} from "./mocks/StorageProviderCollateralMock.sol";
 import {LiquidStakingController} from "../LiquidStakingController.sol";
 import {MinerActorMock} from "./mocks/MinerActorMock.sol";
@@ -27,7 +27,6 @@ contract BeneficiaryManagerTest is DSTestPlus {
 	LiquidStakingMock public staking;
 	IWFIL public wfil;
 	StorageProviderCollateralMock public collateral;
-	StorageProviderRegistryCallerMock private registryCaller;
 	RewardCollectorMock private rewardCollector;
 	LiquidStakingController public controller;
 	MinerActorMock public minerActor;
@@ -66,7 +65,14 @@ contract BeneficiaryManagerTest is DSTestPlus {
 		RewardCollectorMock rCollectorImpl = new RewardCollectorMock();
 		ERC1967Proxy rCollectorProxy = new ERC1967Proxy(address(rCollectorImpl), "");
 		rewardCollector = RewardCollectorMock(payable(rCollectorProxy));
-		rewardCollector.initialize(address(minerActor), aliceOwnerId, aliceOwnerAddr, address(wfil), address(resolver));
+		rewardCollector.initialize(
+			address(minerMockAPI),
+			address(minerActor),
+			aliceOwnerId,
+			aliceOwnerAddr,
+			address(wfil),
+			address(resolver)
+		);
 
 		LiquidStakingController controllerImpl = new LiquidStakingController();
 		ERC1967Proxy controllerProxy = new ERC1967Proxy(address(controllerImpl), "");
@@ -89,8 +95,6 @@ contract BeneficiaryManagerTest is DSTestPlus {
 		ERC1967Proxy registryProxy = new ERC1967Proxy(address(registryImpl), "");
 		registry = StorageProviderRegistryMock(address(registryProxy));
 		registry.initialize(address(minerMockAPI), aliceOwnerId, MAX_ALLOCATION, address(resolver));
-
-		registryCaller = new StorageProviderRegistryCallerMock(address(registry));
 
 		StorageProviderCollateralMock collateralImpl = new StorageProviderCollateralMock();
 		ERC1967Proxy collateralProxy = new ERC1967Proxy(address(collateralImpl), "");
@@ -128,45 +132,5 @@ contract BeneficiaryManagerTest is DSTestPlus {
 
 		hevm.expectRevert(abi.encodeWithSignature("InactiveSP()"));
 		beneficiaryManager.changeBeneficiaryAddress();
-	}
-
-	function testForwardChangeBeneficiary(uint64 minerId, int64 lastEpoch) public {
-		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
-
-		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
-		registry.onboardStorageProvider(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION, repayment, lastEpoch);
-		beneficiaryManager.changeBeneficiaryAddress();
-
-		(, address targetPool, , ) = registry.getStorageProvider(aliceOwnerId);
-		assertEq(targetPool, address(staking));
-
-		registryCaller.forwardChangeBeneficiary(minerId, targetPool, repayment, lastEpoch);
-
-		MinerTypes.GetBeneficiaryReturn memory beneficiary = minerMockAPI.getBeneficiary();
-		(uint256 quota, bool err) = BigInts.toUint256(beneficiary.active.term.quota);
-		require(!err, "INVALID_BIG_INT");
-		require(quota == repayment, "INVALID_BENEFICIARY_QUOTA");
-	}
-
-	function testForwardChangeBeneficiaryReverts(uint64 minerId, int64 lastEpoch) public {
-		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
-
-		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
-		registry.onboardStorageProvider(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION, repayment, lastEpoch);
-		beneficiaryManager.changeBeneficiaryAddress();
-
-		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
-		beneficiaryManager.forwardChangeBeneficiary(minerId, address(staking), repayment, lastEpoch);
-	}
-
-	function testForwardChangeBeneficiaryRevertsWithInvalidStakingAddress(uint64 minerId, int64 lastEpoch) public {
-		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
-
-		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
-		registry.onboardStorageProvider(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION, repayment, lastEpoch);
-		beneficiaryManager.changeBeneficiaryAddress();
-
-		hevm.expectRevert(abi.encodeWithSignature("InactivePool()"));
-		registryCaller.forwardChangeBeneficiary(minerId, address(this), repayment, lastEpoch);
 	}
 }

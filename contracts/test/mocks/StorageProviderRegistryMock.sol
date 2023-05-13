@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "../../StorageProviderRegistry.sol";
+import {StorageProviderRegistry, IStorageProviderRegistry, FilAddress, MinerTypes, IResolverClient, IStakingControllerClient, IStorageProviderCollateralClient, IRewardCollectorClient, StorageProviderTypes} from "../../StorageProviderRegistry.sol";
 import {MinerMockAPI as MockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {FilAddresses} from "filecoin-solidity/contracts/v0.8/utils/FilAddresses.sol";
 import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
@@ -16,6 +16,7 @@ interface IStorageProviderRegistryExtended is IStorageProviderRegistry {
  * @author Collective DAO
  */
 contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
+	using FilAddress for address;
 	bytes32 private constant REGISTRY_ADMIN = keccak256("REGISTRY_ADMIN");
 	uint64 public ownerId;
 	uint64 public sampleSectorSize;
@@ -232,6 +233,8 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 	 * @dev Only triggered by Storage Provider
 	 */
 	function setRestaking(uint256 _restakingRatio, address _restakingAddress) public virtual override {
+		address ownerAddr = msg.sender.normalize();
+
 		if (_restakingRatio > 10000) revert InvalidParams();
 		if (_restakingAddress == address(0)) revert InvalidAddress();
 

@@ -70,28 +70,6 @@ contract BeneficiaryManager is IBeneficiaryManager, Initializable, OwnableUpgrad
 	}
 
 	/**
-	 * @notice Forwards the changeBeneficiary call on Miner actor from Liquid Staking contract
-	 * @param minerId Miner actor ID
-	 * @param targetPool LSP smart contract address
-	 * @param quota Total beneficiary quota
-	 * @param expiration Expiration epoch
-	 *
-	 * @dev This function could be triggered only by Liquid Staking
-	 */
-	function forwardChangeBeneficiary(
-		uint64 minerId,
-		address targetPool,
-		uint256 quota,
-		int64 expiration
-	) external virtual {
-		if (msg.sender != resolver.getRewardCollector()) revert InvalidAccess();
-
-		_executeChangeBeneficiary(CommonTypes.FilActorId.wrap(minerId), quota, expiration);
-
-		emit BeneficiaryAddressUpdated(msg.sender, minerId, targetPool, quota, expiration);
-	}
-
-	/**
 	 * @notice Executes a changeBeneficiary call on MinerAPI
 	 */
 	function _executeChangeBeneficiary(

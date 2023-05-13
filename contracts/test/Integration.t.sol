@@ -90,7 +90,14 @@ contract IntegrationTest is DSTestPlus {
 		RewardCollectorMock rCollectorImpl = new RewardCollectorMock();
 		ERC1967Proxy rCollectorProxy = new ERC1967Proxy(address(rCollectorImpl), "");
 		rewardCollector = RewardCollectorMock(payable(rCollectorProxy));
-		rewardCollector.initialize(address(minerActor), aliceOwnerId, aliceOwnerAddr, address(wfil), address(resolver));
+		rewardCollector.initialize(
+			address(minerMockAPI),
+			address(minerActor),
+			aliceOwnerId,
+			aliceOwnerAddr,
+			address(wfil),
+			address(resolver)
+		);
 
 		LiquidStakingController controllerImpl = new LiquidStakingController();
 		ERC1967Proxy controllerProxy = new ERC1967Proxy(address(controllerImpl), "");

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {RewardCollector, IRewardCollector, IRegistryClient, CommonTypes, BigInts, ICollateralClient, IResolverClient, IWFIL, IStakingControllerClient, ILiquidStakingClient} from "../../RewardCollector.sol";
+import {RewardCollector, IRewardCollector, MinerTypes, FilAddresses, IRegistryClient, CommonTypes, BigInts, ICollateralClient, IResolverClient, IWFIL, IStakingControllerClient, ILiquidStakingClient} from "../../RewardCollector.sol";
 import {IMinerActorMock} from "./MinerActorMock.sol";
 import {MinerMockAPI as MockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -14,6 +14,7 @@ contract RewardCollectorMock is RewardCollector {
 	using SafeTransferLib for *;
 
 	IMinerActorMock private minerActorMock;
+	MockAPI private mockAPI;
 
 	uint64 public ownerId;
 	address private ownerAddr;
@@ -25,6 +26,7 @@ contract RewardCollectorMock is RewardCollector {
 	 * @param _resolver Resolver contract address
 	 */
 	function initialize(
+		address _minerApiMock,
 		address minerActor,
 		uint64 _ownerId,
 		address _ownerAddr,
@@ -40,6 +42,7 @@ contract RewardCollectorMock is RewardCollector {
 		WFIL = IWFIL(_wFIL);
 		resolver = IResolverClient(_resolver);
 
+		mockAPI = MockAPI(_minerApiMock);
 		minerActorMock = IMinerActorMock(minerActor);
 		ownerId = _ownerId;
 		ownerAddr = _ownerAddr;
@@ -135,5 +138,30 @@ contract RewardCollectorMock is RewardCollector {
 		if (vars.isRestaking) {
 			ILiquidStakingClient(stakingPool).restake(vars.restakingAmt, vars.restakingAddress);
 		}
+	}
+
+	/**
+	 * @notice Forwards the changeBeneficiary Miner actor call as Liquid Staking
+	 * @param minerId Miner actor ID
+	 * @param targetPool LSP smart contract address
+	 * @param quota Total beneficiary quota
+	 * @param expiration Expiration epoch
+	 */
+	function forwardChangeBeneficiary(
+		uint64 minerId,
+		address targetPool,
+		uint256 quota,
+		int64 expiration
+	) external virtual override {
+		address registry = resolver.getRegistry();
+		if (msg.sender != registry) revert InvalidAccess();
+		if (!IRegistryClient(registry).isActivePool(targetPool)) revert InactivePool();
+
+		MinerTypes.ChangeBeneficiaryParams memory params;
+		params.new_beneficiary = FilAddresses.fromEthAddress(address(this));
+		params.new_quota = BigInts.fromUint256(quota);
+		params.new_expiration = CommonTypes.ChainEpoch.wrap(expiration);
+
+		mockAPI.changeBeneficiary(params);
 	}
 }

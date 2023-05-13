@@ -10,6 +10,8 @@ interface IRewardCollector {
 	 */
 	event WithdrawPledge(uint64 ownerId, uint64 minerId, uint256 amount);
 
+	event BeneficiaryAddressUpdated(address beneficiary, address pool, uint64 minerId, uint256 quota, int64 expiration);
+
 	/**
 	 * @notice Withdraw initial pledge from Storage Provider's Miner Actor by `ownerId`
 	 * This function is triggered when sector is not extended by miner actor and initial pledge unlocked

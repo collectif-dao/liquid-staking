@@ -345,7 +345,9 @@ contract StorageProviderRegistry is
 	 * @dev Only triggered by Storage Provider
 	 */
 	function setRestaking(uint256 _restakingRatio, address _restakingAddress) public virtual override {
-		uint64 ownerId = PrecompilesAPI.resolveEthAddress(msg.sender);
+		address ownerAddr = msg.sender.normalize();
+		(bool isID, uint64 ownerId) = ownerAddr.getActorID();
+		if (!isID) revert InactiveActor();
 
 		if (_restakingRatio > 10000) revert InvalidParams();
 		if (_restakingAddress == address(0)) revert InvalidAddress();

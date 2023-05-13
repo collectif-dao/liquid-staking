@@ -8,7 +8,6 @@ import {IResolverClient} from "./interfaces/IResolverClient.sol";
 import {IRewardCollector} from "./interfaces/IRewardCollector.sol";
 import {ILiquidStakingClient} from "./interfaces/ILiquidStakingClient.sol";
 import {IWFIL} from "./libraries/tokens/IWFIL.sol";
-import {IBeneficiaryManager} from "./interfaces/IBeneficiaryManager.sol";
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
@@ -154,7 +153,9 @@ contract RewardCollector is
 		vars.isRestaking = vars.restakingRatio > 0 && vars.restakingAddress != address(0);
 
 		if (vars.isRestaking) {
-			vars.restakingAmt = ((vars.withdrawn - vars.protocolShare) * vars.restakingRatio) / BASIS_POINTS;
+			vars.restakingAmt =
+				((vars.withdrawn - vars.stakingProfit - vars.protocolFees) * vars.restakingRatio) /
+				BASIS_POINTS;
 		}
 
 		vars.protocolShare = vars.stakingProfit + vars.protocolFees + vars.restakingAmt;
@@ -190,12 +191,14 @@ contract RewardCollector is
 		if (msg.sender != registry) revert InvalidAccess();
 		if (!IRegistryClient(registry).isActivePool(targetPool)) revert InactivePool();
 
-		IBeneficiaryManager(resolver.getBeneficiaryManager()).forwardChangeBeneficiary(
-			minerId,
-			targetPool,
-			quota,
-			expiration
-		);
+		MinerTypes.ChangeBeneficiaryParams memory params;
+		params.new_beneficiary = FilAddresses.fromEthAddress(address(this));
+		params.new_quota = BigInts.fromUint256(quota);
+		params.new_expiration = CommonTypes.ChainEpoch.wrap(expiration);
+
+		MinerAPI.changeBeneficiary(CommonTypes.FilActorId.wrap(minerId), params);
+
+		emit BeneficiaryAddressUpdated(address(this), targetPool, minerId, quota, expiration);
 	}
 
 	/**
