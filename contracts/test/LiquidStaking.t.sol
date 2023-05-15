@@ -41,6 +41,8 @@ contract LiquidStakingTest is DSTestPlus {
 	uint64 public aliceOwnerId = 1508;
 	uint64 public aliceMinerId = 16121;
 
+	uint64 public SAMPLE_LSP_ACTOR_ID = 1021;
+
 	uint256 private aliceKey = 0xBEEF;
 	address private alice = address(0x122);
 	address private aliceRestaking = address(0x123412);
@@ -115,7 +117,13 @@ contract LiquidStakingTest is DSTestPlus {
 		StorageProviderRegistryMock registryImpl = new StorageProviderRegistryMock();
 		ERC1967Proxy registryProxy = new ERC1967Proxy(address(registryImpl), "");
 		registry = StorageProviderRegistryMock(address(registryProxy));
-		registry.initialize(address(minerMockAPI), aliceOwnerId, MAX_ALLOCATION, address(resolver));
+		registry.initialize(
+			address(minerMockAPI),
+			aliceOwnerId,
+			SAMPLE_LSP_ACTOR_ID,
+			MAX_ALLOCATION,
+			address(resolver)
+		);
 
 		StorageProviderCollateralMock collateralImpl = new StorageProviderCollateralMock();
 		ERC1967Proxy collateralProxy = new ERC1967Proxy(address(collateralImpl), "");

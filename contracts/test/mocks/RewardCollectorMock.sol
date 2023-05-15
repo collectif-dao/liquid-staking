@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {RewardCollector, IRewardCollector, IBeneficiaryManager, MinerTypes, FilAddresses, IRegistryClient, CommonTypes, BigInts, ICollateralClient, IResolverClient, IWFIL, IStakingControllerClient, ILiquidStakingClient} from "../../RewardCollector.sol";
+import {RewardCollector, IRewardCollector, MinerTypes, FilAddresses, IRegistryClient, CommonTypes, BigInts, ICollateralClient, IResolverClient, IWFIL, IStakingControllerClient, ILiquidStakingClient} from "../../RewardCollector.sol";
 import {IMinerActorMock} from "./MinerActorMock.sol";
 import {MinerMockAPI as MockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
@@ -143,29 +143,35 @@ contract RewardCollectorMock is RewardCollector {
 	/**
 	 * @notice Forwards the changeBeneficiary Miner actor call as Liquid Staking
 	 * @param minerId Miner actor ID
-	 * @param targetPool LSP smart contract address
+	 * @param beneficiaryActorId Beneficiary address to be setup (Actor ID)
 	 * @param quota Total beneficiary quota
 	 * @param expiration Expiration epoch
 	 */
 	function forwardChangeBeneficiary(
 		uint64 minerId,
-		address targetPool,
+		uint64 beneficiaryActorId,
 		uint256 quota,
 		int64 expiration
 	) external virtual override {
 		address registry = resolver.getRegistry();
 		if (msg.sender != registry) revert InvalidAccess();
-		if (!IRegistryClient(registry).isActivePool(targetPool)) revert InactivePool();
 
 		MinerTypes.ChangeBeneficiaryParams memory params;
-		params.new_beneficiary = FilAddresses.fromEthAddress(address(this));
+		params.new_beneficiary = FilAddresses.fromActorID(beneficiaryActorId);
 		params.new_quota = BigInts.fromUint256(quota);
 		params.new_expiration = CommonTypes.ChainEpoch.wrap(expiration);
 
 		mockAPI.changeBeneficiary(params);
 
-		IBeneficiaryManager(resolver.getBeneficiaryManager()).updateBeneficiaryStatus(minerId, true);
+		emit BeneficiaryAddressUpdated(address(this), beneficiaryActorId, minerId, quota, expiration);
+	}
 
-		emit BeneficiaryAddressUpdated(address(this), targetPool, minerId, quota, expiration);
+	/**
+	 * @notice Forwards the increaseUsedRewards call to Registry contract
+	 * @param ownerId Owner actor ID
+	 * @param amount Amount to increase rewards
+	 */
+	function increaseRewards(uint64 ownerId, uint256 amount) public {
+		IRegistryClient(resolver.getRegistry()).increaseRewards(ownerId, amount);
 	}
 }

@@ -13,7 +13,6 @@ import {IRewardCollectorClient} from "./interfaces/IRewardCollectorClient.sol";
 import {IStorageProviderCollateralClient} from "./interfaces/IStorageProviderCollateralClient.sol";
 import {IResolverClient} from "./interfaces/IResolverClient.sol";
 import {ILiquidStakingControllerClient as IStakingControllerClient} from "./interfaces/ILiquidStakingControllerClient.sol";
-import {IBeneficiaryManager} from "./interfaces/IBeneficiaryManager.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
@@ -69,6 +68,9 @@ contract StorageProviderRegistry is
 
 	// Mapping of liquid staking pools to it addresses
 	mapping(address => bool) public pools;
+
+	// Mapping of beneficiary status to miner IDs
+	mapping(uint64 => bool) public beneficiaryStatus;
 
 	bytes32 private constant REGISTRY_ADMIN = keccak256("REGISTRY_ADMIN");
 
@@ -217,25 +219,40 @@ contract StorageProviderRegistry is
 		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[_ownerId];
 		if (!storageProvider.onboarded) revert InactiveSP();
 
+		(bool isID, uint64 poolId) = storageProvider.targetPool.getActorID();
+		if (!isID) revert InactiveActor();
+
 		IRewardCollectorClient(resolver.getRewardCollector()).forwardChangeBeneficiary(
 			storageProvider.minerId,
-			storageProvider.targetPool,
+			poolId,
 			allocations[_ownerId].repayment,
 			storageProvider.lastEpoch
 		);
 
 		storageProvider.active = true;
+		beneficiaryStatus[_ownerId] = true;
 
 		emit StorageProviderBeneficiaryAddressAccepted(_ownerId);
 	}
 
 	/**
-	 * @notice Deactive storage provider with ID `_ownerId`
+	 * @notice Deactivate storage provider and transfer beneficiary back to the SP `_ownerId`
 	 * @param _ownerId Storage Provider owner ID
 	 * @dev Only triggered by registry admin
 	 */
 	function deactivateStorageProvider(uint64 _ownerId) public onlyAdmin activeStorageProvider(_ownerId) {
+		if (allocations[_ownerId].accruedRewards != allocations[_ownerId].repayment) revert InvalidRepayment();
+
+		// renounce beneficiary for SP
+		IRewardCollectorClient(resolver.getRewardCollector()).forwardChangeBeneficiary(
+			storageProviders[_ownerId].minerId,
+			_ownerId,
+			0,
+			0
+		);
+
 		storageProviders[_ownerId].active = false;
+		delete beneficiaryStatus[_ownerId];
 
 		emit StorageProviderDeactivated(_ownerId);
 	}
@@ -325,12 +342,8 @@ contract StorageProviderRegistry is
 		spAllocation.dailyAllocation = _dailyAllocation;
 		spAllocation.repayment = _repaymentAmount;
 
+		beneficiaryStatus[_ownerId] = false;
 		delete allocationRequests[_ownerId];
-
-		IBeneficiaryManager(resolver.getBeneficiaryManager()).updateBeneficiaryStatus(
-			storageProviders[_ownerId].minerId,
-			false
-		);
 
 		emit StorageProviderAllocationLimitUpdate(_ownerId, _allocationLimit, _dailyAllocation, _repaymentAmount);
 	}

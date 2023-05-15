@@ -5,9 +5,14 @@ interface IRewardCollectorClient {
 	/**
 	 * @notice Triggers changeBeneficiary Miner actor call
 	 * @param minerId Miner actor ID
-	 * @param targetPool LSP smart contract address
+	 * @param beneficiaryActorId Beneficiary address to be setup (Actor ID)
 	 * @param quota Total beneficiary quota
 	 * @param expiration Expiration epoch
 	 */
-	function forwardChangeBeneficiary(uint64 minerId, address targetPool, uint256 quota, int64 expiration) external;
+	function forwardChangeBeneficiary(
+		uint64 minerId,
+		uint64 beneficiaryActorId,
+		uint256 quota,
+		int64 expiration
+	) external;
 }

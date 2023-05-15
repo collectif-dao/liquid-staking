@@ -10,7 +10,36 @@ interface IRewardCollector {
 	 */
 	event WithdrawPledge(uint64 ownerId, uint64 minerId, uint256 amount);
 
-	event BeneficiaryAddressUpdated(address beneficiary, address pool, uint64 minerId, uint256 quota, int64 expiration);
+	/**
+	 * @notice Emitted when rewards has been withdrawn
+	 * @param ownerId SP owner ID
+	 * @param minerId Miner actor ID
+	 * @param spShare Withdrawed amount for SP owner ID
+	 * @param stakingProfit Withdrawed amount for LSP stakers
+	 * @param protocolRevenue Withdrawed amount for protocol revenue
+	 */
+	event WithdrawRewards(
+		uint64 ownerId,
+		uint64 minerId,
+		uint256 spShare,
+		uint256 stakingProfit,
+		uint256 protocolRevenue
+	);
+
+	/**
+	 * @notice Emitted when beneficiary address is updated
+	 * @param minerId Miner actor ID
+	 * @param beneficiaryActorId Beneficiary address to be setup (Actor ID)
+	 * @param quota Total beneficiary quota
+	 * @param expiration Expiration epoch
+	 */
+	event BeneficiaryAddressUpdated(
+		address beneficiary,
+		uint64 beneficiaryActorId,
+		uint64 minerId,
+		uint256 quota,
+		int64 expiration
+	);
 
 	/**
 	 * @notice Withdraw initial pledge from Storage Provider's Miner Actor by `ownerId`
@@ -32,9 +61,14 @@ interface IRewardCollector {
 	/**
 	 * @notice Triggers changeBeneficiary Miner actor call
 	 * @param minerId Miner actor ID
-	 * @param targetPool LSP smart contract address
+	 * @param beneficiaryActorId Beneficiary address to be setup (Actor ID)
 	 * @param quota Total beneficiary quota
 	 * @param expiration Expiration epoch
 	 */
-	function forwardChangeBeneficiary(uint64 minerId, address targetPool, uint256 quota, int64 expiration) external;
+	function forwardChangeBeneficiary(
+		uint64 minerId,
+		uint64 beneficiaryActorId,
+		uint256 quota,
+		int64 expiration
+	) external;
 }

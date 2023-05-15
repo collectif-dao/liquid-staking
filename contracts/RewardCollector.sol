@@ -6,7 +6,6 @@ import {IStorageProviderCollateralClient as ICollateralClient} from "./interface
 import {IStorageProviderRegistryClient as IRegistryClient} from "./interfaces/IStorageProviderRegistryClient.sol";
 import {IResolverClient} from "./interfaces/IResolverClient.sol";
 import {IRewardCollector} from "./interfaces/IRewardCollector.sol";
-import {IBeneficiaryManager} from "./interfaces/IBeneficiaryManager.sol";
 import {ILiquidStakingClient} from "./interfaces/ILiquidStakingClient.sol";
 import {IWFIL} from "./libraries/tokens/IWFIL.sol";
 
@@ -170,6 +169,8 @@ contract RewardCollector is
 		registry.increaseRewards(ownerId, vars.stakingProfit);
 		ICollateralClient(resolver.getCollateral()).fit(ownerId);
 
+		emit WithdrawRewards(ownerId, minerId, vars.spShare, vars.stakingProfit, vars.protocolShare);
+
 		if (vars.isRestaking) {
 			ILiquidStakingClient(stakingPool).restake(vars.restakingAmt, vars.restakingAddress);
 		}
@@ -178,30 +179,26 @@ contract RewardCollector is
 	/**
 	 * @notice Forwards the changeBeneficiary Miner actor call as Liquid Staking
 	 * @param minerId Miner actor ID
-	 * @param targetPool LSP smart contract address
+	 * @param beneficiaryActorId Beneficiary address to be setup (Actor ID)
 	 * @param quota Total beneficiary quota
 	 * @param expiration Expiration epoch
 	 */
 	function forwardChangeBeneficiary(
 		uint64 minerId,
-		address targetPool,
+		uint64 beneficiaryActorId,
 		uint256 quota,
 		int64 expiration
 	) external virtual {
-		address registry = resolver.getRegistry();
-		if (msg.sender != registry) revert InvalidAccess();
-		if (!IRegistryClient(registry).isActivePool(targetPool)) revert InactivePool();
+		if (msg.sender != resolver.getRegistry()) revert InvalidAccess();
 
 		MinerTypes.ChangeBeneficiaryParams memory params;
-		params.new_beneficiary = FilAddresses.fromEthAddress(address(this));
+		params.new_beneficiary = FilAddresses.fromActorID(beneficiaryActorId);
 		params.new_quota = BigInts.fromUint256(quota);
 		params.new_expiration = CommonTypes.ChainEpoch.wrap(expiration);
 
 		MinerAPI.changeBeneficiary(CommonTypes.FilActorId.wrap(minerId), params);
 
-		IBeneficiaryManager(resolver.getBeneficiaryManager()).updateBeneficiaryStatus(minerId, true);
-
-		emit BeneficiaryAddressUpdated(address(this), targetPool, minerId, quota, expiration);
+		emit BeneficiaryAddressUpdated(address(this), beneficiaryActorId, minerId, quota, expiration);
 	}
 
 	/**

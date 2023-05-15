@@ -37,6 +37,8 @@ contract BeneficiaryManagerTest is DSTestPlus {
 	address private aliceOwnerAddr = address(0x12341214212);
 	bytes public owner;
 
+	uint64 public SAMPLE_LSP_ACTOR_ID = 1021;
+
 	uint256 private constant MAX_ALLOCATION = 10000 ether;
 	uint256 private constant SAMPLE_DAILY_ALLOCATION = MAX_ALLOCATION / 30;
 	uint256 private constant repayment = MAX_ALLOCATION + 10;
@@ -97,7 +99,13 @@ contract BeneficiaryManagerTest is DSTestPlus {
 		StorageProviderRegistryMock registryImpl = new StorageProviderRegistryMock();
 		ERC1967Proxy registryProxy = new ERC1967Proxy(address(registryImpl), "");
 		registry = StorageProviderRegistryMock(address(registryProxy));
-		registry.initialize(address(minerMockAPI), aliceOwnerId, MAX_ALLOCATION, address(resolver));
+		registry.initialize(
+			address(minerMockAPI),
+			aliceOwnerId,
+			SAMPLE_LSP_ACTOR_ID,
+			MAX_ALLOCATION,
+			address(resolver)
+		);
 
 		StorageProviderCollateralMock collateralImpl = new StorageProviderCollateralMock();
 		ERC1967Proxy collateralProxy = new ERC1967Proxy(address(collateralImpl), "");

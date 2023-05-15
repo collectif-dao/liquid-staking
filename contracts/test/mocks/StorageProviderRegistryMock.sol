@@ -1,14 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {StorageProviderRegistry, IStorageProviderRegistry, IBeneficiaryManager, FilAddress, MinerTypes, IResolverClient, IStakingControllerClient, IStorageProviderCollateralClient, IRewardCollectorClient, StorageProviderTypes} from "../../StorageProviderRegistry.sol";
+import {StorageProviderRegistry, IStorageProviderRegistry, FilAddress, MinerTypes, IResolverClient, IStakingControllerClient, IStorageProviderCollateralClient, IRewardCollectorClient, StorageProviderTypes} from "../../StorageProviderRegistry.sol";
 import {MinerMockAPI as MockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {FilAddresses} from "filecoin-solidity/contracts/v0.8/utils/FilAddresses.sol";
 import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 
 interface IStorageProviderRegistryExtended is IStorageProviderRegistry {
-	function forwardChangeBeneficiary(uint64 minerId, address targetPool, uint256 quota, int64 expiration) external;
+	function forwardChangeBeneficiary(
+		uint64 minerId,
+		uint64 beneficiaryActorId,
+		uint256 quota,
+		int64 expiration
+	) external;
 }
 
 /**
@@ -20,6 +25,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 	bytes32 private constant REGISTRY_ADMIN = keccak256("REGISTRY_ADMIN");
 	uint64 public ownerId;
 	uint64 public sampleSectorSize;
+	uint64 public poolId;
 
 	MockAPI private mockAPI;
 
@@ -30,6 +36,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 	function initialize(
 		address _minerApiMock,
 		uint64 _ownerId,
+		uint64 _poolId,
 		uint256 _maxAllocation,
 		address _resolver
 	) public initializer {
@@ -43,6 +50,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 		maxAllocation = _maxAllocation;
 
 		ownerId = _ownerId;
+		poolId = _poolId;
 		mockAPI = MockAPI(_minerApiMock);
 		resolver = IResolverClient(_resolver);
 
@@ -147,7 +155,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 
 		IRewardCollectorClient(resolver.getRewardCollector()).forwardChangeBeneficiary(
 			storageProvider.minerId,
-			storageProvider.targetPool,
+			poolId,
 			allocations[ownerId].repayment,
 			storageProvider.lastEpoch
 		);
@@ -223,14 +231,19 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 	/**
 	 * @notice Forwards the changeBeneficiary call to RewardCollector
 	 * @param minerId Miner actor ID
-	 * @param targetPool LSP smart contract address
+	 * @param beneficiaryActorId Beneficiary address to be setup (Actor ID)
 	 * @param quota Total beneficiary quota
 	 * @param expiration Expiration epoch
 	 */
-	function forwardChangeBeneficiary(uint64 minerId, address targetPool, uint256 quota, int64 expiration) public {
+	function forwardChangeBeneficiary(
+		uint64 minerId,
+		uint64 beneficiaryActorId,
+		uint256 quota,
+		int64 expiration
+	) public {
 		IRewardCollectorClient(resolver.getRewardCollector()).forwardChangeBeneficiary(
 			minerId,
-			targetPool,
+			beneficiaryActorId,
 			quota,
 			expiration
 		);
@@ -283,11 +296,16 @@ contract StorageProviderRegistryCallerMock {
 	/**
 	 * @notice Forwards the changeBeneficiary Miner actor call as RewardCollector
 	 * @param minerId Miner actor ID
-	 * @param targetPool LSP smart contract address
+	 * @param beneficiaryActorId Beneficiary address to be setup (Actor ID)
 	 * @param quota Total beneficiary quota
 	 * @param expiration Expiration epoch
 	 */
-	function forwardChangeBeneficiary(uint64 minerId, address targetPool, uint256 quota, int64 expiration) public {
-		registry.forwardChangeBeneficiary(minerId, targetPool, quota, expiration);
+	function forwardChangeBeneficiary(
+		uint64 minerId,
+		uint64 beneficiaryActorId,
+		uint256 quota,
+		int64 expiration
+	) public {
+		registry.forwardChangeBeneficiary(minerId, beneficiaryActorId, quota, expiration);
 	}
 }

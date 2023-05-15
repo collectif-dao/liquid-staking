@@ -39,6 +39,8 @@ contract RewardCollectorTest is DSTestPlus {
 	uint64 public aliceOwnerId = 1508;
 	uint64 public aliceMinerId = 16121;
 
+	uint64 public SAMPLE_LSP_ACTOR_ID = 1021;
+
 	uint256 private aliceKey = 0xBEEF;
 	address private alice = address(0x122);
 	address private aliceRestaking = address(0x123412);
@@ -114,7 +116,13 @@ contract RewardCollectorTest is DSTestPlus {
 		StorageProviderRegistryMock registryImpl = new StorageProviderRegistryMock();
 		ERC1967Proxy registryProxy = new ERC1967Proxy(address(registryImpl), "");
 		registry = StorageProviderRegistryMock(address(registryProxy));
-		registry.initialize(address(minerMockAPI), aliceOwnerId, MAX_ALLOCATION, address(resolver));
+		registry.initialize(
+			address(minerMockAPI),
+			aliceOwnerId,
+			SAMPLE_LSP_ACTOR_ID,
+			MAX_ALLOCATION,
+			address(resolver)
+		);
 
 		registryCaller = new StorageProviderRegistryCallerMock(address(registry));
 
@@ -304,7 +312,7 @@ contract RewardCollectorTest is DSTestPlus {
 		(, address targetPool, , ) = registry.getStorageProvider(aliceOwnerId);
 		assertEq(targetPool, address(staking));
 
-		registryCaller.forwardChangeBeneficiary(minerId, targetPool, repayment, lastEpoch);
+		registryCaller.forwardChangeBeneficiary(minerId, SAMPLE_LSP_ACTOR_ID, repayment, lastEpoch);
 
 		MinerTypes.GetBeneficiaryReturn memory beneficiary = minerMockAPI.getBeneficiary();
 		(uint256 quota, bool err) = BigInts.toUint256(beneficiary.active.term.quota);
@@ -316,13 +324,6 @@ contract RewardCollectorTest is DSTestPlus {
 		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
 
 		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
-		rewardCollector.forwardChangeBeneficiary(minerId, address(staking), repayment, lastEpoch);
-	}
-
-	function testForwardChangeBeneficiaryRevertsWithInvalidStakingAddress(uint64 minerId, int64 lastEpoch) public {
-		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
-
-		hevm.expectRevert(abi.encodeWithSignature("InactivePool()"));
-		registryCaller.forwardChangeBeneficiary(minerId, address(this), repayment, lastEpoch);
+		rewardCollector.forwardChangeBeneficiary(minerId, SAMPLE_LSP_ACTOR_ID, repayment, lastEpoch);
 	}
 }

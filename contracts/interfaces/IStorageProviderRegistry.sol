@@ -84,9 +84,9 @@ interface IStorageProviderRegistry {
 	function acceptBeneficiaryAddress(uint64 _ownerId) external;
 
 	/**
-	 * @notice Deactive storage provider with ID `_ownerId`
+	 * @notice Deactivate storage provider and transfer beneficiary back to the SP `_ownerId`
 	 * @param _ownerId Storage Provider owner ID
-	 * @dev Only triggered by owner contract
+	 * @dev Only triggered by registry admin
 	 */
 	function deactivateStorageProvider(uint64 _ownerId) external;
 
