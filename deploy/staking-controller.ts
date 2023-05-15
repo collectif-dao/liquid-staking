@@ -17,4 +17,4 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 export default deployFunction;
 
 deployFunction.tags = ["LiquidStakingController"];
-deployFunction.dependencies = ["Resolver", "BeneficiaryManager", "WFIL"];
+deployFunction.dependencies = ["Resolver", "WFIL"];
