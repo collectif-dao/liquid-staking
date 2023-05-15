@@ -12,6 +12,7 @@ task("get-sp-info", "Get info by owner id")
 			const sp = await storageProviderRegistry.storageProviders(ownerId);
 			const allocations = await storageProviderRegistry.allocations(ownerId);
 			const restakings = await storageProviderRegistry.restakings(ownerId);
+			const status = await storageProviderRegistry.beneficiaryStatus(ownerId);
 
 			console.log("SP info: ", sp);
 			console.log();
@@ -26,6 +27,8 @@ task("get-sp-info", "Get info by owner id")
 			console.log();
 			console.log("Restaking ratio: ", restakings.restakingRatio.toString());
 			console.log("Restaking address: ", restakings.restakingAddress);
+			console.log();
+			console.log("Beneficiary status: ", status);
 		} catch (e) {
 			console.log(e);
 		}
