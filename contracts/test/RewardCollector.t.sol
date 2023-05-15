@@ -16,7 +16,6 @@ import {LiquidStaking} from "../LiquidStaking.sol";
 import {LiquidStakingController} from "../LiquidStakingController.sol";
 import {MinerActorMock} from "./mocks/MinerActorMock.sol";
 import {Resolver} from "../Resolver.sol";
-import {BeneficiaryManagerMock} from "./mocks/BeneficiaryManagerMock.sol";
 import {RewardCollectorMock, BigInts} from "./mocks/RewardCollectorMock.sol";
 
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
@@ -31,7 +30,6 @@ contract RewardCollectorTest is DSTestPlus {
 	MinerMockAPI private minerMockAPI;
 	Resolver public resolver;
 	LiquidStakingController public controller;
-	BeneficiaryManagerMock public beneficiaryManager;
 	RewardCollectorMock private rewardCollector;
 	StorageProviderRegistryCallerMock private registryCaller;
 
@@ -78,11 +76,6 @@ contract RewardCollectorTest is DSTestPlus {
 		ERC1967Proxy resolverProxy = new ERC1967Proxy(address(resolverImpl), "");
 		resolver = Resolver(address(resolverProxy));
 		resolver.initialize();
-
-		BeneficiaryManagerMock bManagerImpl = new BeneficiaryManagerMock();
-		ERC1967Proxy bManagerProxy = new ERC1967Proxy(address(bManagerImpl), "");
-		beneficiaryManager = BeneficiaryManagerMock(address(bManagerProxy));
-		beneficiaryManager.initialize(address(minerMockAPI), aliceOwnerId, address(resolver));
 
 		RewardCollectorMock rCollectorImpl = new RewardCollectorMock();
 		ERC1967Proxy rCollectorProxy = new ERC1967Proxy(address(rCollectorImpl), "");
@@ -135,7 +128,6 @@ contract RewardCollectorTest is DSTestPlus {
 
 		resolver.setLiquidStakingControllerAddress(address(controller));
 		resolver.setRegistryAddress(address(registry));
-		resolver.setBeneficiaryManagerAddress(address(beneficiaryManager));
 		resolver.setCollateralAddress(address(collateral));
 		resolver.setLiquidStakingAddress(address(staking));
 		resolver.setRewardCollectorAddress(address(rewardCollector));
@@ -153,8 +145,6 @@ contract RewardCollectorTest is DSTestPlus {
 			412678
 		);
 
-		hevm.prank(alice);
-		beneficiaryManager.changeBeneficiaryAddress();
 		registry.acceptBeneficiaryAddress(aliceOwnerId);
 	}
 

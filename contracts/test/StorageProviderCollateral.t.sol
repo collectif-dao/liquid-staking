@@ -16,7 +16,6 @@ import {LiquidStakingMock} from "./mocks/LiquidStakingMock.sol";
 import {LiquidStakingController} from "../LiquidStakingController.sol";
 import {MinerMockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {MinerActorMock} from "./mocks/MinerActorMock.sol";
-import {BeneficiaryManagerMock} from "./mocks/BeneficiaryManagerMock.sol";
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 import {ERC1967Proxy} from "@oz/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {RewardCollectorMock} from "./mocks/RewardCollectorMock.sol";
@@ -33,7 +32,6 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	MinerActorMock public minerActor;
 	Resolver public resolver;
 	LiquidStakingController public controller;
-	BeneficiaryManagerMock public beneficiaryManager;
 	RewardCollectorMock private rewardCollector;
 
 	bytes public owner;
@@ -75,11 +73,6 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		ERC1967Proxy resolverProxy = new ERC1967Proxy(address(resolverImpl), "");
 		resolver = Resolver(address(resolverProxy));
 		resolver.initialize();
-
-		BeneficiaryManagerMock bManagerImpl = new BeneficiaryManagerMock();
-		ERC1967Proxy bManagerProxy = new ERC1967Proxy(address(bManagerImpl), "");
-		beneficiaryManager = BeneficiaryManagerMock(address(bManagerProxy));
-		beneficiaryManager.initialize(address(minerMockAPI), aliceOwnerId, address(resolver));
 
 		RewardCollectorMock rCollectorImpl = new RewardCollectorMock();
 		ERC1967Proxy rCollectorProxy = new ERC1967Proxy(address(rCollectorImpl), "");
@@ -130,7 +123,6 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		registryCallerMock = new StorageProviderRegistryCallerMock(address(registry));
 
 		resolver.setLiquidStakingControllerAddress(address(controller));
-		resolver.setBeneficiaryManagerAddress(address(beneficiaryManager));
 		resolver.setRegistryAddress(address(registry));
 		resolver.setCollateralAddress(address(collateral));
 		resolver.setLiquidStakingAddress(address(staking));
@@ -147,9 +139,6 @@ contract StorageProviderCollateralTest is DSTestPlus {
 			MAX_ALLOCATION + 10,
 			lastEpoch
 		);
-
-		hevm.prank(alice);
-		beneficiaryManager.changeBeneficiaryAddress();
 
 		registry.acceptBeneficiaryAddress(aliceOwnerId);
 		registry.registerPool(address(callerMock));
