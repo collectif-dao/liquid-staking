@@ -40,7 +40,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	uint64 public bobOwnerId = 1521;
 	uint64 private oldMinerId = 1648;
 
-	uint64 public SAMPLE_LSP_ACTOR_ID = 1021;
+	uint64 public SAMPLE_REWARD_COLLECTOR_ID = 1021;
 
 	address private alice = address(0x122);
 	bytes private aliceBytesAddress = abi.encodePacked(alice);
@@ -109,7 +109,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		registry.initialize(
 			address(minerMockAPI),
 			aliceOwnerId,
-			SAMPLE_LSP_ACTOR_ID,
+			SAMPLE_REWARD_COLLECTOR_ID,
 			MAX_ALLOCATION,
 			address(resolver)
 		);

@@ -38,7 +38,7 @@ contract IntegrationTest is DSTestPlus {
 	uint64 public aliceOwnerId = 1508;
 	uint64 public aliceMinerId = 16121;
 
-	uint64 public SAMPLE_LSP_ACTOR_ID = 1021;
+	uint64 public SAMPLE_REWARD_COLLECTOR_ID = 1021;
 
 	uint256 private aliceKey = 0xBEEF;
 	address private alice = address(0x122);
@@ -117,7 +117,7 @@ contract IntegrationTest is DSTestPlus {
 		registry.initialize(
 			address(minerMockAPI),
 			aliceOwnerId,
-			SAMPLE_LSP_ACTOR_ID,
+			SAMPLE_REWARD_COLLECTOR_ID,
 			MAX_ALLOCATION,
 			address(resolver)
 		);

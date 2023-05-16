@@ -25,7 +25,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 	bytes32 private constant REGISTRY_ADMIN = keccak256("REGISTRY_ADMIN");
 	uint64 public ownerId;
 	uint64 public sampleSectorSize;
-	uint64 public poolId;
+	uint64 public beneficiaryId;
 
 	MockAPI private mockAPI;
 
@@ -36,7 +36,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 	function initialize(
 		address _minerApiMock,
 		uint64 _ownerId,
-		uint64 _poolId,
+		uint64 _beneficiaryId,
 		uint256 _maxAllocation,
 		address _resolver
 	) public initializer {
@@ -50,7 +50,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 		maxAllocation = _maxAllocation;
 
 		ownerId = _ownerId;
-		poolId = _poolId;
+		beneficiaryId = _beneficiaryId;
 		mockAPI = MockAPI(_minerApiMock);
 		resolver = IResolverClient(_resolver);
 
@@ -155,7 +155,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 
 		IRewardCollectorClient(resolver.getRewardCollector()).forwardChangeBeneficiary(
 			storageProvider.minerId,
-			poolId,
+			beneficiaryId,
 			allocations[ownerId].repayment,
 			storageProvider.lastEpoch
 		);

@@ -40,7 +40,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	uint64 public ownerId = 1508;
 	uint64 private oldMinerId = 1648;
 
-	uint64 public SAMPLE_LSP_ACTOR_ID = 1021;
+	uint64 public SAMPLE_REWARD_COLLECTOR_ID = 1021;
 
 	address private proxyAdmin = address(0x777);
 	address private aliceOwnerAddr = address(0x12341214212);
@@ -101,7 +101,13 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		StorageProviderRegistryMock registryImpl = new StorageProviderRegistryMock();
 		ERC1967Proxy registryProxy = new ERC1967Proxy(address(registryImpl), "");
 		registry = StorageProviderRegistryMock(address(registryProxy));
-		registry.initialize(address(minerMockAPI), ownerId, SAMPLE_LSP_ACTOR_ID, MAX_ALLOCATION, address(resolver));
+		registry.initialize(
+			address(minerMockAPI),
+			ownerId,
+			SAMPLE_REWARD_COLLECTOR_ID,
+			MAX_ALLOCATION,
+			address(resolver)
+		);
 
 		StorageProviderCollateralMock collateralImpl = new StorageProviderCollateralMock();
 		ERC1967Proxy collateralProxy = new ERC1967Proxy(address(collateralImpl), "");

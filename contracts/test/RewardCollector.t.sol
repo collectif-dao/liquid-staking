@@ -37,7 +37,7 @@ contract RewardCollectorTest is DSTestPlus {
 	uint64 public aliceOwnerId = 1508;
 	uint64 public aliceMinerId = 16121;
 
-	uint64 public SAMPLE_LSP_ACTOR_ID = 1021;
+	uint64 public SAMPLE_REWARD_COLLECTOR_ID = 1021;
 
 	uint256 private aliceKey = 0xBEEF;
 	address private alice = address(0x122);
@@ -112,7 +112,7 @@ contract RewardCollectorTest is DSTestPlus {
 		registry.initialize(
 			address(minerMockAPI),
 			aliceOwnerId,
-			SAMPLE_LSP_ACTOR_ID,
+			SAMPLE_REWARD_COLLECTOR_ID,
 			MAX_ALLOCATION,
 			address(resolver)
 		);
@@ -302,7 +302,7 @@ contract RewardCollectorTest is DSTestPlus {
 		(, address targetPool, , ) = registry.getStorageProvider(aliceOwnerId);
 		assertEq(targetPool, address(staking));
 
-		registryCaller.forwardChangeBeneficiary(minerId, SAMPLE_LSP_ACTOR_ID, repayment, lastEpoch);
+		registryCaller.forwardChangeBeneficiary(minerId, SAMPLE_REWARD_COLLECTOR_ID, repayment, lastEpoch);
 
 		MinerTypes.GetBeneficiaryReturn memory beneficiary = minerMockAPI.getBeneficiary();
 		(uint256 quota, bool err) = BigInts.toUint256(beneficiary.active.term.quota);
@@ -314,6 +314,6 @@ contract RewardCollectorTest is DSTestPlus {
 		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
 
 		hevm.expectRevert(abi.encodeWithSignature("InvalidAccess()"));
-		rewardCollector.forwardChangeBeneficiary(minerId, SAMPLE_LSP_ACTOR_ID, repayment, lastEpoch);
+		rewardCollector.forwardChangeBeneficiary(minerId, SAMPLE_REWARD_COLLECTOR_ID, repayment, lastEpoch);
 	}
 }

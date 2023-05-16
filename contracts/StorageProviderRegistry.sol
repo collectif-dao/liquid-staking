@@ -219,12 +219,12 @@ contract StorageProviderRegistry is
 		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[_ownerId];
 		if (!storageProvider.onboarded) revert InactiveSP();
 
-		(bool isID, uint64 poolId) = storageProvider.targetPool.getActorID();
+		(bool isID, uint64 beneficiaryId) = resolver.getRewardCollector().getActorID();
 		if (!isID) revert InactiveActor();
 
 		IRewardCollectorClient(resolver.getRewardCollector()).forwardChangeBeneficiary(
 			storageProvider.minerId,
-			poolId,
+			beneficiaryId,
 			allocations[_ownerId].repayment,
 			storageProvider.lastEpoch
 		);
