@@ -135,7 +135,7 @@ contract IntegrationTest is DSTestPlus {
 		resolver.setRewardCollectorAddress(address(rewardCollector));
 
 		hevm.prank(alice);
-		registry.register(aliceMinerId, address(staking), ALICE_TOTAL_ALLOCATION, ALICE_DAILY_ALLOCATION);
+		registry.register(aliceMinerId, ALICE_TOTAL_ALLOCATION, ALICE_DAILY_ALLOCATION);
 
 		registry.onboardStorageProvider(
 			aliceMinerId,

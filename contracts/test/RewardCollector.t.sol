@@ -135,7 +135,7 @@ contract RewardCollectorTest is DSTestPlus {
 
 		// prepare storage provider for getting FIL from liquid staking
 		hevm.prank(alice);
-		registry.register(aliceMinerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.register(aliceMinerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 
 		registry.onboardStorageProvider(
 			aliceMinerId,

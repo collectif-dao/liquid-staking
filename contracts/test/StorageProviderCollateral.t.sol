@@ -130,7 +130,7 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		registry.registerPool(address(staking));
 
 		hevm.prank(alice);
-		registry.register(aliceMinerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION); // TODO: add missing steps for SP onboarding
+		registry.register(aliceMinerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION); // TODO: add missing steps for SP onboarding
 
 		registry.onboardStorageProvider(
 			aliceMinerId,

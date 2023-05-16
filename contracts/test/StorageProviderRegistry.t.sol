@@ -136,7 +136,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 				dailyAllocation > 0
 		);
 
-		registry.register(minerId, address(staking), allocation, dailyAllocation);
+		registry.register(minerId, allocation, dailyAllocation);
 
 		(bool isActive, address targetPool, uint64 minerActorId, int64 lastEpoch) = registry.getStorageProvider(
 			ownerId
@@ -196,7 +196,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 				_dailyAllocation > 0
 		);
 
-		registry.register(_minerId, address(staking), MAX_ALLOCATION, _dailyAllocation);
+		registry.register(_minerId, MAX_ALLOCATION, _dailyAllocation);
 		registry.onboardStorageProvider(_minerId, _allocationLimit, _dailyAllocation, _repayment, _lastEpoch);
 
 		TestOnboardSPLocalVars memory vars;
@@ -229,7 +229,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 			_minerId > 1 && _minerId < 2115248121211227543 && _repayment > (MAX_ALLOCATION * 2) && _lastEpoch > 0
 		);
 
-		registry.register(_minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.register(_minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 		hevm.expectRevert(abi.encodeWithSignature("InvalidAllocation()"));
 		registry.onboardStorageProvider(_minerId, MAX_ALLOCATION * 2, SAMPLE_DAILY_ALLOCATION, _repayment, _lastEpoch);
 	}
@@ -241,7 +241,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	) public {
 		hevm.assume(_minerId > 1 && _minerId < 2115248121211227543 && _repayment < MAX_ALLOCATION && _lastEpoch > 0);
 
-		registry.register(_minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.register(_minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 		hevm.expectRevert(abi.encodeWithSignature("InvalidRepayment()"));
 		registry.onboardStorageProvider(_minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION, _repayment, _lastEpoch);
 	}
@@ -250,7 +250,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
 		uint256 repayment = MAX_ALLOCATION + 10;
 
-		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.register(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 		registry.onboardStorageProvider(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION, repayment, lastEpoch);
 		assertBoolEq(registry.isActiveProvider(ownerId), false);
 
@@ -273,7 +273,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 				minerId < 2115248121211227543
 		);
 
-		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.register(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 		registry.onboardStorageProvider(
 			minerId,
 			MAX_ALLOCATION,
@@ -292,7 +292,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	function testDeactivateStorageProvider(uint64 minerId, int64 lastEpoch) public {
 		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
 
-		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.register(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 		registry.onboardStorageProvider(
 			minerId,
 			MAX_ALLOCATION,
@@ -320,7 +320,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		);
 
 		hevm.prank(provider);
-		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.register(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 
 		registry.onboardStorageProvider(
 			minerId,
@@ -340,7 +340,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	function testDeactivateStorageProviderRevertsWithInvalidRepayment(uint64 minerId, int64 lastEpoch) public {
 		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
 
-		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.register(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 		registry.onboardStorageProvider(
 			minerId,
 			MAX_ALLOCATION,
@@ -359,7 +359,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	function testSetMinerAddress(uint64 newMinerId, int64 lastEpoch) public {
 		hevm.assume(newMinerId > 1 && newMinerId < 2115248121211227543 && newMinerId != oldMinerId && lastEpoch > 0);
 
-		registry.register(oldMinerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.register(oldMinerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 		registry.onboardStorageProvider(
 			newMinerId,
 			MAX_ALLOCATION,
@@ -378,7 +378,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	function testSetMinerAddressReverts(uint64 newMinerId) public {
 		hevm.assume(newMinerId > 1 && newMinerId < 2115248121211227543 && newMinerId != oldMinerId);
 
-		registry.register(oldMinerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.register(oldMinerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 
 		hevm.expectRevert(abi.encodeWithSignature("InactiveSP()"));
 		registry.setMinerAddress(ownerId, newMinerId);
@@ -388,7 +388,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		hevm.assume(lastEpoch > 0);
 		uint64 newMinerId = oldMinerId;
 
-		registry.register(oldMinerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.register(oldMinerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 		registry.onboardStorageProvider(
 			oldMinerId,
 			MAX_ALLOCATION,
@@ -420,7 +420,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 				dailyAllocation <= maxDailyAlloc &&
 				dailyAllocation > 0
 		);
-		registry.register(minerId, address(staking), MAX_ALLOCATION, dailyAllocation);
+		registry.register(minerId, MAX_ALLOCATION, dailyAllocation);
 		registry.onboardStorageProvider(minerId, MAX_ALLOCATION, dailyAllocation, MAX_ALLOCATION + 10, lastEpoch);
 
 		registry.acceptBeneficiaryAddress(ownerId);
@@ -437,7 +437,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 				minerId < 2115248121211227543 &&
 				lastEpoch > 0
 		);
-		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.register(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 		registry.onboardStorageProvider(
 			minerId,
 			MAX_ALLOCATION,
@@ -452,7 +452,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 
 	function testRequestAllocationLimitUpdateRevertsWithSameAllocationLimit(uint64 minerId, int64 lastEpoch) public {
 		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
-		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.register(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 		registry.onboardStorageProvider(
 			minerId,
 			MAX_ALLOCATION,
@@ -470,7 +470,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	function testRequestAllocationLimitUpdateRevertsWithOverflow(uint64 minerId, int64 lastEpoch) public {
 		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
 		uint256 newAllocation = MAX_ALLOCATION + 1;
-		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.register(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 		registry.onboardStorageProvider(
 			minerId,
 			MAX_ALLOCATION,
@@ -494,7 +494,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 				minerId < 2115248121211227543 &&
 				lastEpoch > 0
 		);
-		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.register(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 		registry.onboardStorageProvider(
 			minerId,
 			MAX_ALLOCATION,
@@ -512,7 +512,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	function testUpdateAllocationLimitReverts(uint64 minerId, int64 lastEpoch) public {
 		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
 		uint256 newAllocation = MAX_ALLOCATION - 10000;
-		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.register(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 		registry.onboardStorageProvider(
 			minerId,
 			MAX_ALLOCATION,
@@ -543,7 +543,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 				restakingAddress != address(0) &&
 				lastEpoch > 0
 		);
-		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.register(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 		registry.onboardStorageProvider(
 			minerId,
 			MAX_ALLOCATION,
@@ -563,7 +563,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 
 	function testSetRestakingReverts(uint64 minerId, uint256 restakingRatio, int64 lastEpoch) public {
 		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0 && restakingRatio > maxRestaking);
-		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.register(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 		registry.onboardStorageProvider(
 			minerId,
 			MAX_ALLOCATION,
@@ -611,7 +611,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		hevm.assume(_accruedRewards > 0 && lastEpoch > 0 && minerId > 1 && minerId < 2115248121211227543);
 		registry.registerPool(address(callerMock));
 
-		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.register(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 		registry.onboardStorageProvider(
 			minerId,
 			MAX_ALLOCATION,
@@ -648,7 +648,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 				allocated <= SAMPLE_DAILY_ALLOCATION
 		);
 
-		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.register(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 		registry.onboardStorageProvider(
 			minerId,
 			MAX_ALLOCATION,
@@ -686,7 +686,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		);
 		registry.registerPool(address(callerMock));
 
-		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.register(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 		registry.onboardStorageProvider(
 			minerId,
 			MAX_ALLOCATION,
@@ -731,7 +731,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		);
 		registry.registerPool(address(callerMock));
 
-		registry.register(minerId, address(staking), MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
+		registry.register(minerId, MAX_ALLOCATION, SAMPLE_DAILY_ALLOCATION);
 		registry.onboardStorageProvider(
 			minerId,
 			MAX_ALLOCATION,

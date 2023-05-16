@@ -45,19 +45,13 @@ interface IStorageProviderRegistry {
 	event UpdateMaxAllocation(uint256 maxAllocation);
 
 	/**
-	 * @notice Register storage provider with `_minerId`, desired `_allocationLimit` and `_targetPool`
+	 * @notice Register storage provider with `_minerId`, desired `_allocationLimit`
 	 * @param _minerId Storage Provider miner ID in Filecoin network
-	 * @param _targetPool Target liquid staking strategy
 	 * @param _allocationLimit FIL allocation for storage provider
 	 * @param _dailyAllocation Daily FIL allocation for storage provider
 	 * @dev Only triggered by Storage Provider owner
 	 */
-	function register(
-		uint64 _minerId,
-		address _targetPool,
-		uint256 _allocationLimit,
-		uint256 _dailyAllocation
-	) external;
+	function register(uint64 _minerId, uint256 _allocationLimit, uint256 _dailyAllocation) external;
 
 	/**
 	 * @notice Onboard storage provider with `_minerId`, desired `_allocationLimit`, `_repayment` amount

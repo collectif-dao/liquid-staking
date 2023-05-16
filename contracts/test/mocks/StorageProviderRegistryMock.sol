@@ -58,22 +58,15 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 	}
 
 	/**
-	 * @notice Register storage provider with `_minerId`, desired `_allocationLimit` and `_targetPool`
+	 * @notice Register storage provider with `_minerId`, desired `_allocationLimit`
 	 * @param _minerId Storage Provider miner ID in Filecoin network
-	 * @param _targetPool Target liquid staking strategy
 	 * @param _allocationLimit FIL allocation for storage provider
 	 * @param _dailyAllocation Daily FIL allocation for storage provider
 	 * @dev Only triggered by Storage Provider owner
 	 */
-	function register(
-		uint64 _minerId,
-		address _targetPool,
-		uint256 _allocationLimit,
-		uint256 _dailyAllocation
-	) public override {
+	function register(uint64 _minerId, uint256 _allocationLimit, uint256 _dailyAllocation) public override {
 		if (_allocationLimit == 0 || _allocationLimit > maxAllocation) revert InvalidAllocation();
 		if (_dailyAllocation == 0 || _dailyAllocation > _allocationLimit) revert InvalidDailyAllocation();
-		if (!pools[_targetPool]) revert InactivePool();
 
 		MinerTypes.GetOwnerReturn memory ownerReturn = mockAPI.getOwner();
 		if (keccak256(ownerReturn.proposed.data) != keccak256(bytes("0x00"))) revert OwnerProposed();
@@ -83,9 +76,11 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 		if (keccak256(senderBytes) != keccak256(ownerBytes)) revert InvalidOwner();
 		if (storageProviders[ownerId].onboarded) revert RegisteredSP();
 
+		address targetPool = resolver.getLiquidStaking();
+
 		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[ownerId];
 		storageProvider.minerId = _minerId;
-		storageProvider.targetPool = _targetPool;
+		storageProvider.targetPool = targetPool;
 
 		StorageProviderTypes.SPAllocation storage spAllocation = allocations[ownerId];
 		spAllocation.allocationLimit = _allocationLimit;
@@ -94,13 +89,13 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 		sectorSizes[ownerId] = sampleSectorSize;
 
 		IStorageProviderCollateralClient(resolver.getCollateral()).updateCollateralRequirements(ownerId, 0);
-		IStakingControllerClient(resolver.getLiquidStakingController()).updateProfitShare(ownerId, 0, _targetPool);
+		IStakingControllerClient(resolver.getLiquidStakingController()).updateProfitShare(ownerId, 0, targetPool);
 
 		emit StorageProviderRegistered(
 			ownerReturn.owner.data,
 			ownerId,
 			_minerId,
-			_targetPool,
+			targetPool,
 			_allocationLimit,
 			_dailyAllocation
 		);

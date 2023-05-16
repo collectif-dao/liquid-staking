@@ -113,22 +113,19 @@ contract StorageProviderRegistry is
 	}
 
 	/**
-	 * @notice Register storage provider with `_minerId`, desired `_allocationLimit` and `_targetPool`
+	 * @notice Register storage provider with `_minerId`, desired `_allocationLimit`
 	 * @param _minerId Storage Provider miner ID in Filecoin network
-	 * @param _targetPool Target liquid staking strategy
 	 * @param _allocationLimit FIL allocation for storage provider
 	 * @param _dailyAllocation Daily FIL allocation for storage provider
 	 * @dev Only triggered by Storage Provider owner
 	 */
 	function register(
 		uint64 _minerId,
-		address _targetPool,
 		uint256 _allocationLimit,
 		uint256 _dailyAllocation
 	) public virtual override nonReentrant {
 		if (_allocationLimit == 0 || _allocationLimit > maxAllocation) revert InvalidAllocation();
 		if (_dailyAllocation == 0 || _dailyAllocation > _allocationLimit) revert InvalidDailyAllocation();
-		if (!pools[_targetPool]) revert InactivePool();
 
 		RegisterLocalVars memory vars;
 
@@ -145,9 +142,11 @@ contract StorageProviderRegistry is
 		if (vars.ownerId != vars.msgSenderId) revert InvalidOwner();
 		if (storageProviders[vars.ownerId].onboarded) revert RegisteredSP();
 
+		address targetPool = resolver.getLiquidStaking();
+
 		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[vars.ownerId];
 		storageProvider.minerId = _minerId;
-		storageProvider.targetPool = _targetPool;
+		storageProvider.targetPool = targetPool;
 
 		StorageProviderTypes.SPAllocation storage spAllocation = allocations[vars.ownerId];
 		spAllocation.allocationLimit = _allocationLimit;
@@ -157,13 +156,13 @@ contract StorageProviderRegistry is
 		sectorSizes[vars.ownerId] = vars.sectorSize;
 
 		IStorageProviderCollateralClient(resolver.getCollateral()).updateCollateralRequirements(vars.ownerId, 0);
-		IStakingControllerClient(resolver.getLiquidStakingController()).updateProfitShare(vars.ownerId, 0, _targetPool);
+		IStakingControllerClient(resolver.getLiquidStakingController()).updateProfitShare(vars.ownerId, 0, targetPool);
 
 		emit StorageProviderRegistered(
 			ownerReturn.owner.data,
 			vars.ownerId,
 			_minerId,
-			_targetPool,
+			targetPool,
 			_allocationLimit,
 			_dailyAllocation
 		);
