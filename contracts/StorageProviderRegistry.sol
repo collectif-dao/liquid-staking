@@ -242,14 +242,6 @@ contract StorageProviderRegistry is
 	function deactivateStorageProvider(uint64 _ownerId) public onlyAdmin activeStorageProvider(_ownerId) {
 		if (allocations[_ownerId].accruedRewards != allocations[_ownerId].repayment) revert InvalidRepayment();
 
-		// renounce beneficiary for SP
-		IRewardCollectorClient(resolver.getRewardCollector()).forwardChangeBeneficiary(
-			storageProviders[_ownerId].minerId,
-			_ownerId,
-			0,
-			0
-		);
-
 		storageProviders[_ownerId].active = false;
 		delete beneficiaryStatus[_ownerId];
 
