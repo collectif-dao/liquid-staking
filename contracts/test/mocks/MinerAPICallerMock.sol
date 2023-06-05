@@ -14,6 +14,8 @@ contract MinerAPICallerMock {
 	bytes public proposed;
 	uint64 public sectorSize;
 
+	uint64 public realOwnerId;
+
 	address public lastMsgSender;
 	bytes public lastMsgSenderBytes;
 
@@ -110,5 +112,19 @@ contract MinerAPICallerMock {
 
 	function getActorID() public view returns (bool isID, uint64 idAddr) {
 		(isID, idAddr) = FilAddress.getActorID(msg.sender);
+	}
+
+	function getOwnerId(uint64 _minerId) public {
+		address ownerAddr = FilAddress.normalize(msg.sender);
+		(bool isID, uint64 msgSenderId) = FilAddress.getActorID(ownerAddr);
+		require(isID, "INVALID_ID");
+
+		CommonTypes.FilActorId actorId = CommonTypes.FilActorId.wrap(_minerId);
+
+		MinerTypes.GetOwnerReturn memory ownerReturn = MinerAPI.getOwner(actorId);
+		require(keccak256(ownerReturn.proposed.data) == keccak256(bytes("")), "PROPOSED_NEW_OWNER");
+
+		uint64 ownerId = PrecompilesAPI.resolveAddress(ownerReturn.owner);
+		realOwnerId = ownerId;
 	}
 }
