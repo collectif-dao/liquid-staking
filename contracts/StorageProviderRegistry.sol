@@ -258,8 +258,7 @@ contract StorageProviderRegistry is
 		uint64 _ownerId,
 		uint64 _minerId
 	) public virtual onlyAdmin activeStorageProvider(_ownerId) {
-		uint64 prevMiner = storageProviders[_ownerId].minerId;
-		if (prevMiner == _minerId) revert InvalidParams();
+		if (storageProviders[_ownerId].minerId == _minerId) revert InvalidParams();
 
 		CommonTypes.FilActorId actorId = CommonTypes.FilActorId.wrap(_minerId);
 
