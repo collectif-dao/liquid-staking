@@ -240,7 +240,9 @@ contract StorageProviderRegistry is
 	 * @dev Only triggered by registry admin
 	 */
 	function deactivateStorageProvider(uint64 _ownerId) public onlyAdmin activeStorageProvider(_ownerId) {
-		if (allocations[_ownerId].accruedRewards != allocations[_ownerId].repayment) revert InvalidRepayment();
+		if (
+			allocations[_ownerId].accruedRewards + allocations[_ownerId].repaidPledge != allocations[_ownerId].repayment
+		) revert InvalidRepayment();
 
 		storageProviders[_ownerId].active = false;
 		delete beneficiaryStatus[_ownerId];
