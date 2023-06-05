@@ -37,7 +37,7 @@ contract RewardCollector is
 	error IncorrectWithdrawal();
 	error BigNumConversion();
 
-	uint256 private BASIS_POINTS;
+	uint256 private constant BASIS_POINTS = 10000;
 
 	IResolverClient internal resolver;
 	IWFIL public WFIL;
@@ -57,8 +57,6 @@ contract RewardCollector is
 		__AccessControl_init();
 		__ReentrancyGuard_init();
 		__UUPSUpgradeable_init();
-
-		BASIS_POINTS = 10000;
 
 		WFIL = IWFIL(_wFIL);
 		resolver = IResolverClient(_resolver);
