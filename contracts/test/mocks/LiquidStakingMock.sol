@@ -30,7 +30,8 @@ contract LiquidStakingMock is LiquidStaking {
 		uint64 _ownerId,
 		address _ownerAddr,
 		address _minerApiMock,
-		address _resolver
+		address _resolver,
+		uint256 _initialDeposit
 	) public initializer {
 		__AccessControl_init();
 		__ReentrancyGuard_init();
@@ -50,6 +51,8 @@ contract LiquidStakingMock is LiquidStaking {
 		ownerAddr = _ownerAddr;
 
 		mockAPI = MockAPI(_minerApiMock);
+
+		if (_initialDeposit > 0) deposit(_initialDeposit, address(this));
 	}
 
 	/**

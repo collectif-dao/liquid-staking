@@ -65,8 +65,9 @@ contract LiquidStaking is
 	 * @dev Contract initializer function.
 	 * @param _wFIL WFIL token contract address
 	 * @param _resolver Resolver contract address
+	 * @param _initialDeposit Initial deposit to the pool to prevent the inflation attack
 	 */
-	function initialize(address _wFIL, address _resolver) public initializer {
+	function initialize(address _wFIL, address _resolver, uint256 _initialDeposit) public initializer {
 		__AccessControl_init();
 		__ReentrancyGuard_init();
 		__ClFILToken_init(_wFIL);
@@ -79,6 +80,8 @@ contract LiquidStaking is
 		_setRoleAdmin(LIQUID_STAKING_ADMIN, DEFAULT_ADMIN_ROLE);
 		grantRole(FEE_DISTRIBUTOR, msg.sender);
 		_setRoleAdmin(FEE_DISTRIBUTOR, DEFAULT_ADMIN_ROLE);
+
+		if (_initialDeposit > 0) deposit(_initialDeposit, address(this));
 	}
 
 	receive() external payable virtual {}

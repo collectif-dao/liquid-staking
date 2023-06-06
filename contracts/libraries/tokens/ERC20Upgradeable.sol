@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// OpenZeppelin Contracts (last updated v4.8.0) (token/ERC20/ERC20.sol)
+// OpenZeppelin Contracts (last updated v4.9.0) (token/ERC20/ERC20.sol)
 
 pragma solidity ^0.8.0;
 
@@ -19,6 +19,9 @@ import {FilAddress} from "fevmate/utils/FilAddress.sol";
  * TIP: For a detailed writeup see our guide
  * https://forum.openzeppelin.com/t/how-to-implement-erc20-supply-mechanisms/226[How
  * to implement supply mechanisms].
+ *
+ * The default value of {decimals} is 18. To change this, you should override
+ * this function so it returns a different value.
  *
  * We have followed general OpenZeppelin Contracts guidelines: functions revert
  * instead returning `false` on failure. This behavior is nonetheless
@@ -53,9 +56,6 @@ contract ERC20Upgradeable is Initializable, ContextUpgradeable, IERC20Upgradeabl
 	/**
 	 * @dev Sets the values for {name} and {symbol}.
 	 *
-	 * The default value of {decimals} is 18. To select a different value for
-	 * {decimals} you should overload it.
-	 *
 	 * All two of these values are immutable: they can only be set once during
 	 * construction.
 	 */
@@ -89,8 +89,8 @@ contract ERC20Upgradeable is Initializable, ContextUpgradeable, IERC20Upgradeabl
 	 * be displayed to a user as `5.05` (`505 / 10 ** 2`).
 	 *
 	 * Tokens usually opt for a value of 18, imitating the relationship between
-	 * Ether and Wei. This is the value {ERC20} uses, unless this function is
-	 * overridden;
+	 * Ether and Wei. This is the default value returned by this function, unless
+	 * it's overridden.
 	 *
 	 * NOTE: This information is only used for _display_ purposes: it in
 	 * no way affects any of the arithmetic of the contract, including

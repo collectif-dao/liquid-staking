@@ -103,7 +103,8 @@ contract RewardCollectorTest is DSTestPlus {
 			aliceOwnerId,
 			aliceOwnerAddr,
 			address(minerMockAPI),
-			address(resolver)
+			address(resolver),
+			0
 		);
 
 		StorageProviderRegistryMock registryImpl = new StorageProviderRegistryMock();

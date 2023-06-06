@@ -48,6 +48,7 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	uint256 private profitShare = 2000;
 	uint64 public aliceOwnerId = 1508;
 	uint256 maxRestaking = 10000;
+	uint256 initialDeposit = 10 * 1e18;
 
 	uint256 private constant MAX_STORAGE_PROVIDERS = 200;
 	uint256 private constant MAX_ALLOCATION = 10000 ether;
@@ -86,16 +87,21 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		controller.initialize(adminFee, profitShare, address(resolver));
 
 		// hevm.startPrank(proxyAdmin);
+		hevm.deal(address(this), initialDeposit);
+		wfil.deposit{value: initialDeposit}();
+
 		LiquidStakingMock stakingImpl = new LiquidStakingMock();
 		ERC1967Proxy stakingProxy = new ERC1967Proxy(address(stakingImpl), "");
 		staking = LiquidStakingMock(payable(stakingProxy));
+		wfil.approve(address(staking), initialDeposit);
 		staking.initialize(
 			address(wfil),
 			address(minerActor),
 			aliceOwnerId,
 			aliceOwnerAddr,
 			address(minerMockAPI),
-			address(resolver)
+			address(resolver),
+			initialDeposit
 		);
 
 		StorageProviderRegistryMock registryImpl = new StorageProviderRegistryMock();

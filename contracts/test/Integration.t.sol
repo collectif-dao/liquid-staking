@@ -65,6 +65,7 @@ contract IntegrationTest is DSTestPlus {
 	uint256 private constant genesisTimestamp = 1683985020;
 	uint256 private constant initialPledge = 216900000000000000;
 	uint256 private constant rewardsPerTiB = 10300000000000000;
+	uint256 private constant initialDeposit = 1000;
 
 	uint256 private constant ONE_DAY = 24 * 1 hours;
 
@@ -99,16 +100,21 @@ contract IntegrationTest is DSTestPlus {
 		controller = LiquidStakingController(address(controllerProxy));
 		controller.initialize(adminFee, profitShare, address(resolver));
 
+		hevm.deal(address(this), initialDeposit);
+		wfil.deposit{value: initialDeposit}();
+
 		LiquidStakingMock stakingImpl = new LiquidStakingMock();
 		ERC1967Proxy stakingProxy = new ERC1967Proxy(address(stakingImpl), "");
 		staking = LiquidStakingMock(payable(stakingProxy));
+		wfil.approve(address(staking), initialDeposit);
 		staking.initialize(
 			address(wfil),
 			address(minerActor),
 			aliceOwnerId,
 			aliceOwnerAddr,
 			address(minerMockAPI),
-			address(resolver)
+			address(resolver),
+			initialDeposit
 		);
 
 		StorageProviderRegistryMock registryImpl = new StorageProviderRegistryMock();
@@ -185,8 +191,8 @@ contract IntegrationTest is DSTestPlus {
 		require(staking.balanceOf(address(staker)) == totalAllocation, "INVALID_STAKER_CLFIL_BALANCE");
 		require(wfil.balanceOf(address(staker)) == 0, "INVALID_STAKER_WFIL_BALANCE");
 		require(staker.balance == 0, "INVALID_STAKER_FIL_BALANCE");
-		require(wfil.balanceOf(address(staking)) == totalAllocation, "INVALID_LSP_WFIL_BALANCE");
-		require(staking.totalAssets() == totalAllocation, "INVALID_LSP_ASSETS");
+		require(wfil.balanceOf(address(staking)) == totalAllocation + initialDeposit, "INVALID_LSP_WFIL_BALANCE");
+		require(staking.totalAssets() == totalAllocation + initialDeposit, "INVALID_LSP_ASSETS");
 
 		vars.targetCollateral = (totalAllocation * collateral.collateralRequirements(aliceOwnerId)) / BASIS_POINTS;
 		hevm.deal(alice, vars.targetCollateral);
@@ -243,7 +249,10 @@ contract IntegrationTest is DSTestPlus {
 					address(minerActor).balance == vars.rewardsDelta,
 					"INVALID_MINER_ACTOR_BALANCE_AFTER_WITHDRAWAL"
 				);
-				require(staking.totalAssets() == totalAllocation + (vars.revenuePerDay * (i)), "INVALID_LSP_ASSETS");
+				require(
+					staking.totalAssets() == totalAllocation + initialDeposit + (vars.revenuePerDay * (i)),
+					"INVALID_LSP_ASSETS"
+				);
 				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
 				require(
 					collateral.getLockedCollateral(aliceOwnerId) == collateralRequirements,
@@ -251,11 +260,11 @@ contract IntegrationTest is DSTestPlus {
 				);
 				require(
 					wfil.balanceOf(address(staking)) ==
-						totalAllocation - vars.totalAllocated + (vars.revenuePerDay * (i)),
+						totalAllocation + initialDeposit - vars.totalAllocated + (vars.revenuePerDay * (i)),
 					"INVALID_LSP_WFIL_BALANCE"
 				);
 			} else {
-				require(staking.totalAssets() == totalAllocation, "INVALID_LSP_ASSETS");
+				require(staking.totalAssets() == totalAllocation + initialDeposit, "INVALID_LSP_ASSETS");
 				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
 			}
 		}
@@ -280,8 +289,8 @@ contract IntegrationTest is DSTestPlus {
 		require(staking.balanceOf(address(staker)) == totalAllocation, "INVALID_STAKER_CLFIL_BALANCE");
 		require(wfil.balanceOf(address(staker)) == 0, "INVALID_STAKER_WFIL_BALANCE");
 		require(staker.balance == 0, "INVALID_STAKER_FIL_BALANCE");
-		require(wfil.balanceOf(address(staking)) == totalAllocation, "INVALID_LSP_WFIL_BALANCE");
-		require(staking.totalAssets() == totalAllocation, "INVALID_LSP_ASSETS");
+		require(wfil.balanceOf(address(staking)) == totalAllocation + initialDeposit, "INVALID_LSP_WFIL_BALANCE");
+		require(staking.totalAssets() == totalAllocation + initialDeposit, "INVALID_LSP_ASSETS");
 
 		vars.targetCollateral = (totalAllocation * collateral.collateralRequirements(aliceOwnerId)) / BASIS_POINTS;
 		hevm.deal(alice, vars.targetCollateral);
@@ -356,7 +365,10 @@ contract IntegrationTest is DSTestPlus {
 					address(minerActor).balance == vars.rewardsDelta,
 					"INVALID_MINER_ACTOR_BALANCE_AFTER_WITHDRAWAL"
 				);
-				require(staking.totalAssets() == totalAllocation + (vars.revenuePerDay * (i)), "INVALID_LSP_ASSETS");
+				require(
+					staking.totalAssets() == totalAllocation + initialDeposit + (vars.revenuePerDay * (i)),
+					"INVALID_LSP_ASSETS"
+				);
 				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
 				require(
 					collateral.getLockedCollateral(aliceOwnerId) == collateralRequirements,
@@ -364,11 +376,11 @@ contract IntegrationTest is DSTestPlus {
 				);
 				require(
 					wfil.balanceOf(address(staking)) ==
-						totalAllocation - vars.totalAllocated + (vars.revenuePerDay * (i)),
+						totalAllocation + initialDeposit - vars.totalAllocated + (vars.revenuePerDay * (i)),
 					"INVALID_LSP_WFIL_BALANCE"
 				);
 			} else if (i == 0) {
-				require(staking.totalAssets() == totalAllocation, "INVALID_LSP_ASSETS");
+				require(staking.totalAssets() == totalAllocation + initialDeposit, "INVALID_LSP_ASSETS");
 				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
 			}
 		}
@@ -393,8 +405,8 @@ contract IntegrationTest is DSTestPlus {
 		require(staking.balanceOf(address(staker)) == totalAllocation, "INVALID_STAKER_CLFIL_BALANCE");
 		require(wfil.balanceOf(address(staker)) == 0, "INVALID_STAKER_WFIL_BALANCE");
 		require(staker.balance == 0, "INVALID_STAKER_FIL_BALANCE");
-		require(wfil.balanceOf(address(staking)) == totalAllocation, "INVALID_LSP_WFIL_BALANCE");
-		require(staking.totalAssets() == totalAllocation, "INVALID_LSP_ASSETS");
+		require(wfil.balanceOf(address(staking)) == totalAllocation + initialDeposit, "INVALID_LSP_WFIL_BALANCE");
+		require(staking.totalAssets() == totalAllocation + initialDeposit, "INVALID_LSP_ASSETS");
 
 		vars.targetCollateral = (totalAllocation * collateral.collateralRequirements(aliceOwnerId)) / BASIS_POINTS;
 		hevm.deal(alice, vars.targetCollateral);
@@ -480,19 +492,23 @@ contract IntegrationTest is DSTestPlus {
 
 				if (i >= slashingDay) {
 					uint256 slashingEffect = (vars.revenuePerDay * (i)) + slashingAmt;
-					require(staking.totalAssets() == totalAllocation + slashingEffect, "INVALID_LSP_ASSETS");
 					require(
-						wfil.balanceOf(address(staking)) == totalAllocation - vars.totalAllocated + slashingEffect,
-						"INVALID_LSP_WFIL_BALANCE"
-					);
-				} else {
-					require(
-						staking.totalAssets() == totalAllocation + (vars.revenuePerDay * (i)),
+						staking.totalAssets() == totalAllocation + initialDeposit + slashingEffect,
 						"INVALID_LSP_ASSETS"
 					);
 					require(
 						wfil.balanceOf(address(staking)) ==
-							totalAllocation - vars.totalAllocated + (vars.revenuePerDay * (i)),
+							totalAllocation + initialDeposit - vars.totalAllocated + slashingEffect,
+						"INVALID_LSP_WFIL_BALANCE"
+					);
+				} else {
+					require(
+						staking.totalAssets() == totalAllocation + initialDeposit + (vars.revenuePerDay * (i)),
+						"INVALID_LSP_ASSETS"
+					);
+					require(
+						wfil.balanceOf(address(staking)) ==
+							totalAllocation + initialDeposit - vars.totalAllocated + (vars.revenuePerDay * (i)),
 						"INVALID_LSP_WFIL_BALANCE"
 					);
 				}
@@ -507,7 +523,7 @@ contract IntegrationTest is DSTestPlus {
 					"INVALID_LOCKED_COLLATERAL"
 				);
 			} else if (i == 0) {
-				require(staking.totalAssets() == totalAllocation, "INVALID_LSP_ASSETS");
+				require(staking.totalAssets() == totalAllocation + initialDeposit, "INVALID_LSP_ASSETS");
 				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
 			}
 		}
@@ -532,8 +548,8 @@ contract IntegrationTest is DSTestPlus {
 		require(staking.balanceOf(address(staker)) == totalAllocation, "INVALID_STAKER_CLFIL_BALANCE");
 		require(wfil.balanceOf(address(staker)) == 0, "INVALID_STAKER_WFIL_BALANCE");
 		require(staker.balance == 0, "INVALID_STAKER_FIL_BALANCE");
-		require(wfil.balanceOf(address(staking)) == totalAllocation, "INVALID_LSP_WFIL_BALANCE");
-		require(staking.totalAssets() == totalAllocation, "INVALID_LSP_ASSETS");
+		require(wfil.balanceOf(address(staking)) == totalAllocation + initialDeposit, "INVALID_LSP_WFIL_BALANCE");
+		require(staking.totalAssets() == totalAllocation + initialDeposit, "INVALID_LSP_ASSETS");
 
 		vars.targetCollateral = (totalAllocation * collateral.collateralRequirements(aliceOwnerId)) / BASIS_POINTS;
 		hevm.deal(alice, vars.targetCollateral);
@@ -601,7 +617,8 @@ contract IntegrationTest is DSTestPlus {
 					collateralRequirements = (vars.totalAllocated * collateralRequirementsUpdate) / BASIS_POINTS;
 
 					require(
-						staking.totalAssets() == totalAllocation + accuredRevenue + (updatedRevenue * (i - 69)),
+						staking.totalAssets() ==
+							totalAllocation + initialDeposit + accuredRevenue + (updatedRevenue * (i - 69)),
 						"INVALID_LSP_ASSETS"
 					);
 					require(
@@ -610,12 +627,16 @@ contract IntegrationTest is DSTestPlus {
 					);
 					require(
 						wfil.balanceOf(address(staking)) ==
-							totalAllocation - vars.totalAllocated + accuredRevenue + (updatedRevenue * (i - 69)),
+							totalAllocation +
+								initialDeposit -
+								vars.totalAllocated +
+								accuredRevenue +
+								(updatedRevenue * (i - 69)),
 						"INVALID_LSP_WFIL_BALANCE"
 					);
 				} else {
 					require(
-						staking.totalAssets() == totalAllocation + (vars.revenuePerDay * (i)),
+						staking.totalAssets() == totalAllocation + initialDeposit + (vars.revenuePerDay * (i)),
 						"INVALID_LSP_ASSETS"
 					);
 					require(
@@ -624,7 +645,7 @@ contract IntegrationTest is DSTestPlus {
 					);
 					require(
 						wfil.balanceOf(address(staking)) ==
-							totalAllocation - vars.totalAllocated + (vars.revenuePerDay * (i)),
+							totalAllocation + initialDeposit - vars.totalAllocated + (vars.revenuePerDay * (i)),
 						"INVALID_LSP_WFIL_BALANCE"
 					);
 				}
@@ -635,7 +656,7 @@ contract IntegrationTest is DSTestPlus {
 				);
 				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
 			} else {
-				require(staking.totalAssets() == totalAllocation, "INVALID_LSP_ASSETS");
+				require(staking.totalAssets() == totalAllocation + initialDeposit, "INVALID_LSP_ASSETS");
 				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
 			}
 		}
@@ -673,8 +694,8 @@ contract IntegrationTest is DSTestPlus {
 		require(staking.balanceOf(address(staker)) == totalAllocation, "INVALID_STAKER_CLFIL_BALANCE");
 		require(wfil.balanceOf(address(staker)) == 0, "INVALID_STAKER_WFIL_BALANCE");
 		require(staker.balance == 0, "INVALID_STAKER_FIL_BALANCE");
-		require(wfil.balanceOf(address(staking)) == totalAllocation, "INVALID_LSP_WFIL_BALANCE");
-		require(staking.totalAssets() == totalAllocation, "INVALID_LSP_ASSETS");
+		require(wfil.balanceOf(address(staking)) == totalAllocation + initialDeposit, "INVALID_LSP_WFIL_BALANCE");
+		require(staking.totalAssets() == totalAllocation + initialDeposit, "INVALID_LSP_ASSETS");
 
 		vars.targetCollateral = (totalAllocation * collateral.collateralRequirements(aliceOwnerId)) / BASIS_POINTS;
 		hevm.deal(alice, vars.targetCollateral);
@@ -735,7 +756,11 @@ contract IntegrationTest is DSTestPlus {
 
 			if (i > 0) {
 				rVars.clFILTotalSupply = staking.totalSupply();
-				rVars.totalStakingAssets = totalAllocation + (rVars.restakingAmt * i) + (vars.revenuePerDay * i);
+				rVars.totalStakingAssets =
+					totalAllocation +
+					initialDeposit +
+					(rVars.restakingAmt * i) +
+					(vars.revenuePerDay * i);
 
 				rVars.clFILShares = rVars.restakingAmt.mulDivDown(rVars.clFILTotalSupply, rVars.totalStakingAssets);
 				rVars.totalclFILShares += rVars.clFILShares;
@@ -760,11 +785,15 @@ contract IntegrationTest is DSTestPlus {
 				);
 				require(
 					wfil.balanceOf(address(staking)) ==
-						totalAllocation - vars.totalAllocated + (vars.revenuePerDay * i) + (rVars.restakingAmt * i),
+						totalAllocation +
+							initialDeposit -
+							vars.totalAllocated +
+							(vars.revenuePerDay * i) +
+							(rVars.restakingAmt * i),
 					"INVALID_LSP_WFIL_BALANCE"
 				);
 			} else {
-				require(staking.totalAssets() == totalAllocation, "INVALID_LSP_ASSETS");
+				require(staking.totalAssets() == totalAllocation + initialDeposit, "INVALID_LSP_ASSETS");
 				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
 			}
 		}
@@ -789,8 +818,8 @@ contract IntegrationTest is DSTestPlus {
 		require(staking.balanceOf(address(staker)) == totalAllocation, "INVALID_STAKER_CLFIL_BALANCE");
 		require(wfil.balanceOf(address(staker)) == 0, "INVALID_STAKER_WFIL_BALANCE");
 		require(staker.balance == 0, "INVALID_STAKER_FIL_BALANCE");
-		require(wfil.balanceOf(address(staking)) == totalAllocation, "INVALID_LSP_WFIL_BALANCE");
-		require(staking.totalAssets() == totalAllocation, "INVALID_LSP_ASSETS");
+		require(wfil.balanceOf(address(staking)) == totalAllocation + initialDeposit, "INVALID_LSP_WFIL_BALANCE");
+		require(staking.totalAssets() == totalAllocation + initialDeposit, "INVALID_LSP_ASSETS");
 
 		vars.targetCollateral = (totalAllocation * collateral.collateralRequirements(aliceOwnerId)) / BASIS_POINTS;
 		hevm.deal(alice, vars.targetCollateral);
@@ -866,7 +895,10 @@ contract IntegrationTest is DSTestPlus {
 					address(minerActor).balance == vars.rewardsDelta,
 					"INVALID_MINER_ACTOR_BALANCE_AFTER_WITHDRAWAL"
 				);
-				require(staking.totalAssets() == totalAllocation + (vars.revenuePerDay * (i)), "INVALID_LSP_ASSETS_2");
+				require(
+					staking.totalAssets() == totalAllocation + initialDeposit + (vars.revenuePerDay * (i)),
+					"INVALID_LSP_ASSETS_2"
+				);
 				require(
 					staking.totalFilPledged() == vars.totalAllocated - unPledged * (i),
 					"INVALID_LSP_PLEDGED_ASSETS"
@@ -877,11 +909,15 @@ contract IntegrationTest is DSTestPlus {
 				);
 				require(
 					wfil.balanceOf(address(staking)) ==
-						totalAllocation - vars.totalAllocated + (vars.revenuePerDay * (i)) + (unPledged * (i)),
+						totalAllocation +
+							initialDeposit -
+							vars.totalAllocated +
+							(vars.revenuePerDay * (i)) +
+							(unPledged * (i)),
 					"INVALID_LSP_WFIL_BALANCE"
 				);
 			} else {
-				require(staking.totalAssets() == totalAllocation, "INVALID_LSP_ASSETS");
+				require(staking.totalAssets() == totalAllocation + initialDeposit, "INVALID_LSP_ASSETS");
 				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
 			}
 		}
