@@ -8,13 +8,11 @@ task("register", "Register a miner in the pool.")
 		allocationLimit = ethers.utils.parseEther(allocationLimit);
 		dailyAllocation = ethers.utils.parseEther(dailyAllocation);
 
-		const liquidStaking = await hre.deployments.get("LiquidStaking");
 		const storageProviderRegistryDeployment = await hre.deployments.get("StorageProviderRegistry");
 		const StorageProviderRegistry = await ethers.getContractFactory("StorageProviderRegistry");
 
-		const abiEncodedCall = StorageProviderRegistry.interface.encodeFunctionData("register(uint64,address,uint256,uint256)", [
+		const abiEncodedCall = StorageProviderRegistry.interface.encodeFunctionData("register(uint64,uint256,uint256)", [
 			minerId,
-			liquidStaking.address,
 			allocationLimit,
 			dailyAllocation,
 		]);

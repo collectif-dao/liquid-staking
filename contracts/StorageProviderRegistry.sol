@@ -47,6 +47,8 @@ contract StorageProviderRegistry is
 	error InvalidParams();
 	error AllocationOverflow();
 	error OwnerProposed();
+	error InvalidBeneficiary();
+	error AlreadyApproved();
 
 	// Mapping of storage provider IDs to their storage provider info
 	mapping(uint64 => StorageProviderTypes.StorageProvider) public storageProviders;
@@ -220,6 +222,13 @@ contract StorageProviderRegistry is
 
 		(bool isID, uint64 beneficiaryId) = resolver.getRewardCollector().getActorID();
 		if (!isID) revert InactiveActor();
+
+		CommonTypes.FilActorId actorId = CommonTypes.FilActorId.wrap(storageProvider.minerId);
+		MinerTypes.GetBeneficiaryReturn memory beneficiary = MinerAPI.getBeneficiary(actorId);
+
+		uint64 bActorId = PrecompilesAPI.resolveAddress(beneficiary.proposed.new_beneficiary);
+		if (beneficiaryId != bActorId) revert InvalidBeneficiary();
+		if (beneficiary.proposed.approved_by_nominee) revert AlreadyApproved();
 
 		IRewardCollectorClient(resolver.getRewardCollector()).forwardChangeBeneficiary(
 			storageProvider.minerId,

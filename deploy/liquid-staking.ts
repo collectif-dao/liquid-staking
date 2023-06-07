@@ -11,7 +11,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
 	const resolver = await deployments.get("Resolver");
 
-	await deployAndSaveContract("LiquidStaking", [wFIL, resolver.address], hre);
+	await deployAndSaveContract("LiquidStaking", [wFIL, resolver.address, 0], hre);
 };
 
 export default deployFunction;

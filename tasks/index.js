@@ -1,5 +1,6 @@
 exports.getAddress = require("./general/get-address");
 exports.checkNode = require("./general/check-node");
+exports.contracts = require("./general/contracts");
 
 // --- Storage Provider Registry ----
 exports.register = require("./storage-provider-registry/register");

@@ -9,8 +9,7 @@ export function hexToBytes(hex) {
 export async function callRpc(method, params) {
 	var options = {
 		method: "POST",
-		url: "https://api.hyperspace.node.glif.io/rpc/v1",
-		// url: "http://localhost:1234/rpc/v0",
+		url: "http://localhost:1234/rpc/v0",
 		headers: {
 			"Content-Type": "application/json",
 		},
