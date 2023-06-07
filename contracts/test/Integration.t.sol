@@ -184,6 +184,7 @@ contract IntegrationTest is DSTestPlus {
 		hevm.prank(alice);
 		registry.requestAllocationLimitUpdate(totalAllocation, vars.dailyAllocation);
 		registry.updateAllocationLimit(aliceOwnerId, totalAllocation, vars.dailyAllocation, vars.hypotheticalRepayment);
+		registry.acceptBeneficiaryAddress(aliceOwnerId);
 
 		hevm.prank(staker);
 		staking.stake{value: totalAllocation}();
@@ -282,6 +283,7 @@ contract IntegrationTest is DSTestPlus {
 		hevm.prank(alice);
 		registry.requestAllocationLimitUpdate(totalAllocation, vars.dailyAllocation);
 		registry.updateAllocationLimit(aliceOwnerId, totalAllocation, vars.dailyAllocation, vars.hypotheticalRepayment);
+		registry.acceptBeneficiaryAddress(aliceOwnerId);
 
 		hevm.prank(staker);
 		staking.stake{value: totalAllocation}();
@@ -398,6 +400,7 @@ contract IntegrationTest is DSTestPlus {
 		hevm.prank(alice);
 		registry.requestAllocationLimitUpdate(totalAllocation, vars.dailyAllocation);
 		registry.updateAllocationLimit(aliceOwnerId, totalAllocation, vars.dailyAllocation, vars.hypotheticalRepayment);
+		registry.acceptBeneficiaryAddress(aliceOwnerId);
 
 		hevm.prank(staker);
 		staking.stake{value: totalAllocation}();
@@ -541,6 +544,7 @@ contract IntegrationTest is DSTestPlus {
 		hevm.prank(alice);
 		registry.requestAllocationLimitUpdate(totalAllocation, vars.dailyAllocation);
 		registry.updateAllocationLimit(aliceOwnerId, totalAllocation, vars.dailyAllocation, vars.hypotheticalRepayment);
+		registry.acceptBeneficiaryAddress(aliceOwnerId);
 
 		hevm.prank(staker);
 		staking.stake{value: totalAllocation}();
@@ -686,7 +690,9 @@ contract IntegrationTest is DSTestPlus {
 
 		hevm.prank(alice);
 		registry.requestAllocationLimitUpdate(totalAllocation, vars.dailyAllocation);
+
 		registry.updateAllocationLimit(aliceOwnerId, totalAllocation, vars.dailyAllocation, vars.hypotheticalRepayment);
+		registry.acceptBeneficiaryAddress(aliceOwnerId);
 
 		hevm.prank(staker);
 		staking.stake{value: totalAllocation}();
@@ -811,6 +817,7 @@ contract IntegrationTest is DSTestPlus {
 		hevm.prank(alice);
 		registry.requestAllocationLimitUpdate(totalAllocation, vars.dailyAllocation);
 		registry.updateAllocationLimit(aliceOwnerId, totalAllocation, vars.dailyAllocation, vars.hypotheticalRepayment);
+		registry.acceptBeneficiaryAddress(aliceOwnerId);
 
 		hevm.prank(staker);
 		staking.stake{value: totalAllocation}();

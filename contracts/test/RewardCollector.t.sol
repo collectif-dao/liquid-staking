@@ -162,7 +162,9 @@ contract RewardCollectorTest is DSTestPlus {
 
 		hevm.prank(alice);
 		registry.requestAllocationLimitUpdate(amount, dailyAllocation);
+
 		registry.updateAllocationLimit(aliceOwnerId, amount, dailyAllocation, amount + 10); // TODO: FIX
+		registry.acceptBeneficiaryAddress(aliceOwnerId);
 
 		hevm.prank(alice);
 		collateral.deposit{value: collateralAmount}(aliceOwnerId);
@@ -209,7 +211,9 @@ contract RewardCollectorTest is DSTestPlus {
 
 		hevm.prank(alice);
 		registry.requestAllocationLimitUpdate(amount, dailyAllocation);
+
 		registry.updateAllocationLimit(aliceOwnerId, amount, dailyAllocation, amount + 10); // TODO: FIX
+		registry.acceptBeneficiaryAddress(aliceOwnerId);
 
 		hevm.prank(alice);
 		registry.setRestaking(2000, aliceRestaking);
@@ -249,7 +253,9 @@ contract RewardCollectorTest is DSTestPlus {
 
 		hevm.prank(alice);
 		registry.requestAllocationLimitUpdate(amount, dailyAllocation);
+
 		registry.updateAllocationLimit(aliceOwnerId, amount, dailyAllocation, amount + 10); // TODO: FIX
+		registry.acceptBeneficiaryAddress(aliceOwnerId);
 
 		hevm.prank(address(minerActor));
 		collateral.deposit{value: collateralAmount}(aliceOwnerId);
@@ -283,7 +289,9 @@ contract RewardCollectorTest is DSTestPlus {
 
 		hevm.prank(alice);
 		registry.requestAllocationLimitUpdate(amount, dailyAllocation);
+
 		registry.updateAllocationLimit(aliceOwnerId, amount, dailyAllocation, amount + 10); // TODO: FIX
+		registry.acceptBeneficiaryAddress(aliceOwnerId);
 
 		hevm.prank(address(minerActor));
 		collateral.deposit{value: collateralAmount}(aliceOwnerId);

@@ -49,6 +49,7 @@ contract StorageProviderRegistry is
 	error OwnerProposed();
 	error InvalidBeneficiary();
 	error AlreadyApproved();
+	error NonSyncedBeneficiary();
 
 	// Mapping of storage provider IDs to their storage provider info
 	mapping(uint64 => StorageProviderTypes.StorageProvider) public storageProviders;
@@ -72,7 +73,7 @@ contract StorageProviderRegistry is
 	mapping(address => bool) public pools;
 
 	// Mapping of beneficiary status to miner IDs
-	mapping(uint64 => bool) public beneficiaryStatus;
+	mapping(uint64 => bool) public syncedBeneficiary;
 
 	bytes32 private constant REGISTRY_ADMIN = keccak256("REGISTRY_ADMIN");
 
@@ -238,7 +239,7 @@ contract StorageProviderRegistry is
 		);
 
 		storageProvider.active = true;
-		beneficiaryStatus[_ownerId] = true;
+		syncedBeneficiary[_ownerId] = true;
 
 		emit StorageProviderBeneficiaryAddressAccepted(_ownerId);
 	}
@@ -254,7 +255,7 @@ contract StorageProviderRegistry is
 		) revert InvalidRepayment();
 
 		storageProviders[_ownerId].active = false;
-		delete beneficiaryStatus[_ownerId];
+		delete syncedBeneficiary[_ownerId];
 
 		emit StorageProviderDeactivated(_ownerId);
 	}
@@ -343,7 +344,7 @@ contract StorageProviderRegistry is
 		spAllocation.dailyAllocation = _dailyAllocation;
 		spAllocation.repayment = _repaymentAmount;
 
-		beneficiaryStatus[_ownerId] = false;
+		syncedBeneficiary[_ownerId] = false;
 		delete allocationRequests[_ownerId];
 
 		emit StorageProviderAllocationLimitUpdate(_ownerId, _allocationLimit, _dailyAllocation, _repaymentAmount);
@@ -429,6 +430,7 @@ contract StorageProviderRegistry is
 	 */
 	function increaseUsedAllocation(uint64 _ownerId, uint256 _allocated, uint256 _timestamp) external {
 		if (msg.sender != resolver.getCollateral()) revert InvalidAccess();
+		if (!syncedBeneficiary[_ownerId]) revert NonSyncedBeneficiary();
 
 		(uint year, uint month, uint day) = BokkyPooBahsDateTimeLibrary.timestampToDate(_timestamp);
 		bytes32 dateHash = keccak256(abi.encodePacked(year, month, day, _ownerId));

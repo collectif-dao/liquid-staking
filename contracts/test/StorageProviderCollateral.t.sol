@@ -326,7 +326,9 @@ contract StorageProviderCollateralTest is DSTestPlus {
 
 		hevm.prank(alice);
 		registry.requestAllocationLimitUpdate(MAX_ALLOCATION, MAX_ALLOCATION);
+
 		registry.updateAllocationLimit(aliceOwnerId, MAX_ALLOCATION, MAX_ALLOCATION, MAX_ALLOCATION + 10);
+		registry.acceptBeneficiaryAddress(aliceOwnerId);
 
 		hevm.prank(alice);
 		collateral.deposit{value: SAMPLE_DAILY_ALLOCATION}(aliceOwnerId);

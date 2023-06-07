@@ -156,6 +156,7 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 		);
 
 		storageProviders[_ownerId].active = true;
+		syncedBeneficiary[_ownerId] = true;
 
 		emit StorageProviderBeneficiaryAddressAccepted(_ownerId);
 	}
