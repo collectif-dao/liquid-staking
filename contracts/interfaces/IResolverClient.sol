@@ -26,4 +26,9 @@ interface IResolverClient {
 	 * @notice Returns an address of a Reward Collector contract
 	 */
 	function getRewardCollector() external view returns (address);
+
+	/**
+	 * @notice Returns a Protocol Rewards address
+	 */
+	function getProtocolRewards() external view returns (address);
 }

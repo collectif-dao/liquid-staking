@@ -43,6 +43,12 @@ interface IResolver {
 	event RewardCollectorAddressUpdated(address newAddress);
 
 	/**
+	 * @notice Emitted when Protocol Rewards address updated
+	 * @param newAddress New address
+	 */
+	event ProtocolRewardsAddressUpdated(address newAddress);
+
+	/**
 	 * @notice Sets a `newAddress` for a contract by `id`
 	 * @param id Address Identifier
 	 * @param newAddress Contract implementation address
@@ -91,6 +97,18 @@ interface IResolver {
 	 * @notice Returns an address of a Liquid Staking contract
 	 */
 	function getLiquidStaking() external view returns (address);
+
+	/**
+	 * @notice Update Protocol Rewards address
+	 * @param newAddress Protocol Rewards address
+	 * @dev Only triggered by resolver owner
+	 */
+	function setProtocolRewardsAddress(address newAddress) external;
+
+	/**
+	 * @notice Returns a Protocol Rewards address
+	 */
+	function getProtocolRewards() external view returns (address);
 
 	/**
 	 * @notice Returns the implementation contract

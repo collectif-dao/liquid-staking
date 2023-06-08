@@ -19,6 +19,7 @@ contract Resolver is IResolver, Initializable, OwnableUpgradeable, UUPSUpgradeab
 	bytes32 private constant COLLATERAL = "COLLATERAL";
 	bytes32 private constant LIQUID_STAKING_CONTROLLER = "LIQUID_STAKING_CONTROLLER";
 	bytes32 private constant REWARD_COLLECTOR = "REWARD_COLLECTOR";
+	bytes32 private constant PROTOCOL_REWARDS = "PROTOCOL_REWARDS";
 
 	/**
 	 * @dev Contract initializer function.
@@ -139,6 +140,24 @@ contract Resolver is IResolver, Initializable, OwnableUpgradeable, UUPSUpgradeab
 	 */
 	function getRewardCollector() external view override returns (address) {
 		return getAddress(REWARD_COLLECTOR);
+	}
+
+	/**
+	 * @notice Update Protocol Rewards address
+	 * @param newAddress Protocol Rewards address
+	 * @dev Only triggered by resolver owner
+	 */
+	function setProtocolRewardsAddress(address newAddress) external override onlyOwner {
+		_setAddress(PROTOCOL_REWARDS, newAddress);
+
+		emit ProtocolRewardsAddressUpdated(newAddress);
+	}
+
+	/**
+	 * @notice Returns a ProtocolRewards address
+	 */
+	function getProtocolRewards() external view override returns (address) {
+		return getAddress(PROTOCOL_REWARDS);
 	}
 
 	function _setAddress(bytes32 id, address newAddr) internal {

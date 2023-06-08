@@ -42,6 +42,12 @@ interface IRewardCollector {
 	);
 
 	/**
+	 * @notice Emitted when protocol rewards being withdrawn
+	 * @param amount Total withdrawal amount
+	 */
+	event WithdrawProtocolRewards(uint256 amount);
+
+	/**
 	 * @notice Withdraw initial pledge from Storage Provider's Miner Actor by `ownerId`
 	 * This function is triggered when sector is not extended by miner actor and initial pledge unlocked
 	 * @param ownerId Storage provider owner ID

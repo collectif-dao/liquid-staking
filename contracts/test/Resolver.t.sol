@@ -15,6 +15,7 @@ contract ResolverTest is DSTestPlus {
 	bytes32 private constant REGISTRY = "REGISTRY";
 	bytes32 private constant COLLATERAL = "COLLATERAL";
 	bytes32 private constant REWARD_COLLECTOR = "REWARD_COLLECTOR";
+	bytes32 private constant PROTOCOL_REWARDS = "PROTOCOL_REWARDS";
 
 	function setUp() public {
 		Resolver resolverImpl = new Resolver();
@@ -138,5 +139,29 @@ contract ResolverTest is DSTestPlus {
 		hevm.expectRevert(abi.encodeWithSignature("InvalidAddress()"));
 		resolver.setRewardCollectorAddress(address(0));
 		require(resolver.getRewardCollector() == address(0), "INVALID_ADDRESS_SET");
+	}
+
+	function testSetProtocolRewardsAddress(address newAddr) public {
+		hevm.assume(newAddr != address(0));
+
+		resolver.setProtocolRewardsAddress(newAddr);
+		require(resolver.getProtocolRewards() == newAddr, "INVALID_ADDRESS_SET");
+
+		// expect revert on set the same address
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAddress()"));
+		resolver.setAddress(PROTOCOL_REWARDS, newAddr);
+	}
+
+	function testSetProtocolRewardsAddressReverts(address newAddr) public {
+		hevm.assume(newAddr != address(0));
+
+		hevm.prank(alice);
+		hevm.expectRevert("Ownable: caller is not the owner");
+		resolver.setProtocolRewardsAddress(newAddr);
+		require(resolver.getProtocolRewards() == address(0), "INVALID_ADDRESS_SET");
+
+		hevm.expectRevert(abi.encodeWithSignature("InvalidAddress()"));
+		resolver.setProtocolRewardsAddress(address(0));
+		require(resolver.getProtocolRewards() == address(0), "INVALID_ADDRESS_SET");
 	}
 }

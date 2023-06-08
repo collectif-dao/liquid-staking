@@ -31,6 +31,8 @@ contract RewardCollector is
 	AccessControlUpgradeable,
 	UUPSUpgradeable
 {
+	using SafeTransferLib for *;
+
 	error InvalidAccess();
 	error InvalidParams();
 	error InactivePool();
@@ -171,6 +173,24 @@ contract RewardCollector is
 
 		if (vars.isRestaking) {
 			ILiquidStakingClient(stakingPool).restake(vars.restakingAmt, vars.restakingAddress);
+		}
+	}
+
+	/**
+	 * @notice Withdraw protocol FIL revenue from the RewardCollector contract to the protocolRewards address
+	 * @param _amount Withdrawal amount
+	 */
+	function withdrawProtocolRewards(uint256 _amount) external virtual {
+		if (!hasRole(FEE_DISTRIBUTOR, msg.sender)) revert InvalidAccess();
+
+		uint256 balanceWETH9 = WFIL.balanceOf(address(this));
+		if (balanceWETH9 < _amount) revert IncorrectWithdrawal();
+
+		if (balanceWETH9 > 0) {
+			WFIL.withdraw(_amount);
+			resolver.getProtocolRewards().safeTransferETH(_amount);
+
+			emit WithdrawProtocolRewards(_amount);
 		}
 	}
 

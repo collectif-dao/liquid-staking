@@ -44,6 +44,7 @@ contract IntegrationTest is DSTestPlus {
 	address private alice = address(0x122);
 	address private aliceRestaking = address(0x123412);
 	address private aliceOwnerAddr = address(0x12341214212);
+	address private protocolRewards = address(0x777);
 
 	address private staker = address(0x12321124);
 
@@ -139,6 +140,7 @@ contract IntegrationTest is DSTestPlus {
 		resolver.setCollateralAddress(address(collateral));
 		resolver.setLiquidStakingAddress(address(staking));
 		resolver.setRewardCollectorAddress(address(rewardCollector));
+		resolver.setProtocolRewardsAddress(protocolRewards);
 
 		hevm.prank(alice);
 		registry.register(aliceMinerId, ALICE_TOTAL_ALLOCATION, ALICE_DAILY_ALLOCATION);
@@ -170,6 +172,9 @@ contract IntegrationTest is DSTestPlus {
 		uint256 totalAvailableRewards;
 		uint256 totalRewards;
 		uint256 rewardsDelta;
+		// protocol revenue
+		uint256 protocolRevenuePerDay;
+		uint256 totalProtocolRevenue;
 	}
 
 	function testSuccessfulInteractions(uint256 totalAllocation) public {
@@ -210,6 +215,7 @@ contract IntegrationTest is DSTestPlus {
 		vars.revenuePerDay = (vars.availableRewardsPerDay * profitShare) / BASIS_POINTS;
 		vars.totalSectors = vars.newSectors * ALICE_ALLOCATION_PERIOD;
 		vars.totalAvailableRewards = vars.availableRewardsPerDay * ALICE_ALLOCATION_PERIOD;
+		vars.protocolRevenuePerDay = (vars.availableRewardsPerDay * adminFee) / BASIS_POINTS;
 
 		hevm.deal(address(minerActor), vars.totalAvailableRewards);
 
@@ -264,6 +270,12 @@ contract IntegrationTest is DSTestPlus {
 						totalAllocation + initialDeposit - vars.totalAllocated + (vars.revenuePerDay * (i)),
 					"INVALID_LSP_WFIL_BALANCE"
 				);
+
+				rewardCollector.withdrawProtocolRewards(vars.protocolRevenuePerDay);
+				vars.totalProtocolRevenue += vars.protocolRevenuePerDay;
+
+				require(wfil.balanceOf(address(rewardCollector)) == 0, "INVALID_BALANCE");
+				require(protocolRewards.balance == vars.totalProtocolRevenue, "INVALID_BALANCE");
 			} else {
 				require(staking.totalAssets() == totalAllocation + initialDeposit, "INVALID_LSP_ASSETS");
 				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
@@ -308,6 +320,7 @@ contract IntegrationTest is DSTestPlus {
 		vars.availableRewardsPerDay = (vars.totalRewardsPerDay * 2500) / BASIS_POINTS;
 		vars.revenuePerDay = (vars.availableRewardsPerDay * profitShare) / BASIS_POINTS;
 		// vars.lockedRewardsPerDay = vars.totalRewardsPerDay - vars.availableRewardsPerDay;
+		vars.protocolRevenuePerDay = (vars.availableRewardsPerDay * adminFee) / BASIS_POINTS;
 
 		vars.totalSectors = vars.newSectors * ALICE_ALLOCATION_PERIOD;
 
@@ -381,6 +394,12 @@ contract IntegrationTest is DSTestPlus {
 						totalAllocation + initialDeposit - vars.totalAllocated + (vars.revenuePerDay * (i)),
 					"INVALID_LSP_WFIL_BALANCE"
 				);
+
+				rewardCollector.withdrawProtocolRewards(vars.protocolRevenuePerDay);
+				vars.totalProtocolRevenue += vars.protocolRevenuePerDay;
+
+				require(wfil.balanceOf(address(rewardCollector)) == 0, "INVALID_BALANCE");
+				require(protocolRewards.balance == vars.totalProtocolRevenue, "INVALID_BALANCE");
 			} else if (i == 0) {
 				require(staking.totalAssets() == totalAllocation + initialDeposit, "INVALID_LSP_ASSETS");
 				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
@@ -426,6 +445,7 @@ contract IntegrationTest is DSTestPlus {
 		vars.revenuePerDay = (vars.availableRewardsPerDay * profitShare) / BASIS_POINTS;
 		vars.totalSectors = vars.newSectors * ALICE_ALLOCATION_PERIOD;
 		vars.totalAvailableRewards = vars.availableRewardsPerDay * ALICE_ALLOCATION_PERIOD;
+		vars.protocolRevenuePerDay = (vars.availableRewardsPerDay * adminFee) / BASIS_POINTS;
 
 		hevm.deal(address(minerActor), vars.totalAvailableRewards);
 
@@ -525,6 +545,12 @@ contract IntegrationTest is DSTestPlus {
 					collateral.getLockedCollateral(aliceOwnerId) == collateralRequirements,
 					"INVALID_LOCKED_COLLATERAL"
 				);
+
+				rewardCollector.withdrawProtocolRewards(vars.protocolRevenuePerDay);
+				vars.totalProtocolRevenue += vars.protocolRevenuePerDay;
+
+				require(wfil.balanceOf(address(rewardCollector)) == 0, "INVALID_BALANCE");
+				require(protocolRewards.balance == vars.totalProtocolRevenue, "INVALID_BALANCE");
 			} else if (i == 0) {
 				require(staking.totalAssets() == totalAllocation + initialDeposit, "INVALID_LSP_ASSETS");
 				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
@@ -570,6 +596,7 @@ contract IntegrationTest is DSTestPlus {
 		vars.revenuePerDay = (vars.availableRewardsPerDay * profitShare) / BASIS_POINTS;
 		vars.totalSectors = vars.newSectors * ALICE_ALLOCATION_PERIOD;
 		vars.totalAvailableRewards = vars.availableRewardsPerDay * ALICE_ALLOCATION_PERIOD;
+		vars.protocolRevenuePerDay = (vars.availableRewardsPerDay * adminFee) / BASIS_POINTS;
 
 		hevm.deal(address(minerActor), vars.totalAvailableRewards);
 
@@ -659,6 +686,12 @@ contract IntegrationTest is DSTestPlus {
 					"INVALID_MINER_ACTOR_BALANCE_AFTER_WITHDRAWAL"
 				);
 				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
+
+				rewardCollector.withdrawProtocolRewards(vars.protocolRevenuePerDay);
+				vars.totalProtocolRevenue += vars.protocolRevenuePerDay;
+
+				require(wfil.balanceOf(address(rewardCollector)) == 0, "INVALID_BALANCE");
+				require(protocolRewards.balance == vars.totalProtocolRevenue, "INVALID_BALANCE");
 			} else {
 				require(staking.totalAssets() == totalAllocation + initialDeposit, "INVALID_LSP_ASSETS");
 				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
@@ -718,6 +751,7 @@ contract IntegrationTest is DSTestPlus {
 		vars.revenuePerDay = (vars.availableRewardsPerDay * profitShare) / BASIS_POINTS;
 		vars.totalSectors = vars.newSectors * ALICE_ALLOCATION_PERIOD;
 		vars.totalAvailableRewards = vars.availableRewardsPerDay * ALICE_ALLOCATION_PERIOD;
+		vars.protocolRevenuePerDay = (vars.availableRewardsPerDay * adminFee) / BASIS_POINTS;
 
 		hevm.deal(address(minerActor), vars.totalAvailableRewards);
 
@@ -798,6 +832,12 @@ contract IntegrationTest is DSTestPlus {
 							(rVars.restakingAmt * i),
 					"INVALID_LSP_WFIL_BALANCE"
 				);
+
+				rewardCollector.withdrawProtocolRewards(vars.protocolRevenuePerDay);
+				vars.totalProtocolRevenue += vars.protocolRevenuePerDay;
+
+				require(wfil.balanceOf(address(rewardCollector)) == 0, "INVALID_BALANCE");
+				require(protocolRewards.balance == vars.totalProtocolRevenue, "INVALID_BALANCE");
 			} else {
 				require(staking.totalAssets() == totalAllocation + initialDeposit, "INVALID_LSP_ASSETS");
 				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
@@ -843,6 +883,7 @@ contract IntegrationTest is DSTestPlus {
 		vars.revenuePerDay = (vars.availableRewardsPerDay * profitShare) / BASIS_POINTS;
 		vars.totalSectors = vars.newSectors * ALICE_ALLOCATION_PERIOD;
 		vars.totalAvailableRewards = vars.availableRewardsPerDay * ALICE_ALLOCATION_PERIOD;
+		vars.protocolRevenuePerDay = (vars.availableRewardsPerDay * adminFee) / BASIS_POINTS;
 
 		uint256 minerActorInitialBalance = totalAllocation / 2 + vars.totalAvailableRewards;
 		hevm.deal(address(minerActor), minerActorInitialBalance);
@@ -923,6 +964,12 @@ contract IntegrationTest is DSTestPlus {
 							(unPledged * (i)),
 					"INVALID_LSP_WFIL_BALANCE"
 				);
+
+				rewardCollector.withdrawProtocolRewards(vars.protocolRevenuePerDay);
+				vars.totalProtocolRevenue += vars.protocolRevenuePerDay;
+
+				require(wfil.balanceOf(address(rewardCollector)) == 0, "INVALID_BALANCE");
+				require(protocolRewards.balance == vars.totalProtocolRevenue, "INVALID_BALANCE");
 			} else {
 				require(staking.totalAssets() == totalAllocation + initialDeposit, "INVALID_LSP_ASSETS");
 				require(staking.totalFilPledged() == vars.totalAllocated, "INVALID_LSP_PLEDGED_ASSETS");
