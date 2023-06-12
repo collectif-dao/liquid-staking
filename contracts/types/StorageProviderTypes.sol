@@ -10,7 +10,7 @@ library StorageProviderTypes {
 		bool active;
 		bool onboarded;
 		address targetPool;
-		uint64 minerId; // Miner worker address
+		uint64 ownerId; // Miner owner address
 		int64 lastEpoch; // Max time period for accessing FIL from liquid staking
 	}
 

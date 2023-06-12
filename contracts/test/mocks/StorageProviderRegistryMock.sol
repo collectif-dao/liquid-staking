@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {StorageProviderRegistry, IStorageProviderRegistry, FilAddress, MinerTypes, IResolverClient, IStakingControllerClient, IStorageProviderCollateralClient, IRewardCollectorClient, StorageProviderTypes} from "../../StorageProviderRegistry.sol";
+import {StorageProviderRegistry, IStorageProviderRegistry, FilAddress, EnumerableSetUpgradeable, MinerTypes, IResolverClient, IStakingControllerClient, IStorageProviderCollateralClient, IRewardCollectorClient, StorageProviderTypes} from "../../StorageProviderRegistry.sol";
 import {MinerMockAPI as MockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
 import {FilAddresses} from "filecoin-solidity/contracts/v0.8/utils/FilAddresses.sol";
 import {Leb128} from "filecoin-solidity/contracts/v0.8/utils/Leb128.sol";
@@ -20,8 +20,10 @@ interface IStorageProviderRegistryExtended is IStorageProviderRegistry {
  * @title Storage Provider Registry Mock contract that works with mock Filecoin Miner API
  * @author Collective DAO
  */
-contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
+contract StorageProviderRegistryMock is StorageProviderRegistry {
 	using FilAddress for address;
+	using EnumerableSetUpgradeable for EnumerableSetUpgradeable.UintSet;
+
 	bytes32 private constant REGISTRY_ADMIN = keccak256("REGISTRY_ADMIN");
 	uint64 public ownerId;
 	uint64 public sampleSectorSize;
@@ -74,19 +76,22 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 		bytes memory senderBytes = Leb128.encodeUnsignedLeb128FromUInt64(ownerId).buf;
 		bytes memory ownerBytes = FilAddresses.fromBytes(ownerReturn.owner.data).data;
 		if (keccak256(senderBytes) != keccak256(ownerBytes)) revert InvalidOwner();
-		if (storageProviders[ownerId].onboarded) revert RegisteredSP();
+		if (storageProviders[_minerId].onboarded) revert RegisteredSP();
 
 		address targetPool = resolver.getLiquidStaking();
 
-		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[ownerId];
-		storageProvider.minerId = _minerId;
+		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[_minerId];
+		storageProvider.ownerId = ownerId;
 		storageProvider.targetPool = targetPool;
 
-		StorageProviderTypes.SPAllocation storage spAllocation = allocations[ownerId];
+		EnumerableSetUpgradeable.UintSet storage set = minerIds[ownerId];
+		set.add(_minerId);
+
+		StorageProviderTypes.SPAllocation storage spAllocation = allocations[_minerId];
 		spAllocation.allocationLimit = _allocationLimit;
 		spAllocation.dailyAllocation = _dailyAllocation;
 
-		sectorSizes[ownerId] = sampleSectorSize;
+		sectorSizes[_minerId] = sampleSectorSize;
 
 		IStorageProviderCollateralClient(resolver.getCollateral()).updateCollateralRequirements(ownerId, 0);
 		IStakingControllerClient(resolver.getLiquidStakingController()).updateProfitShare(ownerId, 0, targetPool);
@@ -124,10 +129,10 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 		MinerTypes.GetOwnerReturn memory ownerReturn = mockAPI.getOwner();
 		if (keccak256(ownerReturn.proposed.data) != keccak256(bytes("0x00"))) revert OwnerProposed();
 
-		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[ownerId];
-		StorageProviderTypes.SPAllocation storage spAllocation = allocations[ownerId];
+		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[_minerId];
+		StorageProviderTypes.SPAllocation storage spAllocation = allocations[_minerId];
 
-		if (storageProviders[ownerId].onboarded) revert RegisteredSP();
+		if (storageProviders[_minerId].onboarded) revert RegisteredSP();
 
 		storageProvider.onboarded = true;
 		storageProvider.lastEpoch = _lastEpoch;
@@ -141,48 +146,53 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 
 	/**
 	 * @notice Accept beneficiary address transfer and activate FIL allocation
-	 * @param _ownerId Storage Provider owner ID
-	 * @dev Only triggered by owner contract
+	 * @param _minerId Storage Provider miner ID
+	 * @dev Only triggered by registry admin
 	 */
-	function acceptBeneficiaryAddress(uint64 _ownerId) public override onlyAdmin {
-		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_ownerId];
+	function acceptBeneficiaryAddress(uint64 _minerId) public override onlyAdmin {
+		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_minerId];
 		if (!storageProvider.onboarded) revert InactiveSP();
 
 		IRewardCollectorClient(resolver.getRewardCollector()).forwardChangeBeneficiary(
-			storageProvider.minerId,
+			_minerId,
 			beneficiaryId,
-			allocations[ownerId].repayment,
+			allocations[_minerId].repayment,
 			storageProvider.lastEpoch
 		);
 
-		storageProviders[_ownerId].active = true;
-		syncedBeneficiary[_ownerId] = true;
+		storageProviders[_minerId].active = true;
+		syncedBeneficiary[_minerId] = true;
 
-		emit StorageProviderBeneficiaryAddressAccepted(_ownerId);
+		emit StorageProviderBeneficiaryAddressAccepted(_minerId);
 	}
 
 	/**
 	 * @notice Request storage provider's FIL allocation update with `_allocationLimit`
+	 * @param _minerId Storage Provider miner ID
 	 * @param _allocationLimit New FIL allocation for storage provider
 	 * @param _dailyAllocation New daily FIL allocation for storage provider
 	 * @dev Only triggered by Storage Provider owner
 	 */
-	function requestAllocationLimitUpdate(uint256 _allocationLimit, uint256 _dailyAllocation) public virtual override {
+	function requestAllocationLimitUpdate(
+		uint64 _minerId,
+		uint256 _allocationLimit,
+		uint256 _dailyAllocation
+	) public virtual override {
 		if (_allocationLimit == 0 || _allocationLimit > maxAllocation) revert InvalidAllocation();
 		if (_dailyAllocation == 0 || _dailyAllocation > _allocationLimit) revert InvalidDailyAllocation();
 
-		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[ownerId];
+		StorageProviderTypes.StorageProvider memory storageProvider = storageProviders[_minerId];
 		if (!storageProvider.active) revert InactiveSP();
 
-		StorageProviderTypes.SPAllocation memory spAllocation = allocations[ownerId];
+		StorageProviderTypes.SPAllocation memory spAllocation = allocations[_minerId];
 		if (spAllocation.allocationLimit == _allocationLimit && spAllocation.dailyAllocation == _dailyAllocation)
 			revert InvalidParams();
 
-		StorageProviderTypes.AllocationRequest storage allocationRequest = allocationRequests[ownerId];
+		StorageProviderTypes.AllocationRequest storage allocationRequest = allocationRequests[_minerId];
 		allocationRequest.allocationLimit = _allocationLimit;
 		allocationRequest.dailyAllocation = _dailyAllocation;
 
-		emit StorageProviderAllocationLimitRequest(ownerId, _allocationLimit, _dailyAllocation);
+		emit StorageProviderAllocationLimitRequest(_minerId, _allocationLimit, _dailyAllocation);
 	}
 
 	/**
@@ -202,26 +212,6 @@ contract StorageProviderRegistryMock is StorageProviderRegistry, DSTestPlus {
 		restaking.restakingAddress = _restakingAddress;
 
 		emit StorageProviderMinerRestakingRatioUpdate(ownerId, _restakingRatio, _restakingAddress);
-	}
-
-	/**
-	 * @notice Update storage provider miner ID with `_minerId`
-	 * @param _ownerId Storage Provider owner ID
-	 * @param _minerId Storage Provider new miner ID
-	 * @dev Only triggered by registry admin
-	 */
-	function setMinerAddress(
-		uint64 _ownerId,
-		uint64 _minerId
-	) public override activeStorageProvider(_ownerId) onlyAdmin {
-		uint64 prevMiner = storageProviders[_ownerId].minerId;
-		if (prevMiner == _minerId) revert InvalidParams();
-
-		// Skip ownership check as it fails on tests
-
-		storageProviders[_ownerId].minerId = _minerId;
-
-		emit StorageProviderMinerAddressUpdate(_ownerId, _minerId);
 	}
 
 	/**
@@ -264,29 +254,29 @@ contract StorageProviderRegistryCallerMock {
 
 	/**
 	 * @notice Increase collected rewards by Storage Provider
-	 * @param _ownerId Storage Provider owner ID
+	 * @param _minerId Storage Provider miner ID
 	 * @param _accuredRewards Withdrawn rewards from SP's miner actor
 	 */
-	function increaseRewards(uint64 _ownerId, uint256 _accuredRewards) external {
-		registry.increaseRewards(_ownerId, _accuredRewards);
+	function increaseRewards(uint64 _minerId, uint256 _accuredRewards) external {
+		registry.increaseRewards(_minerId, _accuredRewards);
 	}
 
 	/**
 	 * @notice Increase repaid pledge by Storage Provider
-	 * @param _ownerId Storage Provider owner ID
+	 * @param _minerId Storage Provider miner ID
 	 * @param _repaidPledge Withdrawn initial pledge after sector termination
 	 */
-	function increasePledgeRepayment(uint64 _ownerId, uint256 _repaidPledge) external {
-		registry.increasePledgeRepayment(_ownerId, _repaidPledge);
+	function increasePledgeRepayment(uint64 _minerId, uint256 _repaidPledge) external {
+		registry.increasePledgeRepayment(_minerId, _repaidPledge);
 	}
 
 	/**
 	 * @notice Increase used allocation for Storage Provider
-	 * @param _ownerId Storage Provider owner ID
+	 * @param _minerId Storage Provider miner ID
 	 * @param _allocated FIL amount that is going to be pledged for Storage Provider
 	 */
-	function increaseUsedAllocation(uint64 _ownerId, uint256 _allocated, uint256 _timestamp) external {
-		registry.increaseUsedAllocation(_ownerId, _allocated, _timestamp);
+	function increaseUsedAllocation(uint64 _minerId, uint256 _allocated, uint256 _timestamp) external {
+		registry.increaseUsedAllocation(_minerId, _allocated, _timestamp);
 	}
 
 	/**

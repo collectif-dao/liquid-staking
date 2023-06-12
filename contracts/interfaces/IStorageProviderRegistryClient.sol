@@ -35,6 +35,16 @@ interface IStorageProviderRegistryClient {
 	function isActiveProvider(uint64 _ownerId) external view returns (bool);
 
 	/**
+	 * @notice Return a boolean flag if `_ownerId` has registered any miner ids
+	 */
+	function isActiveOwner(uint64 _ownerId) external view returns (bool);
+
+	/**
+	 * @notice Return a boolean flag if `_ownerId` owns the specific `_minerId`
+	 */
+	function isActualOwner(uint64 _ownerId, uint64 _minerId) external view returns (bool);
+
+	/**
 	 * @notice Return a boolean flag whether `_pool` is active or not
 	 */
 	function isActivePool(address _pool) external view returns (bool);
@@ -48,6 +58,8 @@ interface IStorageProviderRegistryClient {
 	 * @notice Return allocation information for a storage provider
 	 */
 	function allocations(uint64 ownerId) external view returns (uint256, uint256, uint256, uint256, uint256, uint256);
+
+	function getAllocations(uint64 _ownerId) external returns (uint256, uint256);
 
 	/**
 	 * @notice Return a repayment amount for Storage Provider

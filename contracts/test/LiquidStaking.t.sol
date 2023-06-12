@@ -150,7 +150,7 @@ contract LiquidStakingTest is DSTestPlus {
 			412678
 		);
 
-		registry.acceptBeneficiaryAddress(aliceOwnerId);
+		registry.acceptBeneficiaryAddress(aliceMinerId);
 	}
 
 	function testStake(uint256 amount) public {
@@ -317,7 +317,7 @@ contract LiquidStakingTest is DSTestPlus {
 
 		// try to pledge FIL from the pool
 		hevm.prank(alice);
-		staking.pledge(amount);
+		staking.pledge(amount, aliceMinerId);
 
 		require(wfil.balanceOf(address(this)) == 0, "INVALID_BALANCE");
 		require(address(minerActor).balance == amount, "INVALID_BALANCE");
@@ -339,7 +339,7 @@ contract LiquidStakingTest is DSTestPlus {
 		staking.stake{value: amount}();
 
 		hevm.prank(alice);
-		staking.pledge(pledgeAmt);
+		staking.pledge(pledgeAmt, aliceMinerId);
 
 		require(wfil.balanceOf(address(this)) == 0, "INVALID_BALANCE");
 		require(wfil.balanceOf(address(staking)) == amount + initialDeposit - pledgeAmt, "INVALID_BALANCE");
@@ -359,7 +359,7 @@ contract LiquidStakingTest is DSTestPlus {
 		assertBoolEq(collateral.activeSlashings(aliceOwnerId), true);
 
 		hevm.expectRevert(abi.encodeWithSignature("ActiveSlashing()"));
-		staking.pledge(pledgeAmt);
+		staking.pledge(pledgeAmt, aliceMinerId);
 	}
 
 	function testStakingAttack(uint256 amount) public {

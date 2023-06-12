@@ -42,6 +42,7 @@ contract StorageProviderCollateral is
 	error InactiveSP();
 	error InactivePool();
 	error InvalidAccess();
+	error InvalidOwner();
 	error InsufficientFunds();
 	error InsufficientCollateral();
 	error InactiveSlashing();
@@ -72,8 +73,8 @@ contract StorageProviderCollateral is
 		uint256 lockedCollateral;
 	}
 
-	modifier activeStorageProvider(uint64 _ownerId) {
-		if (!IRegistryClient(resolver.getRegistry()).isActiveProvider(_ownerId)) revert InactiveSP();
+	modifier activeStorageProvider(uint64 _minerId) {
+		if (!IRegistryClient(resolver.getRegistry()).isActiveProvider(_minerId)) revert InactiveSP();
 		_;
 	}
 
@@ -121,7 +122,6 @@ contract StorageProviderCollateral is
 		address ownerAddr = msg.sender.normalize();
 		(bool isID, uint64 ownerId) = ownerAddr.getActorID();
 		if (!isID) revert InactiveActor();
-		if (!IRegistryClient(resolver.getRegistry()).isActiveProvider(ownerId)) revert InactiveSP();
 
 		SPCollateral storage collateral = collaterals[ownerId];
 		collateral.availableCollateral = collateral.availableCollateral + amount;
@@ -142,7 +142,6 @@ contract StorageProviderCollateral is
 		address ownerAddr = msg.sender.normalize();
 		(bool isID, uint64 ownerId) = ownerAddr.getActorID();
 		if (!isID) revert InactiveActor();
-		if (!IRegistryClient(resolver.getRegistry()).isActiveProvider(ownerId)) revert InactiveSP();
 
 		(uint256 lockedWithdraw, uint256 availableWithdraw, bool isUnlock) = calcMaximumWithdrawAndRebalance(ownerId);
 
@@ -167,15 +166,16 @@ contract StorageProviderCollateral is
 	 * @dev Locks required collateral amount based on `_allocated` FIL to pledge
 	 * @notice Increases the total amount of locked collateral for storage provider
 	 * @param _ownerId Storage provider owner ID
+	 * @param _minerId Storage provider miner ID
 	 * @param _allocated FIL amount that is going to be pledged for Storage Provider
 	 */
-	function lock(uint64 _ownerId, uint256 _allocated) external activeStorageProvider(_ownerId) {
+	function lock(uint64 _ownerId, uint64 _minerId, uint256 _allocated) external activeStorageProvider(_minerId) {
 		IRegistryClient registry = IRegistryClient(resolver.getRegistry());
 		if (!registry.isActivePool(msg.sender)) revert InvalidAccess();
 		if (_allocated == 0) revert InvalidParams();
 
 		_rebalance(_ownerId, _allocated);
-		registry.increaseUsedAllocation(_ownerId, _allocated, block.timestamp);
+		registry.increaseUsedAllocation(_minerId, _allocated, block.timestamp);
 	}
 
 	/**
@@ -183,7 +183,7 @@ contract StorageProviderCollateral is
 	 * @notice Rebalances the total locked and available collateral amounts
 	 * @param _ownerId Storage provider owner ID
 	 */
-	function fit(uint64 _ownerId) external activeStorageProvider(_ownerId) {
+	function fit(uint64 _ownerId) external {
 		if (msg.sender != resolver.getRewardCollector()) revert InvalidAccess();
 
 		_rebalance(_ownerId, 0);
@@ -200,33 +200,30 @@ contract StorageProviderCollateral is
 	 * would take place after one another: slashing report and initial pledge withdrawal
 	 * which is the remaining pledge for a terminated sector.
 	 */
-	function reportSlashing(
-		uint64 _ownerId,
-		uint256 _slashingAmt
-	) external virtual nonReentrant activeStorageProvider(_ownerId) {
+	function reportSlashing(uint64 _ownerId, uint256 _slashingAmt) external virtual nonReentrant {
 		if (!hasRole(SLASHING_AGENT, msg.sender)) revert InvalidAccess();
 		if (_slashingAmt == 0) revert InvalidParams();
-		(, , uint64 minerId, ) = IRegistryClient(resolver.getRegistry()).getStorageProvider(_ownerId);
+		if (!IRegistryClient(resolver.getRegistry()).isActiveOwner(_ownerId)) revert InvalidOwner();
 
 		_slash(_ownerId, _slashingAmt, resolver.getLiquidStaking());
 
 		activeSlashings[_ownerId] = true;
 
-		emit ReportSlashing(_ownerId, minerId, _slashingAmt);
+		emit ReportSlashing(_ownerId, _slashingAmt);
 	}
 
 	/**
 	 * @notice Report recovery of previously slashed sectors for SP with `_ownerId`
 	 * @param _ownerId Storage provider owner ID
 	 */
-	function reportRecovery(uint64 _ownerId) external virtual activeStorageProvider(_ownerId) {
+	function reportRecovery(uint64 _ownerId) external virtual {
 		if (!hasRole(SLASHING_AGENT, msg.sender)) revert InvalidAccess();
 		if (!activeSlashings[_ownerId]) revert InactiveSlashing();
-		(, , uint64 minerId, ) = IRegistryClient(resolver.getRegistry()).getStorageProvider(_ownerId);
+		if (!IRegistryClient(resolver.getRegistry()).isActiveOwner(_ownerId)) revert InvalidOwner();
 
 		activeSlashings[_ownerId] = false;
 
-		emit ReportRecovery(_ownerId, minerId);
+		emit ReportRecovery(_ownerId);
 	}
 
 	/**
@@ -288,8 +285,8 @@ contract StorageProviderCollateral is
 		return collaterals[_ownerId].lockedCollateral;
 	}
 
-	function getDebt(uint64 _ownerId) public view returns (uint256) {
-		(, , uint256 usedAllocation, , , uint256 repaidPledge) = IRegistryClient(resolver.getRegistry()).allocations(
+	function getDebt(uint64 _ownerId) public returns (uint256) {
+		(uint256 usedAllocation, uint256 repaidPledge) = IRegistryClient(resolver.getRegistry()).getAllocations(
 			_ownerId
 		);
 
@@ -312,7 +309,7 @@ contract StorageProviderCollateral is
 	 * @param _ownerId Storage Provider owner address
 	 */
 	function calcMaximumWithdrawAndRebalance(uint64 _ownerId) internal returns (uint256, uint256, bool) {
-		(, , uint256 usedAllocation, , , uint256 repaidPledge) = IRegistryClient(resolver.getRegistry()).allocations(
+		(uint256 usedAllocation, uint256 repaidPledge) = IRegistryClient(resolver.getRegistry()).getAllocations(
 			_ownerId
 		);
 
@@ -340,13 +337,10 @@ contract StorageProviderCollateral is
 	 * @param _allocated Hypothetical allocation for SP
 	 */
 	function _rebalance(uint64 _ownerId, uint256 _allocated) internal {
-		(uint256 allocationLimit, , uint256 usedAllocation, , , uint256 repaidPledge) = IRegistryClient(
-			resolver.getRegistry()
-		).allocations(_ownerId);
+		(uint256 usedAllocation, uint256 repaidPledge) = IRegistryClient(resolver.getRegistry()).getAllocations(
+			_ownerId
+		);
 
-		if (_allocated > 0) {
-			if (usedAllocation + _allocated > allocationLimit) revert AllocationOverflow();
-		}
 		uint256 _collateralRequirements = collateralRequirements[_ownerId];
 		uint256 totalRequirements = calcCollateralRequirements(
 			usedAllocation,
@@ -391,9 +385,9 @@ contract StorageProviderCollateral is
 		uint256 _repaidPledge,
 		uint256 _allocationToUse,
 		uint256 _collateralRequirements
-	) internal pure returns (uint256) {
+	) internal returns (uint256) {
 		uint256 usedAllocation = _usedAllocation + _allocationToUse;
-		uint256 req = usedAllocation - _repaidPledge;
+		uint256 req = usedAllocation > _repaidPledge ? usedAllocation - _repaidPledge : 0;
 
 		if (req > 0) {
 			return req.mulDivDown(_collateralRequirements, BASIS_POINTS);

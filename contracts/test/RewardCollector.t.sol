@@ -148,7 +148,7 @@ contract RewardCollectorTest is DSTestPlus {
 			412678
 		);
 
-		registry.acceptBeneficiaryAddress(aliceOwnerId);
+		registry.acceptBeneficiaryAddress(aliceMinerId);
 	}
 
 	function testWithdrawRewards(uint256 amount) public {
@@ -163,10 +163,10 @@ contract RewardCollectorTest is DSTestPlus {
 		hevm.deal(alice, collateralAmount);
 
 		hevm.prank(alice);
-		registry.requestAllocationLimitUpdate(amount, dailyAllocation);
+		registry.requestAllocationLimitUpdate(aliceMinerId, amount, dailyAllocation);
 
-		registry.updateAllocationLimit(aliceOwnerId, amount, dailyAllocation, amount + 10); // TODO: FIX
-		registry.acceptBeneficiaryAddress(aliceOwnerId);
+		registry.updateAllocationLimit(aliceMinerId, amount, dailyAllocation, amount + 10); // TODO: FIX
+		registry.acceptBeneficiaryAddress(aliceMinerId);
 
 		hevm.prank(alice);
 		collateral.deposit{value: collateralAmount}(aliceOwnerId);
@@ -174,16 +174,25 @@ contract RewardCollectorTest is DSTestPlus {
 		staking.stake{value: amount}();
 
 		hevm.prank(alice);
-		staking.pledge(dailyAllocation);
+		staking.pledge(dailyAllocation, aliceMinerId);
 
 		require(address(minerActor).balance == withdrawAmount + dailyAllocation, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 
-		rewardCollector.withdrawRewards(aliceOwnerId, withdrawAmount);
+		rewardCollector.withdrawRewards(aliceMinerId, withdrawAmount);
 
 		uint256 protocolFees = (withdrawAmount * adminFee) / BASIS_POINTS;
 		uint256 stakingShare = (withdrawAmount * profitShare) / BASIS_POINTS;
 		uint256 spShare = withdrawAmount - (protocolFees + stakingShare);
+
+		emit log_named_uint("address(minerActor).balance", address(minerActor).balance);
+		emit log_named_uint("dailyAllocation", dailyAllocation);
+		emit log_named_uint("aliceOwnerAddr.balance", aliceOwnerAddr.balance);
+		emit log_named_uint("spShare", spShare);
+		emit log_named_uint("wfil.balanceOf(address(rewardCollector)", wfil.balanceOf(address(rewardCollector)));
+		emit log_named_uint("protocolFees", protocolFees);
+		emit log_named_uint("staking.totalAssets()", staking.totalAssets());
+		emit log_named_uint("amount + stakingShare", amount + stakingShare);
 
 		require(address(minerActor).balance == dailyAllocation, "INVALID_BALANCE");
 		require(aliceOwnerAddr.balance == spShare, "INVALID_BALANCE");
@@ -212,10 +221,10 @@ contract RewardCollectorTest is DSTestPlus {
 		uint256 spShare = withdrawAmount - (protocolShare + restakingAmt);
 
 		hevm.prank(alice);
-		registry.requestAllocationLimitUpdate(amount, dailyAllocation);
+		registry.requestAllocationLimitUpdate(aliceMinerId, amount, dailyAllocation);
 
-		registry.updateAllocationLimit(aliceOwnerId, amount, dailyAllocation, amount + 10); // TODO: FIX
-		registry.acceptBeneficiaryAddress(aliceOwnerId);
+		registry.updateAllocationLimit(aliceMinerId, amount, dailyAllocation, amount + 10); // TODO: FIX
+		registry.acceptBeneficiaryAddress(aliceMinerId);
 
 		hevm.prank(alice);
 		registry.setRestaking(2000, aliceRestaking);
@@ -226,14 +235,14 @@ contract RewardCollectorTest is DSTestPlus {
 		staking.stake{value: amount}();
 
 		hevm.prank(alice);
-		staking.pledge(dailyAllocation);
+		staking.pledge(dailyAllocation, aliceMinerId);
 
 		require(address(minerActor).balance == withdrawAmount + dailyAllocation, "INVALID_BALANCE");
 		require(wfil.balanceOf(address(collateral)) == collateralAmount, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 		require(wfil.balanceOf(address(staking)) == amount - dailyAllocation, "INVALID_BALANCE");
 
-		rewardCollector.withdrawRewards(aliceOwnerId, withdrawAmount);
+		rewardCollector.withdrawRewards(aliceMinerId, withdrawAmount);
 
 		require(aliceOwnerAddr.balance == spShare, "INVALID_BALANCE");
 		require(
@@ -254,10 +263,10 @@ contract RewardCollectorTest is DSTestPlus {
 		hevm.deal(address(minerActor), collateralAmount);
 
 		hevm.prank(alice);
-		registry.requestAllocationLimitUpdate(amount, dailyAllocation);
+		registry.requestAllocationLimitUpdate(aliceMinerId, amount, dailyAllocation);
 
-		registry.updateAllocationLimit(aliceOwnerId, amount, dailyAllocation, amount + 10); // TODO: FIX
-		registry.acceptBeneficiaryAddress(aliceOwnerId);
+		registry.updateAllocationLimit(aliceMinerId, amount, dailyAllocation, amount + 10); // TODO: FIX
+		registry.acceptBeneficiaryAddress(aliceMinerId);
 
 		hevm.prank(address(minerActor));
 		collateral.deposit{value: collateralAmount}(aliceOwnerId);
@@ -265,12 +274,12 @@ contract RewardCollectorTest is DSTestPlus {
 		staking.stake{value: amount}();
 
 		hevm.prank(address(minerActor));
-		staking.pledge(dailyAllocation);
+		staking.pledge(dailyAllocation, aliceMinerId);
 
 		require(address(minerActor).balance == dailyAllocation, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 
-		rewardCollector.withdrawPledge(aliceOwnerId, dailyAllocation);
+		rewardCollector.withdrawPledge(aliceMinerId, dailyAllocation);
 
 		require(address(minerActor).balance == 0, "INVALID_BALANCE");
 		require(wfil.balanceOf(address(staking)) == amount, "INVALID_BALANCE");
@@ -290,10 +299,10 @@ contract RewardCollectorTest is DSTestPlus {
 		uint256 dailyAllocation = amount / 30;
 
 		hevm.prank(alice);
-		registry.requestAllocationLimitUpdate(amount, dailyAllocation);
+		registry.requestAllocationLimitUpdate(aliceMinerId, amount, dailyAllocation);
 
-		registry.updateAllocationLimit(aliceOwnerId, amount, dailyAllocation, amount + 10); // TODO: FIX
-		registry.acceptBeneficiaryAddress(aliceOwnerId);
+		registry.updateAllocationLimit(aliceMinerId, amount, dailyAllocation, amount + 10); // TODO: FIX
+		registry.acceptBeneficiaryAddress(aliceMinerId);
 
 		hevm.prank(address(minerActor));
 		collateral.deposit{value: collateralAmount}(aliceOwnerId);
@@ -301,16 +310,16 @@ contract RewardCollectorTest is DSTestPlus {
 		staking.stake{value: amount}();
 
 		hevm.prank(address(minerActor));
-		staking.pledge(dailyAllocation);
+		staking.pledge(dailyAllocation, aliceMinerId);
 
 		hevm.expectRevert(abi.encodeWithSignature("AllocationOverflow()"));
-		rewardCollector.withdrawPledge(aliceOwnerId, dailyAllocation + 1);
+		rewardCollector.withdrawPledge(aliceMinerId, dailyAllocation + 1);
 	}
 
 	function testForwardChangeBeneficiary(uint64 minerId, int64 lastEpoch) public {
 		hevm.assume(minerId > 1 && minerId < 2115248121211227543 && lastEpoch > 0);
 
-		(, address targetPool, , ) = registry.getStorageProvider(aliceOwnerId);
+		(, address targetPool, , ) = registry.getStorageProvider(aliceMinerId);
 		assertEq(targetPool, address(staking));
 
 		registryCaller.forwardChangeBeneficiary(minerId, SAMPLE_REWARD_COLLECTOR_ID, repayment, lastEpoch);
@@ -340,10 +349,10 @@ contract RewardCollectorTest is DSTestPlus {
 		hevm.deal(alice, collateralAmount);
 
 		hevm.prank(alice);
-		registry.requestAllocationLimitUpdate(amount, dailyAllocation);
+		registry.requestAllocationLimitUpdate(aliceMinerId, amount, dailyAllocation);
 
-		registry.updateAllocationLimit(aliceOwnerId, amount, dailyAllocation, amount + 10); // TODO: FIX
-		registry.acceptBeneficiaryAddress(aliceOwnerId);
+		registry.updateAllocationLimit(aliceMinerId, amount, dailyAllocation, amount + 10); // TODO: FIX
+		registry.acceptBeneficiaryAddress(aliceMinerId);
 
 		hevm.prank(alice);
 		collateral.deposit{value: collateralAmount}(aliceOwnerId);
@@ -351,12 +360,12 @@ contract RewardCollectorTest is DSTestPlus {
 		staking.stake{value: amount}();
 
 		hevm.prank(alice);
-		staking.pledge(dailyAllocation);
+		staking.pledge(dailyAllocation, aliceMinerId);
 
 		require(address(minerActor).balance == withdrawAmount + dailyAllocation, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 
-		rewardCollector.withdrawRewards(aliceOwnerId, withdrawAmount);
+		rewardCollector.withdrawRewards(aliceMinerId, withdrawAmount);
 
 		uint256 protocolFees = (withdrawAmount * adminFee) / BASIS_POINTS;
 		uint256 stakingShare = (withdrawAmount * profitShare) / BASIS_POINTS;
@@ -387,10 +396,10 @@ contract RewardCollectorTest is DSTestPlus {
 		hevm.deal(alice, collateralAmount);
 
 		hevm.prank(alice);
-		registry.requestAllocationLimitUpdate(amount, dailyAllocation);
+		registry.requestAllocationLimitUpdate(aliceMinerId, amount, dailyAllocation);
 
-		registry.updateAllocationLimit(aliceOwnerId, amount, dailyAllocation, amount + 10); // TODO: FIX
-		registry.acceptBeneficiaryAddress(aliceOwnerId);
+		registry.updateAllocationLimit(aliceMinerId, amount, dailyAllocation, amount + 10); // TODO: FIX
+		registry.acceptBeneficiaryAddress(aliceMinerId);
 
 		hevm.prank(alice);
 		collateral.deposit{value: collateralAmount}(aliceOwnerId);
@@ -398,12 +407,12 @@ contract RewardCollectorTest is DSTestPlus {
 		staking.stake{value: amount}();
 
 		hevm.prank(alice);
-		staking.pledge(dailyAllocation);
+		staking.pledge(dailyAllocation, aliceMinerId);
 
 		require(address(minerActor).balance == withdrawAmount + dailyAllocation, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
 
-		rewardCollector.withdrawRewards(aliceOwnerId, withdrawAmount);
+		rewardCollector.withdrawRewards(aliceMinerId, withdrawAmount);
 
 		uint256 protocolFees = (withdrawAmount * adminFee) / BASIS_POINTS;
 		uint256 stakingShare = (withdrawAmount * profitShare) / BASIS_POINTS;

@@ -153,7 +153,7 @@ contract IntegrationTest is DSTestPlus {
 			10000000
 		);
 
-		registry.acceptBeneficiaryAddress(aliceOwnerId);
+		registry.acceptBeneficiaryAddress(aliceMinerId);
 		hevm.warp(genesisTimestamp);
 	}
 
@@ -187,9 +187,9 @@ contract IntegrationTest is DSTestPlus {
 		vars.hypotheticalRepayment = (totalAllocation * 15000) / BASIS_POINTS;
 
 		hevm.prank(alice);
-		registry.requestAllocationLimitUpdate(totalAllocation, vars.dailyAllocation);
-		registry.updateAllocationLimit(aliceOwnerId, totalAllocation, vars.dailyAllocation, vars.hypotheticalRepayment);
-		registry.acceptBeneficiaryAddress(aliceOwnerId);
+		registry.requestAllocationLimitUpdate(aliceMinerId, totalAllocation, vars.dailyAllocation);
+		registry.updateAllocationLimit(aliceMinerId, totalAllocation, vars.dailyAllocation, vars.hypotheticalRepayment);
+		registry.acceptBeneficiaryAddress(aliceMinerId);
 
 		hevm.prank(staker);
 		staking.stake{value: totalAllocation}();
@@ -224,7 +224,7 @@ contract IntegrationTest is DSTestPlus {
 			hevm.warp(genesisTimestamp + timeDelta);
 
 			hevm.prank(alice);
-			staking.pledge(vars.dailyAllocation);
+			staking.pledge(vars.dailyAllocation, aliceMinerId);
 			vars.totalAllocated = vars.totalAllocated + vars.dailyAllocation;
 
 			uint256 collateralRequirements = (vars.totalAllocated * collateral.collateralRequirements(aliceOwnerId)) /
@@ -246,7 +246,7 @@ contract IntegrationTest is DSTestPlus {
 			);
 
 			if (i > 0) {
-				rewardCollector.withdrawRewards(aliceOwnerId, vars.availableRewardsPerDay);
+				rewardCollector.withdrawRewards(aliceMinerId, vars.availableRewardsPerDay);
 				vars.rewardsDelta =
 					vars.totalAvailableRewards +
 					vars.totalAllocated -
@@ -293,9 +293,9 @@ contract IntegrationTest is DSTestPlus {
 		vars.hypotheticalRepayment = (totalAllocation * 15000) / BASIS_POINTS;
 
 		hevm.prank(alice);
-		registry.requestAllocationLimitUpdate(totalAllocation, vars.dailyAllocation);
-		registry.updateAllocationLimit(aliceOwnerId, totalAllocation, vars.dailyAllocation, vars.hypotheticalRepayment);
-		registry.acceptBeneficiaryAddress(aliceOwnerId);
+		registry.requestAllocationLimitUpdate(aliceMinerId, totalAllocation, vars.dailyAllocation);
+		registry.updateAllocationLimit(aliceMinerId, totalAllocation, vars.dailyAllocation, vars.hypotheticalRepayment);
+		registry.acceptBeneficiaryAddress(aliceMinerId);
 
 		hevm.prank(staker);
 		staking.stake{value: totalAllocation}();
@@ -336,11 +336,11 @@ contract IntegrationTest is DSTestPlus {
 
 			if (i == ALICE_ALLOCATION_PERIOD) {
 				hevm.prank(alice);
-				hevm.expectRevert(abi.encodeWithSignature("AllocationOverflow()"));
-				staking.pledge(vars.dailyAllocation);
+				hevm.expectRevert(abi.encodeWithSignature("InsufficientCollateral()"));
+				staking.pledge(vars.dailyAllocation, aliceMinerId);
 			} else {
 				hevm.prank(alice);
-				staking.pledge(vars.dailyAllocation);
+				staking.pledge(vars.dailyAllocation, aliceMinerId);
 				vars.totalAllocated = vars.totalAllocated + vars.dailyAllocation;
 
 				collateralRequirements =
@@ -366,11 +366,11 @@ contract IntegrationTest is DSTestPlus {
 			if (i == 50) {
 				hevm.prank(alice);
 				hevm.expectRevert(abi.encodeWithSignature("AllocationOverflow()"));
-				staking.pledge(1); // trying to pledge 1 wei after pledging daily allocation
+				staking.pledge(1, aliceMinerId); // trying to pledge 1 wei after pledging daily allocation
 			}
 
 			if (i > 0 && i < ALICE_ALLOCATION_PERIOD) {
-				rewardCollector.withdrawRewards(aliceOwnerId, vars.availableRewardsPerDay);
+				rewardCollector.withdrawRewards(aliceMinerId, vars.availableRewardsPerDay);
 				vars.rewardsDelta =
 					vars.totalAvailableRewards +
 					vars.totalAllocated -
@@ -417,9 +417,9 @@ contract IntegrationTest is DSTestPlus {
 		vars.hypotheticalRepayment = (totalAllocation * 15000) / BASIS_POINTS;
 
 		hevm.prank(alice);
-		registry.requestAllocationLimitUpdate(totalAllocation, vars.dailyAllocation);
-		registry.updateAllocationLimit(aliceOwnerId, totalAllocation, vars.dailyAllocation, vars.hypotheticalRepayment);
-		registry.acceptBeneficiaryAddress(aliceOwnerId);
+		registry.requestAllocationLimitUpdate(aliceMinerId, totalAllocation, vars.dailyAllocation);
+		registry.updateAllocationLimit(aliceMinerId, totalAllocation, vars.dailyAllocation, vars.hypotheticalRepayment);
+		registry.acceptBeneficiaryAddress(aliceMinerId);
 
 		hevm.prank(staker);
 		staking.stake{value: totalAllocation}();
@@ -461,7 +461,7 @@ contract IntegrationTest is DSTestPlus {
 			hevm.warp(genesisTimestamp + timeDelta);
 
 			hevm.prank(alice);
-			staking.pledge(vars.dailyAllocation);
+			staking.pledge(vars.dailyAllocation, aliceMinerId);
 			vars.totalAllocated = vars.totalAllocated + vars.dailyAllocation;
 
 			uint256 collateralRequirements = (vars.totalAllocated * collateral.collateralRequirements(aliceOwnerId)) /
@@ -496,7 +496,7 @@ contract IntegrationTest is DSTestPlus {
 				// Try to pledge daily allocation after slashing
 				hevm.prank(alice);
 				hevm.expectRevert(abi.encodeWithSignature("ActiveSlashing()"));
-				staking.pledge(vars.dailyAllocation);
+				staking.pledge(vars.dailyAllocation, aliceMinerId);
 
 				// Recover SP after recovering sectors
 				collateral.reportRecovery(aliceOwnerId);
@@ -507,7 +507,7 @@ contract IntegrationTest is DSTestPlus {
 			}
 
 			if (i > 0) {
-				rewardCollector.withdrawRewards(aliceOwnerId, vars.availableRewardsPerDay);
+				rewardCollector.withdrawRewards(aliceMinerId, vars.availableRewardsPerDay);
 				vars.rewardsDelta =
 					vars.totalAvailableRewards +
 					vars.totalAllocated -
@@ -568,9 +568,9 @@ contract IntegrationTest is DSTestPlus {
 		vars.hypotheticalRepayment = (totalAllocation * 15000) / BASIS_POINTS;
 
 		hevm.prank(alice);
-		registry.requestAllocationLimitUpdate(totalAllocation, vars.dailyAllocation);
-		registry.updateAllocationLimit(aliceOwnerId, totalAllocation, vars.dailyAllocation, vars.hypotheticalRepayment);
-		registry.acceptBeneficiaryAddress(aliceOwnerId);
+		registry.requestAllocationLimitUpdate(aliceMinerId, totalAllocation, vars.dailyAllocation);
+		registry.updateAllocationLimit(aliceMinerId, totalAllocation, vars.dailyAllocation, vars.hypotheticalRepayment);
+		registry.acceptBeneficiaryAddress(aliceMinerId);
 
 		hevm.prank(staker);
 		staking.stake{value: totalAllocation}();
@@ -610,7 +610,7 @@ contract IntegrationTest is DSTestPlus {
 			hevm.warp(genesisTimestamp + timeDelta);
 
 			hevm.prank(alice);
-			staking.pledge(vars.dailyAllocation);
+			staking.pledge(vars.dailyAllocation, aliceMinerId);
 			vars.totalAllocated = vars.totalAllocated + vars.dailyAllocation;
 
 			uint256 collateralRequirements = (vars.totalAllocated * collateral.collateralRequirements(aliceOwnerId)) /
@@ -637,7 +637,7 @@ contract IntegrationTest is DSTestPlus {
 			}
 
 			if (i > 0) {
-				rewardCollector.withdrawRewards(aliceOwnerId, vars.availableRewardsPerDay);
+				rewardCollector.withdrawRewards(aliceMinerId, vars.availableRewardsPerDay);
 				vars.rewardsDelta =
 					vars.totalAvailableRewards +
 					vars.totalAllocated -
@@ -722,10 +722,10 @@ contract IntegrationTest is DSTestPlus {
 		vars.hypotheticalRepayment = (totalAllocation * 15000) / BASIS_POINTS;
 
 		hevm.prank(alice);
-		registry.requestAllocationLimitUpdate(totalAllocation, vars.dailyAllocation);
+		registry.requestAllocationLimitUpdate(aliceMinerId, totalAllocation, vars.dailyAllocation);
 
-		registry.updateAllocationLimit(aliceOwnerId, totalAllocation, vars.dailyAllocation, vars.hypotheticalRepayment);
-		registry.acceptBeneficiaryAddress(aliceOwnerId);
+		registry.updateAllocationLimit(aliceMinerId, totalAllocation, vars.dailyAllocation, vars.hypotheticalRepayment);
+		registry.acceptBeneficiaryAddress(aliceMinerId);
 
 		hevm.prank(staker);
 		staking.stake{value: totalAllocation}();
@@ -773,7 +773,7 @@ contract IntegrationTest is DSTestPlus {
 			hevm.warp(genesisTimestamp + timeDelta);
 
 			hevm.prank(alice);
-			staking.pledge(vars.dailyAllocation);
+			staking.pledge(vars.dailyAllocation, aliceMinerId);
 			vars.totalAllocated = vars.totalAllocated + vars.dailyAllocation;
 
 			uint256 collateralRequirements = (vars.totalAllocated * collateral.collateralRequirements(aliceOwnerId)) /
@@ -805,7 +805,7 @@ contract IntegrationTest is DSTestPlus {
 				rVars.clFILShares = rVars.restakingAmt.mulDivDown(rVars.clFILTotalSupply, rVars.totalStakingAssets);
 				rVars.totalclFILShares += rVars.clFILShares;
 
-				rewardCollector.withdrawRewards(aliceOwnerId, vars.availableRewardsPerDay);
+				rewardCollector.withdrawRewards(aliceMinerId, vars.availableRewardsPerDay);
 				vars.rewardsDelta =
 					vars.totalAvailableRewards +
 					vars.totalAllocated -
@@ -855,9 +855,9 @@ contract IntegrationTest is DSTestPlus {
 		vars.hypotheticalRepayment = (totalAllocation * 15000) / BASIS_POINTS;
 
 		hevm.prank(alice);
-		registry.requestAllocationLimitUpdate(totalAllocation, vars.dailyAllocation);
-		registry.updateAllocationLimit(aliceOwnerId, totalAllocation, vars.dailyAllocation, vars.hypotheticalRepayment);
-		registry.acceptBeneficiaryAddress(aliceOwnerId);
+		registry.requestAllocationLimitUpdate(aliceMinerId, totalAllocation, vars.dailyAllocation);
+		registry.updateAllocationLimit(aliceMinerId, totalAllocation, vars.dailyAllocation, vars.hypotheticalRepayment);
+		registry.acceptBeneficiaryAddress(aliceMinerId);
 
 		hevm.prank(staker);
 		staking.stake{value: totalAllocation}();
@@ -896,7 +896,7 @@ contract IntegrationTest is DSTestPlus {
 			hevm.warp(genesisTimestamp + timeDelta);
 
 			hevm.prank(alice);
-			staking.pledge(vars.dailyAllocation);
+			staking.pledge(vars.dailyAllocation, aliceMinerId);
 			vars.totalAllocated = vars.totalAllocated + vars.dailyAllocation;
 
 			uint256 collateralRequirements;
@@ -925,7 +925,7 @@ contract IntegrationTest is DSTestPlus {
 			);
 
 			if (i > 0) {
-				rewardCollector.withdrawRewards(aliceOwnerId, vars.availableRewardsPerDay);
+				rewardCollector.withdrawRewards(aliceMinerId, vars.availableRewardsPerDay);
 				pledgeDelta = (totalAllocation / 2) - (unPledged * (i));
 				vars.rewardsDelta =
 					vars.totalAllocated +
@@ -933,7 +933,7 @@ contract IntegrationTest is DSTestPlus {
 					vars.totalAvailableRewards -
 					(vars.availableRewardsPerDay * (i));
 
-				rewardCollector.withdrawPledge(aliceOwnerId, unPledged);
+				rewardCollector.withdrawPledge(aliceMinerId, unPledged);
 
 				collateralRequirements =
 					((vars.totalAllocated - (unPledged * (i))) * collateral.collateralRequirements(aliceOwnerId)) /

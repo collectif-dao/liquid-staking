@@ -18,17 +18,15 @@ interface IStorageProviderCollateral {
 	/**
 	 * @notice Emitted when storage provider has been reported to accure slashing
 	 * @param ownerId Storage Provider's owner ID
-	 * @param minerId Storage Provider's miner actor ID
 	 * @param slashingAmount Slashing amount
 	 */
-	event ReportSlashing(uint64 ownerId, uint64 minerId, uint256 slashingAmount);
+	event ReportSlashing(uint64 ownerId, uint256 slashingAmount);
 
 	/**
 	 * @notice Emitted when storage provider has been reported to recover slashed sectors
 	 * @param ownerId Storage Provider's owner ID
-	 * @param minerId Storage Provider's miner actor ID
 	 */
-	event ReportRecovery(uint64 ownerId, uint64 minerId);
+	event ReportRecovery(uint64 ownerId);
 
 	/**
 	 * @dev Deposit `msg.value` FIL funds by the msg.sender into collateral
@@ -47,9 +45,10 @@ interface IStorageProviderCollateral {
 	 * @dev Locks required collateral amount based on `_allocated` FIL to pledge
 	 * @notice Increases the total amount of locked collateral for storage provider
 	 * @param _ownerId Storage provider owner ID
+	 * @param _minerId Storage provider miner ID
 	 * @param _allocated FIL amount that is going to be pledged for Storage Provider
 	 */
-	function lock(uint64 _ownerId, uint256 _allocated) external;
+	function lock(uint64 _ownerId, uint64 _minerId, uint256 _allocated) external;
 
 	/**
 	 * @dev Fits collateral amounts based on SP pledge usage, distributed rewards and pledge paybacks

@@ -59,17 +59,17 @@ contract LiquidStakingMock is LiquidStaking {
 	 * @notice Pledge FIL assets from liquid staking pool to miner pledge for one or multiple sectors
 	 * @param amount Amount of FIL to be pledged from Liquid Staking Pool
 	 */
-	function pledge(uint256 amount) external virtual override nonReentrant {
+	function pledge(uint256 amount, uint64 _minerId) external virtual override nonReentrant {
 		if (amount > totalAssets()) revert InvalidParams();
+
+		if (!IRegistryClient(resolver.getRegistry()).isActualOwner(ownerId, _minerId)) revert InvalidOwner();
 
 		ICollateralClient collateral = ICollateralClient(resolver.getCollateral());
 		if (collateral.activeSlashings(ownerId)) revert ActiveSlashing();
 
-		collateral.lock(ownerId, amount);
+		collateral.lock(ownerId, _minerId, amount);
 
-		(, , uint64 minerId, ) = IRegistryClient(resolver.getRegistry()).getStorageProvider(ownerId);
-
-		emit Pledge(ownerId, minerId, amount);
+		emit Pledge(ownerId, _minerId, amount);
 
 		WFIL.withdraw(amount);
 

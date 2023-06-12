@@ -72,44 +72,37 @@ interface IStorageProviderRegistry {
 
 	/**
 	 * @notice Accept beneficiary address transfer and activate FIL allocation
-	 * @param _ownerId Storage Provider owner ID
+	 * @param _minerId Storage Provider miner ID
 	 * @dev Only triggered by owner contract
 	 */
-	function acceptBeneficiaryAddress(uint64 _ownerId) external;
+	function acceptBeneficiaryAddress(uint64 _minerId) external;
 
 	/**
-	 * @notice Deactivate storage provider and transfer beneficiary back to the SP `_ownerId`
-	 * @param _ownerId Storage Provider owner ID
+	 * @notice Deactivate storage provider and transfer beneficiary back to the SP owner
+	 * @param _minerId Storage Provider miner ID
 	 * @dev Only triggered by registry admin
 	 */
-	function deactivateStorageProvider(uint64 _ownerId) external;
-
-	/**
-	 * @notice Update storage provider miner ID with `_minerId`
-	 * @param _ownerId Storage Provider owner ID
-	 * @param _minerId Storage Provider new miner ID
-	 * @dev Only triggered by owner contract
-	 */
-	function setMinerAddress(uint64 _ownerId, uint64 _minerId) external;
+	function deactivateStorageProvider(uint64 _minerId) external;
 
 	/**
 	 * @notice Request storage provider's FIL allocation update with `_allocationLimit`
+	 * @param _minerId Storage Provider miner ID
 	 * @param _allocationLimit New FIL allocation for storage provider
 	 * @param _dailyAllocation New daily FIL allocation for storage provider
 	 * @dev Only triggered by Storage Provider owner
 	 */
-	function requestAllocationLimitUpdate(uint256 _allocationLimit, uint256 _dailyAllocation) external;
+	function requestAllocationLimitUpdate(uint64 _minerId, uint256 _allocationLimit, uint256 _dailyAllocation) external;
 
 	/**
 	 * @notice Update storage provider FIL allocation with `_allocationLimit`
-	 * @param _ownerId Storage provider owner ID
+	 * @param _minerId Storage provider miner ID
 	 * @param _allocationLimit New FIL allocation for storage provider
 	 * @param _dailyAllocation New daily FIL allocation for storage provider
 	 * @param _repaymentAmount New FIL repayment amount for storage provider
 	 * @dev Only triggered by registry admin
 	 */
 	function updateAllocationLimit(
-		uint64 _ownerId,
+		uint64 _minerId,
 		uint256 _allocationLimit,
 		uint256 _dailyAllocation,
 		uint256 _repaymentAmount
@@ -124,36 +117,41 @@ interface IStorageProviderRegistry {
 	function setRestaking(uint256 _restakingRatio, address _restakingAddress) external;
 
 	/**
-	 * @notice Return Storage Provider information with `_ownerId`
+	 * @notice Return Storage Provider information with `_minerId`
 	 */
-	function getStorageProvider(uint64 _ownerId) external view returns (bool, address, uint64, int64);
+	function getStorageProvider(uint64 _minerId) external view returns (bool, address, uint64, int64);
 
 	/**
 	 * @notice Return a boolean flag of Storage Provider activity
 	 */
-	function isActiveProvider(uint64 _ownerId) external view returns (bool);
+	function isActiveProvider(uint64 _minerId) external view returns (bool);
+
+	/**
+	 * @notice Return a repayment amount for Storage Provider
+	 */
+	function getRepayment(uint64 _minerId) external view returns (uint256);
 
 	/**
 	 * @notice Increase collected rewards by Storage Provider
-	 * @param _ownerId Storage Provider owner ID
+	 * @param _minerId Storage Provider miner ID
 	 * @param _accuredRewards Withdrawn rewards from SP's miner actor
 	 */
-	function increaseRewards(uint64 _ownerId, uint256 _accuredRewards) external;
+	function increaseRewards(uint64 _minerId, uint256 _accuredRewards) external;
 
 	/**
 	 * @notice Increase repaid pledge by Storage Provider
-	 * @param _ownerId Storage Provider owner ID
+	 * @param _minerId Storage Provider miner ID
 	 * @param _repaidPledge Withdrawn initial pledge after sector termination
 	 */
-	function increasePledgeRepayment(uint64 _ownerId, uint256 _repaidPledge) external;
+	function increasePledgeRepayment(uint64 _minerId, uint256 _repaidPledge) external;
 
 	/**
 	 * @notice Increase used allocation for Storage Provider
-	 * @param _ownerId Storage Provider owner ID
+	 * @param _minerId Storage Provider miner ID
 	 * @param _allocated FIL amount that is going to be pledged for Storage Provider
 	 * @param _timestamp Transaction timestamp
 	 */
-	function increaseUsedAllocation(uint64 _ownerId, uint256 _allocated, uint256 _timestamp) external;
+	function increaseUsedAllocation(uint64 _minerId, uint256 _allocated, uint256 _timestamp) external;
 
 	/**
 	 * @notice Register new liquid staking pool
@@ -181,5 +179,5 @@ interface IStorageProviderRegistry {
 	/**
 	 * @notice Return allocation information for a storage provider
 	 */
-	function allocations(uint64 ownerId) external view returns (uint256, uint256, uint256, uint256, uint256, uint256);
+	function allocations(uint64 _minerId) external view returns (uint256, uint256, uint256, uint256, uint256, uint256);
 }

@@ -75,17 +75,17 @@ contract RewardCollector is
 	/**
 	 * @notice Withdraw initial pledge from Storage Provider's Miner Actor by `ownerId`
 	 * This function is triggered when sector is not extended by miner actor and initial pledge unlocked
-	 * @param ownerId Storage provider owner ID
+	 * @param minerId Storage provider miner ID
 	 * @param amount Initial pledge amount
 	 * @dev Please note that pledge amount withdrawn couldn't exceed used allocation by SP
 	 */
-	function withdrawPledge(uint64 ownerId, uint256 amount) external virtual nonReentrant {
+	function withdrawPledge(uint64 minerId, uint256 amount) external virtual nonReentrant {
 		if (!hasRole(FEE_DISTRIBUTOR, msg.sender)) revert InvalidAccess();
 		if (amount == 0) revert InvalidParams();
 
 		IRegistryClient registry = IRegistryClient(resolver.getRegistry());
 
-		(, address stakingPool, uint64 minerId, ) = registry.getStorageProvider(ownerId);
+		(, address stakingPool, uint64 ownerId, ) = registry.getStorageProvider(minerId);
 
 		CommonTypes.BigInt memory withdrawnBInt = MinerAPI.withdrawBalance(
 			CommonTypes.FilActorId.wrap(minerId),
@@ -99,7 +99,7 @@ contract RewardCollector is
 		WFIL.deposit{value: withdrawn}();
 		WFIL.transfer(stakingPool, withdrawn);
 
-		registry.increasePledgeRepayment(ownerId, amount);
+		registry.increasePledgeRepayment(minerId, amount);
 
 		ILiquidStakingClient(stakingPool).repayPledge(amount);
 		ICollateralClient(resolver.getCollateral()).fit(ownerId);
@@ -121,18 +121,18 @@ contract RewardCollector is
 	}
 
 	/**
-	 * @notice Withdraw FIL assets from Storage Provider by `ownerId` and it's Miner actor
+	 * @notice Withdraw FIL assets from Storage Provider by `minerId` and it's Miner actor
 	 * and restake `restakeAmount` into the Storage Provider specified f4 address
-	 * @param ownerId Storage provider owner ID
+	 * @param minerId Storage provider miner ID
 	 * @param amount Withdrawal amount
 	 */
-	function withdrawRewards(uint64 ownerId, uint256 amount) external virtual nonReentrant {
+	function withdrawRewards(uint64 minerId, uint256 amount) external virtual nonReentrant {
 		if (!hasRole(FEE_DISTRIBUTOR, msg.sender)) revert InvalidAccess();
 
 		WithdrawRewardsLocalVars memory vars;
 		IRegistryClient registry = IRegistryClient(resolver.getRegistry());
 
-		(, address stakingPool, uint64 minerId, ) = registry.getStorageProvider(ownerId);
+		(, address stakingPool, uint64 ownerId, ) = registry.getStorageProvider(minerId);
 
 		CommonTypes.BigInt memory withdrawnBInt = MinerAPI.withdrawBalance(
 			CommonTypes.FilActorId.wrap(minerId),
@@ -164,9 +164,9 @@ contract RewardCollector is
 		WFIL.deposit{value: vars.protocolShare}();
 		WFIL.transfer(stakingPool, vars.protocolShare - vars.protocolFees);
 
-		SendAPI.send(CommonTypes.FilActorId.wrap(ownerId), vars.spShare);
+		SendAPI.send(CommonTypes.FilActorId.wrap(minerId), vars.spShare);
 
-		registry.increaseRewards(ownerId, vars.stakingProfit);
+		registry.increaseRewards(minerId, vars.stakingProfit);
 		ICollateralClient(resolver.getCollateral()).fit(ownerId);
 
 		emit WithdrawRewards(ownerId, minerId, vars.spShare, vars.stakingProfit, vars.protocolShare);

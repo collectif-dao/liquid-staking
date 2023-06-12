@@ -58,10 +58,11 @@ interface ILiquidStaking {
 	function unstakeAssets(uint256 assets, address owner) external returns (uint256 shares);
 
 	/**
-	 * @notice Pledge FIL assets from liquid staking pool to miner pledge for one or multiple sectors
+	 * @notice Pledge FIL assets from liquid staking pool to miner pledge for one sector
 	 * @param amount Amount of FIL to pledge from Liquid Staking Pool
+	 * @param _minerId Storage Provider Miner ID
 	 */
-	function pledge(uint256 amount) external;
+	function pledge(uint256 amount, uint64 _minerId) external;
 
 	/**
 	 * @notice Restakes `assets` for a specified `target` address
