@@ -1,4 +1,4 @@
-import { Contract } from "ethers";
+import { Contract, ContractFactory } from "ethers";
 import { DeploymentsExtension } from "hardhat-deploy/types";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
@@ -20,7 +20,7 @@ export const deployAndSaveContract = async (name: string, args: unknown[], hre: 
 	const chainId = await ethers.provider.getNetwork();
 	const feeData = await ethers.provider.getFeeData();
 
-	let Factory;
+	let Factory: ContractFactory;
 
 	if (chainId.chainId == 31337) {
 		Factory = await ethers.getContractFactory(name);

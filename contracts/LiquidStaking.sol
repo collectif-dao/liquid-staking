@@ -45,6 +45,7 @@ contract LiquidStaking is
 	error InactiveActor();
 	error ActiveSlashing();
 	error InsufficientFunds();
+	error InvalidOwner();
 
 	uint256 private constant BASIS_POINTS = 10000;
 
@@ -163,28 +164,29 @@ contract LiquidStaking is
 	/**
 	 * @notice Pledge FIL assets from liquid staking pool to miner pledge for one sector
 	 * @param amount Amount of FIL to pledge from Liquid Staking Pool
+	 * @param _minerId Storage Provider Miner ID
 	 */
-	function pledge(uint256 amount) external virtual nonReentrant {
+	function pledge(uint256 amount, uint64 _minerId) external virtual nonReentrant {
 		if (amount > totalAssets()) revert InvalidParams();
 
 		address ownerAddr = msg.sender.normalize();
 		(bool isID, uint64 ownerId) = ownerAddr.getActorID();
 		if (!isID) revert InactiveActor();
 
+		if (!IRegistryClient(resolver.getRegistry()).isActualOwner(ownerId, _minerId)) revert InvalidOwner();
+
 		ICollateralClient collateral = ICollateralClient(resolver.getCollateral());
 		if (collateral.activeSlashings(ownerId)) revert ActiveSlashing();
 
-		collateral.lock(ownerId, amount);
+		collateral.lock(ownerId, _minerId, amount);
 
-		(, , uint64 minerId, ) = IRegistryClient(resolver.getRegistry()).getStorageProvider(ownerId);
-
-		emit Pledge(ownerId, minerId, amount);
+		emit Pledge(ownerId, _minerId, amount);
 
 		WFIL.withdraw(amount);
 
 		totalFilPledged += amount;
 
-		SendAPI.send(CommonTypes.FilActorId.wrap(minerId), amount); // send FIL to the miner actor
+		SendAPI.send(CommonTypes.FilActorId.wrap(_minerId), amount); // send FIL to the miner actor
 	}
 
 	/**

@@ -44,7 +44,7 @@ contract RewardCollectorMock is RewardCollector {
 
 		mockAPI = MockAPI(_minerApiMock);
 		minerActorMock = IMinerActorMock(minerActor);
-		ownerId = _ownerId;
+		// ownerId = _ownerId;
 		ownerAddr = _ownerAddr;
 
 		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -53,18 +53,18 @@ contract RewardCollectorMock is RewardCollector {
 	}
 
 	/**
-	 * @notice Withdraw initial pledge from Storage Provider's Miner Actor by `ownerId`
+	 * @notice Withdraw initial pledge from Storage Provider's Miner Actor by `minerId`
 	 * This function is triggered when sector is not extended by miner actor and initial pledge unlocked
-	 * @param ownerId Storage provider owner ID
+	 * @param minerId Storage provider miner ID
 	 * @param amount Initial pledge amount
 	 */
-	function withdrawPledge(uint64 ownerId, uint256 amount) external virtual override nonReentrant {
+	function withdrawPledge(uint64 minerId, uint256 amount) external virtual override nonReentrant {
 		if (!hasRole(FEE_DISTRIBUTOR, msg.sender)) revert InvalidAccess();
 		if (amount == 0) revert InvalidParams();
 
 		IRegistryClient registry = IRegistryClient(resolver.getRegistry());
 
-		(, address stakingPool, uint64 minerId, ) = registry.getStorageProvider(ownerId);
+		(, address stakingPool, uint64 ownerId, ) = registry.getStorageProvider(minerId);
 		CommonTypes.FilActorId minerActorId = CommonTypes.FilActorId.wrap(minerId);
 
 		CommonTypes.BigInt memory withdrawnBInt = minerActorMock.withdrawBalance(
@@ -79,7 +79,7 @@ contract RewardCollectorMock is RewardCollector {
 		WFIL.deposit{value: withdrawn}();
 		WFIL.transfer(stakingPool, withdrawn);
 
-		registry.increasePledgeRepayment(ownerId, amount);
+		registry.increasePledgeRepayment(minerId, amount);
 
 		ILiquidStakingClient(stakingPool).repayPledge(amount);
 		ICollateralClient(resolver.getCollateral()).fit(ownerId);
@@ -88,17 +88,17 @@ contract RewardCollectorMock is RewardCollector {
 	}
 
 	/**
-	 * @notice Withdraw FIL assets from Storage Provider by `ownerId` and it's Miner actor
+	 * @notice Withdraw FIL assets from Storage Provider by `minerId` and it's Miner actor
 	 * and restake `restakeAmount` into the Storage Provider specified f4 address
-	 * @param ownerId Storage provider owner ID
+	 * @param minerId Storage provider miner ID
 	 * @param amount Withdrawal amount
 	 */
-	function withdrawRewards(uint64 ownerId, uint256 amount) external virtual override nonReentrant {
+	function withdrawRewards(uint64 minerId, uint256 amount) external virtual override nonReentrant {
 		if (!hasRole(FEE_DISTRIBUTOR, msg.sender)) revert InvalidAccess();
 		WithdrawRewardsLocalVars memory vars;
 		IRegistryClient registry = IRegistryClient(resolver.getRegistry());
 
-		(, address stakingPool, uint64 minerId, ) = registry.getStorageProvider(ownerId);
+		(, address stakingPool, uint64 ownerId, ) = registry.getStorageProvider(minerId);
 		CommonTypes.BigInt memory withdrawnBInt = minerActorMock.withdrawBalance(
 			CommonTypes.FilActorId.wrap(minerId),
 			BigInts.fromUint256(amount)
@@ -132,7 +132,7 @@ contract RewardCollectorMock is RewardCollector {
 		WFIL.withdraw(vars.spShare);
 		ownerAddr.safeTransferETH(vars.spShare);
 
-		registry.increaseRewards(ownerId, vars.stakingProfit);
+		registry.increaseRewards(minerId, vars.stakingProfit);
 		ICollateralClient(resolver.getCollateral()).fit(ownerId);
 
 		if (vars.isRestaking) {
@@ -168,10 +168,10 @@ contract RewardCollectorMock is RewardCollector {
 
 	/**
 	 * @notice Forwards the increaseUsedRewards call to Registry contract
-	 * @param ownerId Owner actor ID
+	 * @param minerId Miner actor ID
 	 * @param amount Amount to increase rewards
 	 */
-	function increaseRewards(uint64 ownerId, uint256 amount) public {
-		IRegistryClient(resolver.getRegistry()).increaseRewards(ownerId, amount);
+	function increaseRewards(uint64 minerId, uint256 amount) public {
+		IRegistryClient(resolver.getRegistry()).increaseRewards(minerId, amount);
 	}
 }
