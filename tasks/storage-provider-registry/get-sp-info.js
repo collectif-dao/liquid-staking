@@ -1,20 +1,25 @@
 task("get-sp-info", "Get info by owner id")
-	.addParam("ownerId", "Owner id", "t0100")
+	.addParam("minerId", "Owner id", "t01000")
 	.setAction(async (taskArgs) => {
-		let { ownerId } = taskArgs;
-		ownerId = ethers.BigNumber.from(ownerId.slice(2));
+		let { minerId } = taskArgs;
+		minerId = ethers.BigNumber.from(minerId.slice(2));
 
 		const StorageProviderRegistryFactory = await ethers.getContractFactory("StorageProviderRegistry");
 		const storageProviderRegistryDeployment = await hre.deployments.get("StorageProviderRegistry");
 		const storageProviderRegistry = StorageProviderRegistryFactory.attach(storageProviderRegistryDeployment.address);
 
 		try {
-			const sp = await storageProviderRegistry.storageProviders(ownerId);
-			const allocations = await storageProviderRegistry.allocations(ownerId);
-			const restakings = await storageProviderRegistry.restakings(ownerId);
-			const status = await storageProviderRegistry.beneficiaryStatus(ownerId);
+			const sp = await storageProviderRegistry.storageProviders(minerId);
+			const allocations = await storageProviderRegistry.allocations(minerId);
+			const restakings = await storageProviderRegistry.restakings(minerId);
+			const status = await storageProviderRegistry.syncedBeneficiary(minerId);
 
-			console.log("SP info: ", sp);
+			console.log("Is active SP: ", sp.active);
+			console.log("Is onboarded SP: ", sp.onboarded);
+			console.log("Target pool: ", sp.targetPool);
+			console.log("Owner ID: ", sp.ownerId);
+			console.log("Last epoch for beneficiary: ", sp.lastEpoch);
+
 			console.log();
 			console.log("Allocation Limit: ", allocations.allocationLimit.toString() + " FIL");
 			console.log("Daily allocation: ", allocations.dailyAllocation.toString() + " FIL");

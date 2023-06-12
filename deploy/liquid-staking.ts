@@ -16,7 +16,14 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
 	const resolver = await deployments.get("Resolver");
 
-	let tx = await (await wFILContract.deposit({ value: initialDeposit })).wait();
+	const feeData = await ethers.provider.getFeeData();
+	let tx = await (
+		await wFILContract.deposit({
+			value: initialDeposit,
+			maxFeePerGas: feeData.maxFeePerGas,
+			maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+		})
+	).wait();
 
 	const transactionCount = await signer.getTransactionCount();
 	const proxyAddr = getContractAddress({
@@ -24,10 +31,12 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 		nonce: transactionCount + 2,
 	});
 
-	tx = await (await wFILContract.approve(proxyAddr, initialDeposit)).wait();
-	let balance = await wFILContract.balanceOf(signer.address);
-	console.log(balance);
-	console.log(proxyAddr);
+	tx = await (
+		await wFILContract.approve(proxyAddr, initialDeposit, {
+			maxFeePerGas: feeData.maxFeePerGas,
+			maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+		})
+	).wait();
 
 	await deployAndSaveContract("LiquidStaking", [wFIL, resolver.address, initialDeposit], hre);
 };

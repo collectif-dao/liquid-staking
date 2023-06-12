@@ -1,14 +1,14 @@
 import { callRpc } from "../utils";
 
 task("withdraw-rewards", "Withdraw miner's rewards")
-	.addParam("ownerId", "miner's ownerId", "t0100")
+	.addParam("minerId", "miner's minerId", "t01000")
 	.addParam("amount", "withdraw amount in FIL", "1")
 	.setAction(async (taskArgs) => {
 		const accounts = await ethers.getSigners();
 		const signer = accounts[0];
 
-		let { ownerId, amount } = taskArgs;
-		ownerId = ethers.BigNumber.from(ownerId.slice(2));
+		let { minerId, amount } = taskArgs;
+		minerId = ethers.BigNumber.from(minerId.slice(2));
 		amount = ethers.utils.parseEther(amount);
 
 		const RewardCollectorFactory = await ethers.getContractFactory("RewardCollector");
@@ -16,7 +16,7 @@ task("withdraw-rewards", "Withdraw miner's rewards")
 		const rewardCollector = RewardCollectorFactory.attach(RewardCollectorDeployment.address);
 
 		const priorityFee = await callRpc("eth_maxPriorityFeePerGas");
-		let tx = await rewardCollector.connect(signer).withdrawRewards(ownerId, amount, {
+		let tx = await rewardCollector.connect(signer).withdrawRewards(minerId, amount, {
 			maxPriorityFeePerGas: priorityFee,
 		});
 

@@ -1,7 +1,7 @@
 import { callRpc } from "../utils";
 
 task("stake", "Stake to the pool")
-	.addParam("amount", "stake amount in FIL", "1000")
+	.addParam("amount", "stake amount in FIL", "100")
 	.setAction(async (taskArgs) => {
 		const accounts = await ethers.getSigners();
 		const signer = accounts[0];

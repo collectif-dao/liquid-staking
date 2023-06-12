@@ -153,7 +153,10 @@ contract StorageProviderRegistry is
 		if (storageProviders[_minerId].onboarded) revert RegisteredSP();
 
 		address targetPool = resolver.getLiquidStaking();
-		storageProviders[_minerId].targetPool = targetPool;
+
+		StorageProviderTypes.StorageProvider storage storageProvider = storageProviders[_minerId];
+		storageProvider.ownerId = vars.ownerId;
+		storageProvider.targetPool = targetPool;
 
 		EnumerableSetUpgradeable.UintSet storage set = minerIds[vars.ownerId];
 		set.add(_minerId);
@@ -400,7 +403,7 @@ contract StorageProviderRegistry is
 	/**
 	 * @notice Return a total used allocation and repaid pledge for Storage Provider with `_ownerId`
 	 */
-	function getAllocations(uint64 _ownerId) external returns (uint256, uint256) {
+	function getAllocations(uint64 _ownerId) external view returns (uint256, uint256) {
 		EnumerableSetUpgradeable.UintSet storage set = minerIds[_ownerId];
 		uint256 lastMinerIdx = set.length();
 

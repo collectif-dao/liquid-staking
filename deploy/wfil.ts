@@ -8,8 +8,6 @@ const deployFunction: DeployFunction = async function ({ deployments, getNamedAc
 
 	const { address, newlyDeployed } = await deploy("WFIL", {
 		from: deployer,
-		deterministicDeployment: false,
-		skipIfAlreadyDeployed: true,
 		args: [deployer],
 		maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
 		maxFeePerGas: feeData.maxFeePerGas,

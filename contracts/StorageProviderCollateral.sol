@@ -385,7 +385,7 @@ contract StorageProviderCollateral is
 		uint256 _repaidPledge,
 		uint256 _allocationToUse,
 		uint256 _collateralRequirements
-	) internal returns (uint256) {
+	) internal pure returns (uint256) {
 		uint256 usedAllocation = _usedAllocation + _allocationToUse;
 		uint256 req = usedAllocation > _repaidPledge ? usedAllocation - _repaidPledge : 0;
 
