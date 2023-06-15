@@ -34,4 +34,14 @@ interface ILiquidStakingControllerClient {
 	 * @notice Returns the base profit sharing ratio on Liquid Staking
 	 */
 	function baseProfitShare() external view returns (uint256);
+
+	/**
+	 * @notice Returns the liquidity cap for Liquid Staking
+	 */
+	function liquidityCap() external view returns (uint256);
+
+	/**
+	 * @notice Returns wether witdrawals are activated
+	 */
+	function withdrawalsActivated() external view returns (bool);
 }

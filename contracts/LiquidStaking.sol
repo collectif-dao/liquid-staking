@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {ClFILToken} from "./ClFIL.sol";
+import {ClFILToken, MathUpgradeable} from "./ClFIL.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
@@ -167,7 +167,7 @@ contract LiquidStaking is
 	 * @param _minerId Storage Provider Miner ID
 	 */
 	function pledge(uint256 amount, uint64 _minerId) external virtual nonReentrant {
-		if (amount > totalAssets()) revert InvalidParams();
+		if (amount > totalFilAvailable()) revert InvalidParams();
 
 		address ownerAddr = msg.sender.normalize();
 		(bool isID, uint64 ownerId) = ownerAddr.getActorID();
@@ -280,5 +280,43 @@ contract LiquidStaking is
 	 */
 	function getImplementation() external view returns (address) {
 		return _getImplementation();
+	}
+
+	/** @dev See {IERC4626-maxDeposit}. */
+	function maxDeposit(address) public view virtual override returns (uint256) {
+		uint256 liquidityCap = IStakingControllerClient(resolver.getLiquidStakingController()).liquidityCap();
+
+		if (liquidityCap > 0) {
+			return liquidityCap - totalFilAvailable();
+		}
+
+		return type(uint256).max;
+	}
+
+	/** @dev See {IERC4626-maxMint}. */
+	function maxMint(address) public view virtual override returns (uint256) {
+		uint256 liquidityCap = IStakingControllerClient(resolver.getLiquidStakingController()).liquidityCap();
+
+		if (liquidityCap != 0) {
+			return convertToShares(liquidityCap - totalFilAvailable());
+		}
+
+		return type(uint256).max;
+	}
+
+	/** @dev See {IERC4626-maxWithdraw}. */
+	function maxWithdraw(address owner) public view virtual override returns (uint256) {
+		return
+			IStakingControllerClient(resolver.getLiquidStakingController()).withdrawalsActivated()
+				? _convertToAssets(balanceOf(owner), MathUpgradeable.Rounding.Down)
+				: 0;
+	}
+
+	/** @dev See {IERC4626-maxRedeem}. */
+	function maxRedeem(address owner) public view virtual override returns (uint256) {
+		return
+			IStakingControllerClient(resolver.getLiquidStakingController()).withdrawalsActivated()
+				? balanceOf(owner)
+				: 0;
 	}
 }

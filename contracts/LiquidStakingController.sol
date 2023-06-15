@@ -16,6 +16,8 @@ contract LiquidStakingController is ILiquidStakingController, Initializable, Acc
 
 	uint256 public adminFee;
 	uint256 public baseProfitShare;
+	uint256 public liquidityCap;
+	bool public withdrawalsActivated;
 
 	IResolverClient internal resolver;
 
@@ -33,13 +35,21 @@ contract LiquidStakingController is ILiquidStakingController, Initializable, Acc
 	 * @param _adminFee Admin fee percentage
 	 * @param _baseProfitShare Base profit sharing percentage
 	 */
-	function initialize(uint256 _adminFee, uint256 _baseProfitShare, address _resolver) public initializer {
+	function initialize(
+		uint256 _adminFee,
+		uint256 _baseProfitShare,
+		address _resolver,
+		uint256 _liquidityCap,
+		bool _withdrawalsActivated
+	) public initializer {
 		__AccessControl_init();
 		__UUPSUpgradeable_init();
 
 		if (_adminFee > 2000 || _baseProfitShare > 8000) revert InvalidParams();
 		adminFee = _adminFee;
 		baseProfitShare = _baseProfitShare;
+		liquidityCap = _liquidityCap;
+		withdrawalsActivated = _withdrawalsActivated;
 
 		resolver = IResolverClient(_resolver);
 
@@ -99,6 +109,31 @@ contract LiquidStakingController is ILiquidStakingController, Initializable, Acc
 		baseProfitShare = share;
 
 		emit UpdateBaseProfitShare(share);
+	}
+
+	/**
+	 * @notice Updates liquidity cap for liquid staking protocol
+	 * @param cap New admin liquidity cap
+	 * @dev Make sure that new liquidity cap is not equal and higher than the prevous cap
+	 */
+	function updateLiquidityCap(uint256 cap) external onlyAdmin {
+		if (cap > 0 && cap <= liquidityCap) revert InvalidParams();
+
+		liquidityCap = cap;
+
+		emit UpdateLiquidityCap(cap);
+	}
+
+	/**
+	 * @notice Activates withdrawals for liquid staking protocol
+	 * @dev This is a one way transaction that needs to take place after the initial activation period
+	 */
+	function activateWithdrawals() external onlyAdmin {
+		if (withdrawalsActivated) revert InvalidParams();
+
+		withdrawalsActivated = true;
+
+		emit WithdrawalsActivated();
 	}
 
 	/**

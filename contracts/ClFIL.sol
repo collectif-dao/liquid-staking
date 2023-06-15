@@ -3,7 +3,7 @@ pragma solidity ^0.8.17;
 
 import {IWFIL} from "./libraries/tokens/IWFIL.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {ERC4626Upgradeable, IERC20Upgradeable} from "./libraries/tokens/ERC4626Upgradeable.sol";
+import {ERC4626Upgradeable, IERC20Upgradeable, MathUpgradeable} from "./libraries/tokens/ERC4626Upgradeable.sol";
 
 /**
  * @title clFIL token contract is the main wrapper over staked FIL in the liquid staking system
@@ -19,7 +19,7 @@ abstract contract ClFILToken is Initializable, ERC4626Upgradeable {
 	 * @param _wFIL WFIL token implementation
 	 */
 	function __ClFILToken_init(address _wFIL) internal onlyInitializing {
-		__ERC20_init("Collective Staked FIL", "clFIL");
+		__ERC20_init("Collectif Staked FIL", "clFIL");
 		__ERC4626_init(IERC20Upgradeable(_wFIL));
 		WFIL = IWFIL(_wFIL);
 	}

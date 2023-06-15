@@ -23,6 +23,17 @@ interface ILiquidStakingController {
 	event UpdateBaseProfitShare(uint256 profitShare);
 
 	/**
+	 * @notice Emitted when liquidity cap is updated
+	 * @param cap New liquidity cap
+	 */
+	event UpdateLiquidityCap(uint256 cap);
+
+	/**
+	 * @notice Emitted when withdrawals are activated
+	 */
+	event WithdrawalsActivated();
+
+	/**
 	 * @dev Updates profit sharing requirements for SP with `_ownerId` by `_profitShare` percentage at `_pool`
 	 * @notice Only triggered by Liquid Staking admin or registry contract while registering SP
 	 * @param _ownerId Storage provider owner ID
@@ -51,4 +62,27 @@ interface ILiquidStakingController {
 	 * @param _pool Liquid Staking contract address
 	 */
 	function totalFees(uint64 _ownerId, address _pool) external view returns (uint256);
+
+	/**
+	 * @notice Updates liquidity cap for liquid staking protocol
+	 * @param cap New admin liquidity cap
+	 * @dev Make sure that new liquidity cap is not equal and higher than the prevous cap
+	 */
+	function updateLiquidityCap(uint256 cap) external;
+
+	/**
+	 * @notice Activates withdrawals for liquid staking protocol
+	 * @dev This is a one way transaction that needs to take place after the initial activation period
+	 */
+	function activateWithdrawals() external;
+
+	/**
+	 * @notice Returns the liquidity cap for Liquid Staking
+	 */
+	function liquidityCap() external view returns (uint256);
+
+	/**
+	 * @notice Returns wether witdrawals are activated
+	 */
+	function withdrawalsActivated() external view returns (bool);
 }

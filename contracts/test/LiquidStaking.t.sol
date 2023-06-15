@@ -22,6 +22,7 @@ import {RewardCollectorMock} from "./mocks/RewardCollectorMock.sol";
 
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 import {ERC1967Proxy} from "@oz/contracts/proxy/ERC1967/ERC1967Proxy.sol";
+import {FixedPointMathLib} from "solmate/utils/FixedPointMathLib.sol";
 
 contract LiquidStakingTest is DSTestPlus {
 	LiquidStakingMock public staking;
@@ -62,6 +63,9 @@ contract LiquidStakingTest is DSTestPlus {
 	uint256 private constant initialPledge = 151700000000000000;
 	uint256 initialDeposit = 1000;
 
+	uint256 private liquidityCap = 1_000_000e18;
+	bool private withdrawalsActivated = false;
+
 	bytes32 public PERMIT_TYPEHASH =
 		keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
@@ -94,7 +98,9 @@ contract LiquidStakingTest is DSTestPlus {
 		LiquidStakingController controllerImpl = new LiquidStakingController();
 		ERC1967Proxy controllerProxy = new ERC1967Proxy(address(controllerImpl), "");
 		controller = LiquidStakingController(address(controllerProxy));
-		controller.initialize(adminFee, profitShare, address(resolver));
+		controller.initialize(adminFee, profitShare, address(resolver), liquidityCap, withdrawalsActivated);
+
+		resolver.setLiquidStakingControllerAddress(address(controller));
 
 		hevm.deal(address(this), initialDeposit);
 		wfil.deposit{value: initialDeposit}();
@@ -131,7 +137,6 @@ contract LiquidStakingTest is DSTestPlus {
 
 		// router = new StakingRouter("Collective DAO Router", wfil);
 
-		resolver.setLiquidStakingControllerAddress(address(controller));
 		resolver.setRegistryAddress(address(registry));
 		resolver.setCollateralAddress(address(collateral));
 		resolver.setLiquidStakingAddress(address(staking));
@@ -154,7 +159,7 @@ contract LiquidStakingTest is DSTestPlus {
 	}
 
 	function testStake(uint256 amount) public {
-		hevm.assume(amount != 0 && amount < type(uint256).max - initialDeposit);
+		hevm.assume(amount != 0 && amount <= liquidityCap - initialDeposit);
 		hevm.deal(address(this), amount);
 
 		staking.stake{value: amount}();
@@ -165,8 +170,16 @@ contract LiquidStakingTest is DSTestPlus {
 		require(staking.totalAssets() == initialDeposit + amount, "INVALID_BALANCE");
 	}
 
+	function testStakeRevertWithMoreThanLiquidityCap(uint256 amount) public {
+		hevm.assume(amount > liquidityCap - initialDeposit && amount < type(uint256).max - initialDeposit);
+		hevm.deal(address(this), amount);
+
+		hevm.expectRevert(abi.encodeWithSignature("ERC4626Overflow()"));
+		staking.stake{value: amount}();
+	}
+
 	function testDeposit(uint256 amount) public {
-		hevm.assume(amount != 0 && amount < type(uint256).max - initialDeposit);
+		hevm.assume(amount != 0 && amount < liquidityCap - initialDeposit);
 		hevm.deal(address(this), amount);
 
 		wfil.deposit{value: amount}();
@@ -178,6 +191,43 @@ contract LiquidStakingTest is DSTestPlus {
 		require(wfil.balanceOf(address(this)) == 0, "INVALID_BALANCE");
 		require(wfil.balanceOf(address(staking)) == initialDeposit + amount, "INVALID_BALANCE");
 		require(staking.totalAssets() == initialDeposit + amount, "INVALID_BALANCE");
+	}
+
+	function testDepositRevertWithMoreThanLiquidityCap(uint256 amount) public {
+		hevm.assume(amount > liquidityCap - initialDeposit && amount < type(uint256).max - initialDeposit);
+		hevm.deal(address(this), amount);
+
+		wfil.deposit{value: amount}();
+		wfil.approve(address(staking), amount);
+
+		hevm.expectRevert(abi.encodeWithSignature("ERC4626Overflow()"));
+		staking.deposit(amount, address(this));
+	}
+
+	function testMint(uint256 amount) public {
+		hevm.assume(amount != 0 && amount < liquidityCap - initialDeposit);
+		hevm.deal(address(this), amount);
+
+		wfil.deposit{value: amount}();
+		wfil.approve(address(staking), amount);
+
+		staking.mint(amount, address(this));
+
+		require(staking.balanceOf(address(this)) == amount, "INVALID_BALANCE");
+		require(wfil.balanceOf(address(this)) == 0, "INVALID_BALANCE");
+		require(wfil.balanceOf(address(staking)) == initialDeposit + amount, "INVALID_BALANCE");
+		require(staking.totalAssets() == initialDeposit + amount, "INVALID_BALANCE");
+	}
+
+	function testMintRevertWithMoreThanLiquidityCap(uint256 amount) public {
+		hevm.assume(amount > liquidityCap - initialDeposit && amount < type(uint256).max - initialDeposit);
+		hevm.deal(address(this), amount);
+
+		wfil.deposit{value: amount}();
+		wfil.approve(address(staking), amount);
+
+		hevm.expectRevert(abi.encodeWithSignature("ERC4626Overflow()"));
+		staking.mint(amount, address(this));
 	}
 
 	// function testStakeViaRouterMulticall(uint256 amount) public {
@@ -248,8 +298,10 @@ contract LiquidStakingTest is DSTestPlus {
 	}
 
 	function testUnstake(uint128 amount) public {
-		hevm.assume(amount != 0 && amount < type(uint256).max - initialDeposit);
+		hevm.assume(amount != 0 && amount < liquidityCap - initialDeposit);
 		hevm.deal(alice, amount);
+
+		controller.activateWithdrawals();
 
 		hevm.startPrank(alice);
 		staking.stake{value: amount}();
@@ -261,9 +313,23 @@ contract LiquidStakingTest is DSTestPlus {
 		require(staking.totalAssets() == initialDeposit, "INVALID_BALANCE");
 	}
 
-	function testUnstakeAssets(uint128 amount) public {
-		hevm.assume(amount != 0 && amount < type(uint256).max - initialDeposit);
+	function testUnstakeRevertsBeforeWithdrawalActivation(uint128 amount) public {
+		hevm.assume(amount != 0 && amount < liquidityCap - initialDeposit);
 		hevm.deal(alice, amount);
+
+		hevm.startPrank(alice);
+		staking.stake{value: amount}();
+
+		hevm.expectRevert(abi.encodeWithSignature("ERC4626Overflow()"));
+		staking.unstake(amount, alice);
+		hevm.stopPrank();
+	}
+
+	function testUnstakeAssets(uint128 amount) public {
+		hevm.assume(amount != 0 && amount < liquidityCap - initialDeposit);
+		hevm.deal(alice, amount);
+
+		controller.activateWithdrawals();
 
 		hevm.startPrank(alice);
 		staking.stake{value: amount}();
@@ -275,9 +341,23 @@ contract LiquidStakingTest is DSTestPlus {
 		require(staking.totalAssets() == initialDeposit, "INVALID_BALANCE");
 	}
 
-	function testRedeem(uint128 amount) public {
-		hevm.assume(amount != 0 && amount < type(uint256).max - initialDeposit);
+	function testUnstakeAssetsRevertsBeforeWithdrawalActivation(uint128 amount) public {
+		hevm.assume(amount != 0 && amount < liquidityCap - initialDeposit);
 		hevm.deal(alice, amount);
+
+		hevm.startPrank(alice);
+		staking.stake{value: amount}();
+
+		hevm.expectRevert(abi.encodeWithSignature("ERC4626Overflow()"));
+		staking.unstakeAssets(amount, alice);
+		hevm.stopPrank();
+	}
+
+	function testRedeem(uint128 amount) public {
+		hevm.assume(amount != 0 && amount < liquidityCap - initialDeposit);
+		hevm.deal(alice, amount);
+
+		controller.activateWithdrawals();
 
 		hevm.startPrank(alice);
 		staking.stake{value: amount}();
@@ -289,9 +369,23 @@ contract LiquidStakingTest is DSTestPlus {
 		require(staking.totalAssets() == initialDeposit, "INVALID_BALANCE");
 	}
 
-	function testWithdraw(uint128 amount) public {
-		hevm.assume(amount != 0 && amount < type(uint256).max - initialDeposit);
+	function testRedeemRevertsBeforeWithdrawalActivation(uint128 amount) public {
+		hevm.assume(amount != 0 && amount < liquidityCap - initialDeposit);
 		hevm.deal(alice, amount);
+
+		hevm.startPrank(alice);
+		staking.stake{value: amount}();
+
+		hevm.expectRevert(abi.encodeWithSignature("ERC4626Overflow()"));
+		staking.redeem(amount, alice, alice);
+		hevm.stopPrank();
+	}
+
+	function testWithdraw(uint128 amount) public {
+		hevm.assume(amount != 0 && amount < liquidityCap - initialDeposit);
+		hevm.deal(alice, amount);
+
+		controller.activateWithdrawals();
 
 		hevm.startPrank(alice);
 		staking.stake{value: amount}();
@@ -301,6 +395,18 @@ contract LiquidStakingTest is DSTestPlus {
 		require(staking.balanceOf(alice) == 0, "INVALID_BALANCE");
 		require(wfil.balanceOf(alice) == amount, "INVALID_BALANCE");
 		require(staking.totalAssets() == initialDeposit, "INVALID_BALANCE");
+	}
+
+	function testWithdrawRevertsBeforeWithdrawalActivation(uint128 amount) public {
+		hevm.assume(amount != 0 && amount < liquidityCap - initialDeposit);
+		hevm.deal(alice, amount);
+
+		hevm.startPrank(alice);
+		staking.stake{value: amount}();
+
+		hevm.expectRevert(abi.encodeWithSignature("ERC4626Overflow()"));
+		staking.withdraw(amount, alice, alice);
+		hevm.stopPrank();
 	}
 
 	function testPledge(uint128 amount) public {
@@ -363,6 +469,7 @@ contract LiquidStakingTest is DSTestPlus {
 	}
 
 	function testStakingAttack(uint256 amount) public {
+		controller.activateWithdrawals();
 		address attacker = address(0x1253);
 		// initial balances
 
@@ -404,5 +511,60 @@ contract LiquidStakingTest is DSTestPlus {
 		emit log_named_uint("Alice balance after attack:", alice.balance);
 
 		require(attacker.balance < initialAttackerBalance, "SUCCESSFULL_ATTACK");
+	}
+
+	function testLiquidityCapForMint(uint128 amount) public {
+		hevm.assume(amount <= SAMPLE_DAILY_ALLOCATION && amount >= 1 ether);
+		uint256 collateralAmount = (amount * baseCollateralRequirements) / BASIS_POINTS;
+		uint256 pledgeAmt = FixedPointMathLib.mulDivDown(amount, 5000, BASIS_POINTS);
+
+		hevm.deal(address(this), amount);
+		hevm.deal(alice, collateralAmount);
+
+		hevm.prank(alice);
+		collateral.deposit{value: collateralAmount}(aliceOwnerId);
+
+		staking.stake{value: amount}();
+
+		hevm.prank(alice);
+		staking.pledge(pledgeAmt, aliceMinerId);
+
+		uint256 withdrawAmount = FixedPointMathLib.mulDivDown(pledgeAmt, 5000, BASIS_POINTS);
+		uint256 stakingProfit = FixedPointMathLib.mulDivDown(withdrawAmount, profitShare, BASIS_POINTS);
+		uint256 protocolFees = FixedPointMathLib.mulDivDown(withdrawAmount, adminFee, BASIS_POINTS);
+		uint256 protocolShare = stakingProfit + protocolFees;
+
+		rewardCollector.withdrawRewards(aliceMinerId, withdrawAmount);
+
+		uint256 leftCapital = amount + stakingProfit + initialDeposit - pledgeAmt;
+		require(wfil.balanceOf(address(staking)) == leftCapital, "INVALID_STAKING_WFIL_BALANCE");
+		require(staking.totalFilAvailable() == leftCapital, "INVALID_STAKING_AVAILABLE_FIL");
+		require(staking.totalAssets() == amount + stakingProfit + initialDeposit, "INVALID_STAKING_ASSETS");
+
+		uint256 maxDeposit = liquidityCap - leftCapital;
+
+		require(staking.maxDeposit(address(this)) == maxDeposit, "INVALID_MAX_DEPOSIT");
+		require(staking.maxMint(address(this)) == staking.convertToShares(maxDeposit), "INVALID_MAX_MINT");
+
+		uint256 overflowDeposit = maxDeposit + 1;
+		hevm.deal(address(this), overflowDeposit);
+
+		hevm.expectRevert(abi.encodeWithSignature("ERC4626Overflow()"));
+		staking.stake{value: overflowDeposit}();
+
+		wfil.deposit{value: overflowDeposit}();
+		wfil.approve(address(staking), overflowDeposit);
+
+		hevm.expectRevert(abi.encodeWithSignature("ERC4626Overflow()"));
+		staking.deposit(overflowDeposit, address(this));
+
+		uint256 shareMint = staking.convertToShares(overflowDeposit + 1); // test case to get rid of the pottential rounding down error
+		hevm.expectRevert(abi.encodeWithSignature("ERC4626Overflow()"));
+		staking.mint(shareMint, address(this));
+
+		controller.updateLiquidityCap(0);
+
+		staking.deposit(overflowDeposit, address(this));
+		assertEq(staking.maxDeposit(address(this)), type(uint256).max);
 	}
 }

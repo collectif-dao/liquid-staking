@@ -12,7 +12,6 @@ const deployFunction: DeployFunction = async function ({ deployments, ethers }: 
 
 	const registry = await deployments.get("StorageProviderRegistry");
 	const staking = await deployments.get("LiquidStaking");
-	const stakingController = await deployments.get("LiquidStakingController");
 	const collateral = await deployments.get("StorageProviderCollateral");
 	const rewardCollector = await deployments.get("RewardCollector");
 
@@ -20,7 +19,6 @@ const deployFunction: DeployFunction = async function ({ deployments, ethers }: 
 	const resolverContract = await ethers.getContractAt<Resolver>("Resolver", resolver.address);
 
 	var receipt = await (await resolverContract.setCollateralAddress(collateral.address, overrides)).wait();
-	receipt = await (await resolverContract.setLiquidStakingControllerAddress(stakingController.address, overrides)).wait();
 	receipt = await (await resolverContract.setRegistryAddress(registry.address, overrides)).wait();
 	receipt = await (await resolverContract.setLiquidStakingAddress(staking.address, overrides)).wait();
 	receipt = await (await resolverContract.setRewardCollectorAddress(rewardCollector.address, overrides)).wait();

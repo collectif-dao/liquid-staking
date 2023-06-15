@@ -61,6 +61,9 @@ contract RewardCollectorTest is DSTestPlus {
 	uint256 private constant preCommitDeposit = 95700000000000000;
 	uint256 private constant initialPledge = 151700000000000000;
 
+	uint256 private liquidityCap = 1_000_000e18;
+	bool private withdrawalsActivated = false;
+
 	bytes32 public PERMIT_TYPEHASH =
 		keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
 
@@ -93,7 +96,9 @@ contract RewardCollectorTest is DSTestPlus {
 		LiquidStakingController controllerImpl = new LiquidStakingController();
 		ERC1967Proxy controllerProxy = new ERC1967Proxy(address(controllerImpl), "");
 		controller = LiquidStakingController(address(controllerProxy));
-		controller.initialize(adminFee, profitShare, address(resolver));
+		controller.initialize(adminFee, profitShare, address(resolver), liquidityCap, withdrawalsActivated);
+
+		resolver.setLiquidStakingControllerAddress(address(controller));
 
 		LiquidStakingMock stakingImpl = new LiquidStakingMock();
 		ERC1967Proxy stakingProxy = new ERC1967Proxy(address(stakingImpl), "");
@@ -128,7 +133,6 @@ contract RewardCollectorTest is DSTestPlus {
 
 		// router = new StakingRouter("Collective DAO Router", wfil);
 
-		resolver.setLiquidStakingControllerAddress(address(controller));
 		resolver.setRegistryAddress(address(registry));
 		resolver.setCollateralAddress(address(collateral));
 		resolver.setLiquidStakingAddress(address(staking));

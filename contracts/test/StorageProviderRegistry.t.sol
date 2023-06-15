@@ -56,6 +56,9 @@ contract StorageProviderRegistryTest is DSTestPlus {
 	uint256 private constant MAX_TIME_PERIOD = 360 days;
 	uint256 private constant SAMPLE_DAILY_ALLOCATION = MAX_ALLOCATION / 30;
 
+	uint256 private liquidityCap = 1_000_000e18;
+	bool private withdrawalsActivated = false;
+
 	function setUp() public {
 		Buffer.buffer memory ownerBytes = Leb128.encodeUnsignedLeb128FromUInt64(ownerId);
 		owner = ownerBytes.buf;
@@ -84,7 +87,9 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		LiquidStakingController controllerImpl = new LiquidStakingController();
 		ERC1967Proxy controllerProxy = new ERC1967Proxy(address(controllerImpl), "");
 		controller = LiquidStakingController(address(controllerProxy));
-		controller.initialize(adminFee, profitShare, address(resolver));
+		controller.initialize(adminFee, profitShare, address(resolver), liquidityCap, withdrawalsActivated);
+
+		resolver.setLiquidStakingControllerAddress(address(controller));
 
 		// hevm.startPrank(proxyAdmin);
 		hevm.deal(address(this), initialDeposit);
@@ -120,7 +125,6 @@ contract StorageProviderRegistryTest is DSTestPlus {
 		collateral = StorageProviderCollateralMock(payable(collateralProxy));
 		collateral.initialize(wfil, address(resolver), 1500);
 
-		resolver.setLiquidStakingControllerAddress(address(controller));
 		resolver.setRegistryAddress(address(registry));
 		resolver.setCollateralAddress(address(collateral));
 		resolver.setLiquidStakingAddress(address(staking));

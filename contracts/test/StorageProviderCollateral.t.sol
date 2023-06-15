@@ -57,6 +57,9 @@ contract StorageProviderCollateralTest is DSTestPlus {
 	uint256 public baseCollateralRequirements = 1500;
 	uint256 public constant BASIS_POINTS = 10000;
 
+	uint256 private liquidityCap = 1_000_000e18;
+	bool private withdrawalsActivated = false;
+
 	receive() external payable virtual {}
 
 	fallback() external payable virtual {}
@@ -89,7 +92,9 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		LiquidStakingController controllerImpl = new LiquidStakingController();
 		ERC1967Proxy controllerProxy = new ERC1967Proxy(address(controllerImpl), "");
 		controller = LiquidStakingController(address(controllerProxy));
-		controller.initialize(1000, 3000, address(resolver));
+		controller.initialize(1000, 3000, address(resolver), liquidityCap, withdrawalsActivated);
+
+		resolver.setLiquidStakingControllerAddress(address(controller));
 
 		LiquidStakingMock stakingImpl = new LiquidStakingMock();
 		ERC1967Proxy stakingProxy = new ERC1967Proxy(address(stakingImpl), "");
@@ -123,7 +128,6 @@ contract StorageProviderCollateralTest is DSTestPlus {
 		callerMock = new StorageProviderCollateralCallerMock(address(collateral));
 		registryCallerMock = new StorageProviderRegistryCallerMock(address(registry));
 
-		resolver.setLiquidStakingControllerAddress(address(controller));
 		resolver.setRegistryAddress(address(registry));
 		resolver.setCollateralAddress(address(collateral));
 		resolver.setLiquidStakingAddress(address(staking));

@@ -18,6 +18,9 @@ contract LiquidStakingControllerTest is DSTestPlus {
 	uint256 private profitShare = 2000;
 	address private rewardCollector = address(0x12523);
 
+	uint256 private liquidityCap = 1_000_000e18;
+	bool private withdrawalsActivated = false;
+
 	function setUp() public {
 		alice = hevm.addr(aliceKey);
 
@@ -29,7 +32,7 @@ contract LiquidStakingControllerTest is DSTestPlus {
 		LiquidStakingController controllerImpl = new LiquidStakingController();
 		ERC1967Proxy controllerProxy = new ERC1967Proxy(address(controllerImpl), "");
 		controller = LiquidStakingController(address(controllerProxy));
-		controller.initialize(adminFee, profitShare, address(resolver));
+		controller.initialize(adminFee, profitShare, address(resolver), liquidityCap, withdrawalsActivated);
 	}
 
 	function testUpdateProfitShare(uint256 share) public {
@@ -99,5 +102,30 @@ contract LiquidStakingControllerTest is DSTestPlus {
 			hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
 			controller.updateBaseProfitShare(0);
 		}
+	}
+
+	function testUpdateLiquidityCap(uint256 cap) public {
+		hevm.assume(cap > liquidityCap);
+
+		uint256 previousCap = controller.liquidityCap();
+		require(previousCap == liquidityCap, "INVALID_LIQUIDITY_CAP");
+
+		controller.updateLiquidityCap(cap);
+		require(cap == controller.liquidityCap(), "INVALID_LIQUIDITY_CAP");
+	}
+
+	function testUpdateLiquidityCapReverts(uint256 cap) public {
+		hevm.assume(cap <= liquidityCap && cap != 0);
+
+		hevm.expectRevert(abi.encodeWithSignature("InvalidParams()"));
+		controller.updateLiquidityCap(cap);
+	}
+
+	function testActivateWithdrawals() public {
+		bool status = controller.withdrawalsActivated();
+		require(status == withdrawalsActivated, "INVALID_WITHDRAWALS");
+
+		controller.activateWithdrawals();
+		require(controller.withdrawalsActivated(), "INVALID_WITHDRAWALS");
 	}
 }

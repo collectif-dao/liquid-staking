@@ -70,6 +70,9 @@ contract IntegrationTest is DSTestPlus {
 
 	uint256 private constant ONE_DAY = 24 * 1 hours;
 
+	uint256 private liquidityCap = 1_000_000e18;
+	bool private withdrawalsActivated = false;
+
 	function setUp() public {
 		alice = hevm.addr(aliceKey);
 		Buffer.buffer memory ownerBytes = Leb128.encodeUnsignedLeb128FromUInt64(aliceOwnerId);
@@ -99,7 +102,15 @@ contract IntegrationTest is DSTestPlus {
 		LiquidStakingController controllerImpl = new LiquidStakingController();
 		ERC1967Proxy controllerProxy = new ERC1967Proxy(address(controllerImpl), "");
 		controller = LiquidStakingController(address(controllerProxy));
-		controller.initialize(adminFee, profitShare, address(resolver));
+		controller.initialize(
+			adminFee,
+			profitShare,
+			address(resolver),
+			liquidityCap + initialDeposit,
+			withdrawalsActivated
+		);
+
+		resolver.setLiquidStakingControllerAddress(address(controller));
 
 		hevm.deal(address(this), initialDeposit);
 		wfil.deposit{value: initialDeposit}();
@@ -135,7 +146,6 @@ contract IntegrationTest is DSTestPlus {
 		collateral.initialize(wfil, address(resolver), baseCollateralRequirements);
 
 		registry.registerPool(address(staking));
-		resolver.setLiquidStakingControllerAddress(address(controller));
 		resolver.setRegistryAddress(address(registry));
 		resolver.setCollateralAddress(address(collateral));
 		resolver.setLiquidStakingAddress(address(staking));
