@@ -1,0 +1,767 @@
+{
+  "address": "0xA52E173d38D2D9738BCeA1926c45e8E635AE0096",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "InvalidAddress",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "oldAddress",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "newAddress",
+          "type": "address"
+        }
+      ],
+      "name": "AddressSet",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "previousAdmin",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "newAdmin",
+          "type": "address"
+        }
+      ],
+      "name": "AdminChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "beacon",
+          "type": "address"
+        }
+      ],
+      "name": "BeaconUpgraded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "newAddress",
+          "type": "address"
+        }
+      ],
+      "name": "CollateralAddressUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint8",
+          "name": "version",
+          "type": "uint8"
+        }
+      ],
+      "name": "Initialized",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "newAddress",
+          "type": "address"
+        }
+      ],
+      "name": "LiquidStakingAddressUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "newAddress",
+          "type": "address"
+        }
+      ],
+      "name": "LiquidStakingControllerAddressUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previousOwner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnershipTransferred",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "newAddress",
+          "type": "address"
+        }
+      ],
+      "name": "ProtocolRewardsAddressUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "newAddress",
+          "type": "address"
+        }
+      ],
+      "name": "RegistryAddressUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "newAddress",
+          "type": "address"
+        }
+      ],
+      "name": "RewardCollectorAddressUpdated",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "implementation",
+          "type": "address"
+        }
+      ],
+      "name": "Upgraded",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        }
+      ],
+      "name": "getAddress",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getCollateral",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getImplementation",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getLiquidStaking",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getLiquidStakingController",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getProtocolRewards",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getRegistry",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "getRewardCollector",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "initialize",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "proxiableUUID",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "renounceOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "id",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "newAddress",
+          "type": "address"
+        }
+      ],
+      "name": "setAddress",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newAddress",
+          "type": "address"
+        }
+      ],
+      "name": "setCollateralAddress",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newAddress",
+          "type": "address"
+        }
+      ],
+      "name": "setLiquidStakingAddress",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newAddress",
+          "type": "address"
+        }
+      ],
+      "name": "setLiquidStakingControllerAddress",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newAddress",
+          "type": "address"
+        }
+      ],
+      "name": "setProtocolRewardsAddress",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newAddress",
+          "type": "address"
+        }
+      ],
+      "name": "setRegistryAddress",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newAddress",
+          "type": "address"
+        }
+      ],
+      "name": "setRewardCollectorAddress",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "transferOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newImplementation",
+          "type": "address"
+        }
+      ],
+      "name": "upgradeTo",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newImplementation",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes",
+          "name": "data",
+          "type": "bytes"
+        }
+      ],
+      "name": "upgradeToAndCall",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "version",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    }
+  ],
+  "numDeployments": 4,
+  "solcInputHash": "8959eddb5013700907a0bace91d354fe",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.17+commit.8df45f5f\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"name\":\"InvalidAddress\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"id\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"oldAddress\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newAddress\",\"type\":\"address\"}],\"name\":\"AddressSet\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"previousAdmin\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newAdmin\",\"type\":\"address\"}],\"name\":\"AdminChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"beacon\",\"type\":\"address\"}],\"name\":\"BeaconUpgraded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newAddress\",\"type\":\"address\"}],\"name\":\"CollateralAddressUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint8\",\"name\":\"version\",\"type\":\"uint8\"}],\"name\":\"Initialized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newAddress\",\"type\":\"address\"}],\"name\":\"LiquidStakingAddressUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newAddress\",\"type\":\"address\"}],\"name\":\"LiquidStakingControllerAddressUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newAddress\",\"type\":\"address\"}],\"name\":\"ProtocolRewardsAddressUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newAddress\",\"type\":\"address\"}],\"name\":\"RegistryAddressUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"address\",\"name\":\"newAddress\",\"type\":\"address\"}],\"name\":\"RewardCollectorAddressUpdated\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"implementation\",\"type\":\"address\"}],\"name\":\"Upgraded\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"id\",\"type\":\"bytes32\"}],\"name\":\"getAddress\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getCollateral\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getImplementation\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getLiquidStaking\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getLiquidStakingController\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getProtocolRewards\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getRegistry\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getRewardCollector\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"initialize\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"proxiableUUID\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"id\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"newAddress\",\"type\":\"address\"}],\"name\":\"setAddress\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newAddress\",\"type\":\"address\"}],\"name\":\"setCollateralAddress\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newAddress\",\"type\":\"address\"}],\"name\":\"setLiquidStakingAddress\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newAddress\",\"type\":\"address\"}],\"name\":\"setLiquidStakingControllerAddress\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newAddress\",\"type\":\"address\"}],\"name\":\"setProtocolRewardsAddress\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newAddress\",\"type\":\"address\"}],\"name\":\"setRegistryAddress\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newAddress\",\"type\":\"address\"}],\"name\":\"setRewardCollectorAddress\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation\",\"type\":\"address\"}],\"name\":\"upgradeTo\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newImplementation\",\"type\":\"address\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"upgradeToAndCall\",\"outputs\":[],\"stateMutability\":\"payable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"version\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"pure\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"getAddress(bytes32)\":{\"params\":{\"id\":\"Address identifier\"}},\"initialize()\":{\"details\":\"Contract initializer function.\"},\"owner()\":{\"details\":\"Returns the address of the current owner.\"},\"proxiableUUID()\":{\"details\":\"Implementation of the ERC1822 {proxiableUUID} function. This returns the storage slot used by the implementation. It is used to validate the implementation's compatibility when performing an upgrade. IMPORTANT: A proxy pointing at a proxiable contract should not be considered proxiable itself, because this risks bricking a proxy that upgrades to it, by delegating to itself until out of gas. Thus it is critical that this function revert if invoked through a proxy. This is guaranteed by the `notDelegated` modifier.\"},\"renounceOwnership()\":{\"details\":\"Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner.\"},\"setAddress(bytes32,address)\":{\"details\":\"Only triggered by resolver owner\",\"params\":{\"id\":\"Address Identifier\",\"newAddress\":\"Contract implementation address\"}},\"setCollateralAddress(address)\":{\"details\":\"Only triggered by resolver owner\",\"params\":{\"newAddress\":\"StorageProviderCollateral smart contract address\"}},\"setLiquidStakingAddress(address)\":{\"details\":\"Only triggered by resolver owner\",\"params\":{\"newAddress\":\"LiquidStaking smart contract address\"}},\"setLiquidStakingControllerAddress(address)\":{\"details\":\"Only triggered by resolver owner\",\"params\":{\"newAddress\":\"LiquidStakingController smart contract address\"}},\"setProtocolRewardsAddress(address)\":{\"details\":\"Only triggered by resolver owner\",\"params\":{\"newAddress\":\"Protocol Rewards address\"}},\"setRegistryAddress(address)\":{\"details\":\"Only triggered by resolver owner\",\"params\":{\"newAddress\":\"StorageProviderRegistry smart contract address\"}},\"setRewardCollectorAddress(address)\":{\"details\":\"Only triggered by resolver owner\",\"params\":{\"newAddress\":\"RewardCollector address\"}},\"transferOwnership(address)\":{\"details\":\"Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner.\"},\"upgradeTo(address)\":{\"custom:oz-upgrades-unsafe-allow-reachable\":\"delegatecall\",\"details\":\"Upgrade the implementation of the proxy to `newImplementation`. Calls {_authorizeUpgrade}. Emits an {Upgraded} event.\"},\"upgradeToAndCall(address,bytes)\":{\"custom:oz-upgrades-unsafe-allow-reachable\":\"delegatecall\",\"details\":\"Upgrade the implementation of the proxy to `newImplementation`, and subsequently execute the function call encoded in `data`. Calls {_authorizeUpgrade}. Emits an {Upgraded} event.\"}},\"title\":\"Resolver contract used to resolve registered addresses in the protocol by their identifiers\",\"version\":1},\"userdoc\":{\"events\":{\"AddressSet(bytes32,address,address)\":{\"notice\":\"Emitted when new address set\"},\"CollateralAddressUpdated(address)\":{\"notice\":\"Emitted when StorageProviderCollateral address updated\"},\"LiquidStakingAddressUpdated(address)\":{\"notice\":\"Emitted when LiquidStaking address updated\"},\"LiquidStakingControllerAddressUpdated(address)\":{\"notice\":\"Emitted when LiquidStaking address updated\"},\"ProtocolRewardsAddressUpdated(address)\":{\"notice\":\"Emitted when Protocol Rewards address updated\"},\"RegistryAddressUpdated(address)\":{\"notice\":\"Emitted when StorageProviderRegistry address updated\"},\"RewardCollectorAddressUpdated(address)\":{\"notice\":\"Emitted when RewardCollector address updated\"}},\"kind\":\"user\",\"methods\":{\"getAddress(bytes32)\":{\"notice\":\"Returns an address of a contract by its identifier\"},\"getCollateral()\":{\"notice\":\"Returns an address of a Storage Provider Collateral contract\"},\"getImplementation()\":{\"notice\":\"Returns the implementation contract\"},\"getLiquidStaking()\":{\"notice\":\"Returns an address of a Liquid Staking contract\"},\"getLiquidStakingController()\":{\"notice\":\"Returns an address of a Liquid Staking Controller contract\"},\"getProtocolRewards()\":{\"notice\":\"Returns a ProtocolRewards address\"},\"getRegistry()\":{\"notice\":\"Returns an address of a Storage Provider Registry contract\"},\"getRewardCollector()\":{\"notice\":\"Returns an address of a Reward Collector contract\"},\"setAddress(bytes32,address)\":{\"notice\":\"Sets a `newAddress` for a contract by `id`\"},\"setCollateralAddress(address)\":{\"notice\":\"Update StorageProviderCollateral smart contract address\"},\"setLiquidStakingAddress(address)\":{\"notice\":\"Update LiquidStaking smart contract address\"},\"setLiquidStakingControllerAddress(address)\":{\"notice\":\"Update LiquidStakingController address\"},\"setProtocolRewardsAddress(address)\":{\"notice\":\"Update Protocol Rewards address\"},\"setRegistryAddress(address)\":{\"notice\":\"Update StorageProviderRegistry smart contract address\"},\"setRewardCollectorAddress(address)\":{\"notice\":\"Update Reward Collector contract address\"},\"version()\":{\"notice\":\"Returns the version of clFIL token contract\"}},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/Resolver.sol\":\"Resolver\"},\"evmVersion\":\"london\",\"libraries\":{\":__CACHE_BREAKER__\":\"0x0000000000000031363837343639313335363937\"},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"details\":{\"constantOptimizer\":true,\"cse\":true,\"deduplicate\":true,\"inliner\":true,\"jumpdestRemover\":true,\"orderLiterals\":true,\"peephole\":true,\"yul\":false},\"runs\":0},\"remappings\":[]},\"sources\":{\"contracts/Resolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.17;\\n\\nimport {IResolver} from \\\"./interfaces/IResolver.sol\\\";\\nimport {OwnableUpgradeable} from \\\"lib/openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol\\\";\\nimport {Initializable} from \\\"lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol\\\";\\nimport {UUPSUpgradeable} from \\\"lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol\\\";\\n\\n/**\\n * @title Resolver contract used to resolve registered addresses in the protocol\\n * by their identifiers\\n */\\ncontract Resolver is IResolver, Initializable, OwnableUpgradeable, UUPSUpgradeable {\\n\\t// Map of registered addresses (identifier => registeredAddress)\\n\\tmapping(bytes32 => address) private _addresses;\\n\\n\\tbytes32 private constant LIQUID_STAKING = \\\"LIQUID_STAKING\\\";\\n\\tbytes32 private constant REGISTRY = \\\"REGISTRY\\\";\\n\\tbytes32 private constant COLLATERAL = \\\"COLLATERAL\\\";\\n\\tbytes32 private constant LIQUID_STAKING_CONTROLLER = \\\"LIQUID_STAKING_CONTROLLER\\\";\\n\\tbytes32 private constant REWARD_COLLECTOR = \\\"REWARD_COLLECTOR\\\";\\n\\tbytes32 private constant PROTOCOL_REWARDS = \\\"PROTOCOL_REWARDS\\\";\\n\\n\\t/**\\n\\t * @dev Contract initializer function.\\n\\t */\\n\\tfunction initialize() public initializer {\\n\\t\\t__Ownable_init();\\n\\t\\t__UUPSUpgradeable_init();\\n\\t}\\n\\n\\t/**\\n\\t * @notice Sets a `newAddress` for a contract by `id`\\n\\t * @param id Address Identifier\\n\\t * @param newAddress Contract implementation address\\n\\t * @dev Only triggered by resolver owner\\n\\t */\\n\\tfunction setAddress(bytes32 id, address newAddress) external override onlyOwner {\\n\\t\\taddress oldAddress = _addresses[id];\\n\\n\\t\\tif (oldAddress == newAddress || newAddress == address(0)) revert InvalidAddress();\\n\\n\\t\\t_addresses[id] = newAddress;\\n\\t\\temit AddressSet(id, oldAddress, newAddress);\\n\\t}\\n\\n\\t/**\\n\\t * @notice Returns an address of a contract by its identifier\\n\\t * @param id Address identifier\\n\\t */\\n\\tfunction getAddress(bytes32 id) public view override returns (address) {\\n\\t\\treturn _addresses[id];\\n\\t}\\n\\n\\t/**\\n\\t * @notice Update StorageProviderRegistry smart contract address\\n\\t * @param newAddress StorageProviderRegistry smart contract address\\n\\t * @dev Only triggered by resolver owner\\n\\t */\\n\\tfunction setRegistryAddress(address newAddress) external override onlyOwner {\\n\\t\\t_setAddress(REGISTRY, newAddress);\\n\\n\\t\\temit RegistryAddressUpdated(newAddress);\\n\\t}\\n\\n\\t/**\\n\\t * @notice Returns an address of a Storage Provider Registry contract\\n\\t */\\n\\tfunction getRegistry() external view override returns (address) {\\n\\t\\treturn getAddress(REGISTRY);\\n\\t}\\n\\n\\t/**\\n\\t * @notice Update StorageProviderCollateral smart contract address\\n\\t * @param newAddress StorageProviderCollateral smart contract address\\n\\t * @dev Only triggered by resolver owner\\n\\t */\\n\\tfunction setCollateralAddress(address newAddress) external override onlyOwner {\\n\\t\\t_setAddress(COLLATERAL, newAddress);\\n\\n\\t\\temit CollateralAddressUpdated(newAddress);\\n\\t}\\n\\n\\t/**\\n\\t * @notice Returns an address of a Storage Provider Collateral contract\\n\\t */\\n\\tfunction getCollateral() external view override returns (address) {\\n\\t\\treturn getAddress(COLLATERAL);\\n\\t}\\n\\n\\t/**\\n\\t * @notice Update LiquidStaking smart contract address\\n\\t * @param newAddress LiquidStaking smart contract address\\n\\t * @dev Only triggered by resolver owner\\n\\t */\\n\\tfunction setLiquidStakingAddress(address newAddress) external override onlyOwner {\\n\\t\\t_setAddress(LIQUID_STAKING, newAddress);\\n\\n\\t\\temit LiquidStakingAddressUpdated(newAddress);\\n\\t}\\n\\n\\t/**\\n\\t * @notice Returns an address of a Liquid Staking contract\\n\\t */\\n\\tfunction getLiquidStaking() external view override returns (address) {\\n\\t\\treturn getAddress(LIQUID_STAKING);\\n\\t}\\n\\n\\t/**\\n\\t * @notice Update LiquidStakingController address\\n\\t * @param newAddress LiquidStakingController smart contract address\\n\\t * @dev Only triggered by resolver owner\\n\\t */\\n\\tfunction setLiquidStakingControllerAddress(address newAddress) external override onlyOwner {\\n\\t\\t_setAddress(LIQUID_STAKING_CONTROLLER, newAddress);\\n\\n\\t\\temit LiquidStakingControllerAddressUpdated(newAddress);\\n\\t}\\n\\n\\t/**\\n\\t * @notice Returns an address of a Liquid Staking Controller contract\\n\\t */\\n\\tfunction getLiquidStakingController() external view override returns (address) {\\n\\t\\treturn getAddress(LIQUID_STAKING_CONTROLLER);\\n\\t}\\n\\n\\t/**\\n\\t * @notice Update Reward Collector contract address\\n\\t * @param newAddress RewardCollector address\\n\\t * @dev Only triggered by resolver owner\\n\\t */\\n\\tfunction setRewardCollectorAddress(address newAddress) external override onlyOwner {\\n\\t\\t_setAddress(REWARD_COLLECTOR, newAddress);\\n\\n\\t\\temit RewardCollectorAddressUpdated(newAddress);\\n\\t}\\n\\n\\t/**\\n\\t * @notice Returns an address of a Reward Collector contract\\n\\t */\\n\\tfunction getRewardCollector() external view override returns (address) {\\n\\t\\treturn getAddress(REWARD_COLLECTOR);\\n\\t}\\n\\n\\t/**\\n\\t * @notice Update Protocol Rewards address\\n\\t * @param newAddress Protocol Rewards address\\n\\t * @dev Only triggered by resolver owner\\n\\t */\\n\\tfunction setProtocolRewardsAddress(address newAddress) external override onlyOwner {\\n\\t\\t_setAddress(PROTOCOL_REWARDS, newAddress);\\n\\n\\t\\temit ProtocolRewardsAddressUpdated(newAddress);\\n\\t}\\n\\n\\t/**\\n\\t * @notice Returns a ProtocolRewards address\\n\\t */\\n\\tfunction getProtocolRewards() external view override returns (address) {\\n\\t\\treturn getAddress(PROTOCOL_REWARDS);\\n\\t}\\n\\n\\tfunction _setAddress(bytes32 id, address newAddr) internal {\\n\\t\\tif (newAddr == _addresses[id] || newAddr == address(0)) revert InvalidAddress();\\n\\n\\t\\t_addresses[id] = newAddr;\\n\\t}\\n\\n\\t/**\\n\\t * @notice UUPS Upgradeable function to update the liquid staking pool implementation\\n\\t * @dev Only triggered by contract admin\\n\\t */\\n\\tfunction _authorizeUpgrade(address newImplementation) internal override onlyOwner {}\\n\\n\\t/**\\n\\t * @notice Returns the version of clFIL token contract\\n\\t */\\n\\tfunction version() external pure virtual returns (string memory) {\\n\\t\\treturn \\\"v1\\\";\\n\\t}\\n\\n\\t/**\\n\\t * @notice Returns the implementation contract\\n\\t */\\n\\tfunction getImplementation() external view returns (address) {\\n\\t\\treturn _getImplementation();\\n\\t}\\n}\\n\",\"keccak256\":\"0x17cc8e5b20b440cbc5c8e56ab88a2a5e73112fcef5d923a3a4e6d9111e5eec73\",\"license\":\"MIT\"},\"contracts/interfaces/IResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.17;\\n\\ninterface IResolver {\\n\\terror InvalidAddress();\\n\\n\\t/**\\n\\t * @notice Emitted when new address set\\n\\t * @param id Address Identifier\\n\\t * @param oldAddress Old contract implementation address\\n\\t * @param newAddress New contract implementation address\\n\\t */\\n\\tevent AddressSet(bytes32 id, address oldAddress, address newAddress);\\n\\n\\t/**\\n\\t * @notice Emitted when StorageProviderRegistry address updated\\n\\t * @param newAddress New contract implementation address\\n\\t */\\n\\tevent RegistryAddressUpdated(address newAddress);\\n\\n\\t/**\\n\\t * @notice Emitted when StorageProviderCollateral address updated\\n\\t * @param newAddress New contract implementation address\\n\\t */\\n\\tevent CollateralAddressUpdated(address newAddress);\\n\\n\\t/**\\n\\t * @notice Emitted when LiquidStaking address updated\\n\\t * @param newAddress New contract implementation address\\n\\t */\\n\\tevent LiquidStakingAddressUpdated(address newAddress);\\n\\n\\t/**\\n\\t * @notice Emitted when LiquidStaking address updated\\n\\t * @param newAddress New contract implementation address\\n\\t */\\n\\tevent LiquidStakingControllerAddressUpdated(address newAddress);\\n\\n\\t/**\\n\\t * @notice Emitted when RewardCollector address updated\\n\\t * @param newAddress New contract implementation address\\n\\t */\\n\\tevent RewardCollectorAddressUpdated(address newAddress);\\n\\n\\t/**\\n\\t * @notice Emitted when Protocol Rewards address updated\\n\\t * @param newAddress New address\\n\\t */\\n\\tevent ProtocolRewardsAddressUpdated(address newAddress);\\n\\n\\t/**\\n\\t * @notice Sets a `newAddress` for a contract by `id`\\n\\t * @param id Address Identifier\\n\\t * @param newAddress Contract implementation address\\n\\t * @dev Only triggered by resolver owner\\n\\t */\\n\\tfunction setAddress(bytes32 id, address newAddress) external;\\n\\n\\t/**\\n\\t * @notice Returns an address of a contract by its identifier\\n\\t * @param id Address identifier\\n\\t */\\n\\tfunction getAddress(bytes32 id) external view returns (address);\\n\\n\\t/**\\n\\t * @notice Update StorageProviderRegistry smart contract address\\n\\t * @param newAddress StorageProviderRegistry smart contract address\\n\\t * @dev Only triggered by resolver owner\\n\\t */\\n\\tfunction setRegistryAddress(address newAddress) external;\\n\\n\\t/**\\n\\t * @notice Returns an address of a Storage Provider Registry contract\\n\\t */\\n\\tfunction getRegistry() external view returns (address);\\n\\n\\t/**\\n\\t * @notice Update StorageProviderCollateral smart contract address\\n\\t * @param newAddress StorageProviderCollateral smart contract address\\n\\t * @dev Only triggered by resolver owner\\n\\t */\\n\\tfunction setCollateralAddress(address newAddress) external;\\n\\n\\t/**\\n\\t * @notice Returns an address of a Storage Provider Collateral contract\\n\\t */\\n\\tfunction getCollateral() external view returns (address);\\n\\n\\t/**\\n\\t * @notice Update LiquidStaking smart contract address\\n\\t * @param newAddress LiquidStaking smart contract address\\n\\t * @dev Only triggered by resolver owner\\n\\t */\\n\\tfunction setLiquidStakingAddress(address newAddress) external;\\n\\n\\t/**\\n\\t * @notice Returns an address of a Liquid Staking contract\\n\\t */\\n\\tfunction getLiquidStaking() external view returns (address);\\n\\n\\t/**\\n\\t * @notice Update Protocol Rewards address\\n\\t * @param newAddress Protocol Rewards address\\n\\t * @dev Only triggered by resolver owner\\n\\t */\\n\\tfunction setProtocolRewardsAddress(address newAddress) external;\\n\\n\\t/**\\n\\t * @notice Returns a Protocol Rewards address\\n\\t */\\n\\tfunction getProtocolRewards() external view returns (address);\\n\\n\\t/**\\n\\t * @notice Returns the implementation contract\\n\\t */\\n\\tfunction getImplementation() external view returns (address);\\n\\n\\t/**\\n\\t * @notice Update LiquidStakingController address\\n\\t * @param newAddress LiquidStakingController smart contract address\\n\\t * @dev Only triggered by resolver owner\\n\\t */\\n\\tfunction setLiquidStakingControllerAddress(address newAddress) external;\\n\\n\\t/**\\n\\t * @notice Returns an address of a Liquid Staking Controller contract\\n\\t */\\n\\tfunction getLiquidStakingController() external view returns (address);\\n\\n\\t/**\\n\\t * @notice Update Reward Collector smart contract address\\n\\t * @param newAddress Reward Collector smart contract address\\n\\t * @dev Only triggered by resolver owner\\n\\t */\\n\\tfunction setRewardCollectorAddress(address newAddress) external;\\n\\n\\t/**\\n\\t * @notice Returns an address of a Reward Collector contract\\n\\t */\\n\\tfunction getRewardCollector() external view returns (address);\\n}\\n\",\"keccak256\":\"0x2c6fb84ff5c96f6f81c28d3e481558738d72adac2b23a5962d16a80f65dc449a\",\"license\":\"MIT\"},\"lib/openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v4.9.0) (access/Ownable.sol)\\n\\npragma solidity ^0.8.0;\\n\\nimport \\\"../utils/ContextUpgradeable.sol\\\";\\nimport \\\"../proxy/utils/Initializable.sol\\\";\\n\\n/**\\n * @dev Contract module which provides a basic access control mechanism, where\\n * there is an account (an owner) that can be granted exclusive access to\\n * specific functions.\\n *\\n * By default, the owner account will be the one that deploys the contract. This\\n * can later be changed with {transferOwnership}.\\n *\\n * This module is used through inheritance. It will make available the modifier\\n * `onlyOwner`, which can be applied to your functions to restrict their use to\\n * the owner.\\n */\\nabstract contract OwnableUpgradeable is Initializable, ContextUpgradeable {\\n    address private _owner;\\n\\n    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);\\n\\n    /**\\n     * @dev Initializes the contract setting the deployer as the initial owner.\\n     */\\n    function __Ownable_init() internal onlyInitializing {\\n        __Ownable_init_unchained();\\n    }\\n\\n    function __Ownable_init_unchained() internal onlyInitializing {\\n        _transferOwnership(_msgSender());\\n    }\\n\\n    /**\\n     * @dev Throws if called by any account other than the owner.\\n     */\\n    modifier onlyOwner() {\\n        _checkOwner();\\n        _;\\n    }\\n\\n    /**\\n     * @dev Returns the address of the current owner.\\n     */\\n    function owner() public view virtual returns (address) {\\n        return _owner;\\n    }\\n\\n    /**\\n     * @dev Throws if the sender is not the owner.\\n     */\\n    function _checkOwner() internal view virtual {\\n        require(owner() == _msgSender(), \\\"Ownable: caller is not the owner\\\");\\n    }\\n\\n    /**\\n     * @dev Leaves the contract without owner. It will not be possible to call\\n     * `onlyOwner` functions. Can only be called by the current owner.\\n     *\\n     * NOTE: Renouncing ownership will leave the contract without an owner,\\n     * thereby disabling any functionality that is only available to the owner.\\n     */\\n    function renounceOwnership() public virtual onlyOwner {\\n        _transferOwnership(address(0));\\n    }\\n\\n    /**\\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\\n     * Can only be called by the current owner.\\n     */\\n    function transferOwnership(address newOwner) public virtual onlyOwner {\\n        require(newOwner != address(0), \\\"Ownable: new owner is the zero address\\\");\\n        _transferOwnership(newOwner);\\n    }\\n\\n    /**\\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\\n     * Internal function without access restriction.\\n     */\\n    function _transferOwnership(address newOwner) internal virtual {\\n        address oldOwner = _owner;\\n        _owner = newOwner;\\n        emit OwnershipTransferred(oldOwner, newOwner);\\n    }\\n\\n    /**\\n     * @dev This empty reserved space is put in place to allow future versions to add new\\n     * variables without shifting down storage in the inheritance chain.\\n     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps\\n     */\\n    uint256[49] private __gap;\\n}\\n\",\"keccak256\":\"0x4075622496acc77fd6d4de4cc30a8577a744d5c75afad33fdeacf1704d6eda98\",\"license\":\"MIT\"},\"lib/openzeppelin-contracts-upgradeable/contracts/interfaces/IERC1967Upgradeable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v4.9.0) (interfaces/IERC1967.sol)\\n\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev ERC-1967: Proxy Storage Slots. This interface contains the events defined in the ERC.\\n *\\n * _Available since v4.8.3._\\n */\\ninterface IERC1967Upgradeable {\\n    /**\\n     * @dev Emitted when the implementation is upgraded.\\n     */\\n    event Upgraded(address indexed implementation);\\n\\n    /**\\n     * @dev Emitted when the admin account has changed.\\n     */\\n    event AdminChanged(address previousAdmin, address newAdmin);\\n\\n    /**\\n     * @dev Emitted when the beacon is changed.\\n     */\\n    event BeaconUpgraded(address indexed beacon);\\n}\\n\",\"keccak256\":\"0x47d6e06872b12e72c79d1b5eb55842f860b5fb1207b2317c2358d2766b950a7b\",\"license\":\"MIT\"},\"lib/openzeppelin-contracts-upgradeable/contracts/interfaces/draft-IERC1822Upgradeable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v4.5.0) (interfaces/draft-IERC1822.sol)\\n\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev ERC1822: Universal Upgradeable Proxy Standard (UUPS) documents a method for upgradeability through a simplified\\n * proxy whose upgrades are fully controlled by the current implementation.\\n */\\ninterface IERC1822ProxiableUpgradeable {\\n    /**\\n     * @dev Returns the storage slot that the proxiable contract assumes is being used to store the implementation\\n     * address.\\n     *\\n     * IMPORTANT: A proxy pointing at a proxiable contract should not be considered proxiable itself, because this risks\\n     * bricking a proxy that upgrades to it, by delegating to itself until out of gas. Thus it is critical that this\\n     * function revert if invoked through a proxy.\\n     */\\n    function proxiableUUID() external view returns (bytes32);\\n}\\n\",\"keccak256\":\"0x77c89f893e403efc6929ba842b7ccf6534d4ffe03afe31670b4a528c0ad78c0f\",\"license\":\"MIT\"},\"lib/openzeppelin-contracts-upgradeable/contracts/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v4.9.0) (proxy/ERC1967/ERC1967Upgrade.sol)\\n\\npragma solidity ^0.8.2;\\n\\nimport \\\"../beacon/IBeaconUpgradeable.sol\\\";\\nimport \\\"../../interfaces/IERC1967Upgradeable.sol\\\";\\nimport \\\"../../interfaces/draft-IERC1822Upgradeable.sol\\\";\\nimport \\\"../../utils/AddressUpgradeable.sol\\\";\\nimport \\\"../../utils/StorageSlotUpgradeable.sol\\\";\\nimport \\\"../utils/Initializable.sol\\\";\\n\\n/**\\n * @dev This abstract contract provides getters and event emitting update functions for\\n * https://eips.ethereum.org/EIPS/eip-1967[EIP1967] slots.\\n *\\n * _Available since v4.1._\\n */\\nabstract contract ERC1967UpgradeUpgradeable is Initializable, IERC1967Upgradeable {\\n    function __ERC1967Upgrade_init() internal onlyInitializing {\\n    }\\n\\n    function __ERC1967Upgrade_init_unchained() internal onlyInitializing {\\n    }\\n    // This is the keccak-256 hash of \\\"eip1967.proxy.rollback\\\" subtracted by 1\\n    bytes32 private constant _ROLLBACK_SLOT = 0x4910fdfa16fed3260ed0e7147f7cc6da11a60208b5b9406d12a635614ffd9143;\\n\\n    /**\\n     * @dev Storage slot with the address of the current implementation.\\n     * This is the keccak-256 hash of \\\"eip1967.proxy.implementation\\\" subtracted by 1, and is\\n     * validated in the constructor.\\n     */\\n    bytes32 internal constant _IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;\\n\\n    /**\\n     * @dev Returns the current implementation address.\\n     */\\n    function _getImplementation() internal view returns (address) {\\n        return StorageSlotUpgradeable.getAddressSlot(_IMPLEMENTATION_SLOT).value;\\n    }\\n\\n    /**\\n     * @dev Stores a new address in the EIP1967 implementation slot.\\n     */\\n    function _setImplementation(address newImplementation) private {\\n        require(AddressUpgradeable.isContract(newImplementation), \\\"ERC1967: new implementation is not a contract\\\");\\n        StorageSlotUpgradeable.getAddressSlot(_IMPLEMENTATION_SLOT).value = newImplementation;\\n    }\\n\\n    /**\\n     * @dev Perform implementation upgrade\\n     *\\n     * Emits an {Upgraded} event.\\n     */\\n    function _upgradeTo(address newImplementation) internal {\\n        _setImplementation(newImplementation);\\n        emit Upgraded(newImplementation);\\n    }\\n\\n    /**\\n     * @dev Perform implementation upgrade with additional setup call.\\n     *\\n     * Emits an {Upgraded} event.\\n     */\\n    function _upgradeToAndCall(address newImplementation, bytes memory data, bool forceCall) internal {\\n        _upgradeTo(newImplementation);\\n        if (data.length > 0 || forceCall) {\\n            AddressUpgradeable.functionDelegateCall(newImplementation, data);\\n        }\\n    }\\n\\n    /**\\n     * @dev Perform implementation upgrade with security checks for UUPS proxies, and additional setup call.\\n     *\\n     * Emits an {Upgraded} event.\\n     */\\n    function _upgradeToAndCallUUPS(address newImplementation, bytes memory data, bool forceCall) internal {\\n        // Upgrades from old implementations will perform a rollback test. This test requires the new\\n        // implementation to upgrade back to the old, non-ERC1822 compliant, implementation. Removing\\n        // this special case will break upgrade paths from old UUPS implementation to new ones.\\n        if (StorageSlotUpgradeable.getBooleanSlot(_ROLLBACK_SLOT).value) {\\n            _setImplementation(newImplementation);\\n        } else {\\n            try IERC1822ProxiableUpgradeable(newImplementation).proxiableUUID() returns (bytes32 slot) {\\n                require(slot == _IMPLEMENTATION_SLOT, \\\"ERC1967Upgrade: unsupported proxiableUUID\\\");\\n            } catch {\\n                revert(\\\"ERC1967Upgrade: new implementation is not UUPS\\\");\\n            }\\n            _upgradeToAndCall(newImplementation, data, forceCall);\\n        }\\n    }\\n\\n    /**\\n     * @dev Storage slot with the admin of the contract.\\n     * This is the keccak-256 hash of \\\"eip1967.proxy.admin\\\" subtracted by 1, and is\\n     * validated in the constructor.\\n     */\\n    bytes32 internal constant _ADMIN_SLOT = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;\\n\\n    /**\\n     * @dev Returns the current admin.\\n     */\\n    function _getAdmin() internal view returns (address) {\\n        return StorageSlotUpgradeable.getAddressSlot(_ADMIN_SLOT).value;\\n    }\\n\\n    /**\\n     * @dev Stores a new address in the EIP1967 admin slot.\\n     */\\n    function _setAdmin(address newAdmin) private {\\n        require(newAdmin != address(0), \\\"ERC1967: new admin is the zero address\\\");\\n        StorageSlotUpgradeable.getAddressSlot(_ADMIN_SLOT).value = newAdmin;\\n    }\\n\\n    /**\\n     * @dev Changes the admin of the proxy.\\n     *\\n     * Emits an {AdminChanged} event.\\n     */\\n    function _changeAdmin(address newAdmin) internal {\\n        emit AdminChanged(_getAdmin(), newAdmin);\\n        _setAdmin(newAdmin);\\n    }\\n\\n    /**\\n     * @dev The storage slot of the UpgradeableBeacon contract which defines the implementation for this proxy.\\n     * This is bytes32(uint256(keccak256('eip1967.proxy.beacon')) - 1)) and is validated in the constructor.\\n     */\\n    bytes32 internal constant _BEACON_SLOT = 0xa3f0ad74e5423aebfd80d3ef4346578335a9a72aeaee59ff6cb3582b35133d50;\\n\\n    /**\\n     * @dev Returns the current beacon.\\n     */\\n    function _getBeacon() internal view returns (address) {\\n        return StorageSlotUpgradeable.getAddressSlot(_BEACON_SLOT).value;\\n    }\\n\\n    /**\\n     * @dev Stores a new beacon in the EIP1967 beacon slot.\\n     */\\n    function _setBeacon(address newBeacon) private {\\n        require(AddressUpgradeable.isContract(newBeacon), \\\"ERC1967: new beacon is not a contract\\\");\\n        require(\\n            AddressUpgradeable.isContract(IBeaconUpgradeable(newBeacon).implementation()),\\n            \\\"ERC1967: beacon implementation is not a contract\\\"\\n        );\\n        StorageSlotUpgradeable.getAddressSlot(_BEACON_SLOT).value = newBeacon;\\n    }\\n\\n    /**\\n     * @dev Perform beacon upgrade with additional setup call. Note: This upgrades the address of the beacon, it does\\n     * not upgrade the implementation contained in the beacon (see {UpgradeableBeacon-_setImplementation} for that).\\n     *\\n     * Emits a {BeaconUpgraded} event.\\n     */\\n    function _upgradeBeaconToAndCall(address newBeacon, bytes memory data, bool forceCall) internal {\\n        _setBeacon(newBeacon);\\n        emit BeaconUpgraded(newBeacon);\\n        if (data.length > 0 || forceCall) {\\n            AddressUpgradeable.functionDelegateCall(IBeaconUpgradeable(newBeacon).implementation(), data);\\n        }\\n    }\\n\\n    /**\\n     * @dev This empty reserved space is put in place to allow future versions to add new\\n     * variables without shifting down storage in the inheritance chain.\\n     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps\\n     */\\n    uint256[50] private __gap;\\n}\\n\",\"keccak256\":\"0x584ebdf9c1118a7c773f98788e3f3ede01982bdf8932aa06f5acc7d54876e161\",\"license\":\"MIT\"},\"lib/openzeppelin-contracts-upgradeable/contracts/proxy/beacon/IBeaconUpgradeable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts v4.4.1 (proxy/beacon/IBeacon.sol)\\n\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev This is the interface that {BeaconProxy} expects of its beacon.\\n */\\ninterface IBeaconUpgradeable {\\n    /**\\n     * @dev Must return an address that can be used as a delegate call target.\\n     *\\n     * {BeaconProxy} will check that this address is a contract.\\n     */\\n    function implementation() external view returns (address);\\n}\\n\",\"keccak256\":\"0x24b86ac8c005b8c654fbf6ac34a5a4f61580d7273541e83e013e89d66fbf0908\",\"license\":\"MIT\"},\"lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v4.9.0) (proxy/utils/Initializable.sol)\\n\\npragma solidity ^0.8.2;\\n\\nimport \\\"../../utils/AddressUpgradeable.sol\\\";\\n\\n/**\\n * @dev This is a base contract to aid in writing upgradeable contracts, or any kind of contract that will be deployed\\n * behind a proxy. Since proxied contracts do not make use of a constructor, it's common to move constructor logic to an\\n * external initializer function, usually called `initialize`. It then becomes necessary to protect this initializer\\n * function so it can only be called once. The {initializer} modifier provided by this contract will have this effect.\\n *\\n * The initialization functions use a version number. Once a version number is used, it is consumed and cannot be\\n * reused. This mechanism prevents re-execution of each \\\"step\\\" but allows the creation of new initialization steps in\\n * case an upgrade adds a module that needs to be initialized.\\n *\\n * For example:\\n *\\n * [.hljs-theme-light.nopadding]\\n * ```solidity\\n * contract MyToken is ERC20Upgradeable {\\n *     function initialize() initializer public {\\n *         __ERC20_init(\\\"MyToken\\\", \\\"MTK\\\");\\n *     }\\n * }\\n *\\n * contract MyTokenV2 is MyToken, ERC20PermitUpgradeable {\\n *     function initializeV2() reinitializer(2) public {\\n *         __ERC20Permit_init(\\\"MyToken\\\");\\n *     }\\n * }\\n * ```\\n *\\n * TIP: To avoid leaving the proxy in an uninitialized state, the initializer function should be called as early as\\n * possible by providing the encoded function call as the `_data` argument to {ERC1967Proxy-constructor}.\\n *\\n * CAUTION: When used with inheritance, manual care must be taken to not invoke a parent initializer twice, or to ensure\\n * that all initializers are idempotent. This is not verified automatically as constructors are by Solidity.\\n *\\n * [CAUTION]\\n * ====\\n * Avoid leaving a contract uninitialized.\\n *\\n * An uninitialized contract can be taken over by an attacker. This applies to both a proxy and its implementation\\n * contract, which may impact the proxy. To prevent the implementation contract from being used, you should invoke\\n * the {_disableInitializers} function in the constructor to automatically lock it when it is deployed:\\n *\\n * [.hljs-theme-light.nopadding]\\n * ```\\n * /// @custom:oz-upgrades-unsafe-allow constructor\\n * constructor() {\\n *     _disableInitializers();\\n * }\\n * ```\\n * ====\\n */\\nabstract contract Initializable {\\n    /**\\n     * @dev Indicates that the contract has been initialized.\\n     * @custom:oz-retyped-from bool\\n     */\\n    uint8 private _initialized;\\n\\n    /**\\n     * @dev Indicates that the contract is in the process of being initialized.\\n     */\\n    bool private _initializing;\\n\\n    /**\\n     * @dev Triggered when the contract has been initialized or reinitialized.\\n     */\\n    event Initialized(uint8 version);\\n\\n    /**\\n     * @dev A modifier that defines a protected initializer function that can be invoked at most once. In its scope,\\n     * `onlyInitializing` functions can be used to initialize parent contracts.\\n     *\\n     * Similar to `reinitializer(1)`, except that functions marked with `initializer` can be nested in the context of a\\n     * constructor.\\n     *\\n     * Emits an {Initialized} event.\\n     */\\n    modifier initializer() {\\n        bool isTopLevelCall = !_initializing;\\n        require(\\n            (isTopLevelCall && _initialized < 1) || (!AddressUpgradeable.isContract(address(this)) && _initialized == 1),\\n            \\\"Initializable: contract is already initialized\\\"\\n        );\\n        _initialized = 1;\\n        if (isTopLevelCall) {\\n            _initializing = true;\\n        }\\n        _;\\n        if (isTopLevelCall) {\\n            _initializing = false;\\n            emit Initialized(1);\\n        }\\n    }\\n\\n    /**\\n     * @dev A modifier that defines a protected reinitializer function that can be invoked at most once, and only if the\\n     * contract hasn't been initialized to a greater version before. In its scope, `onlyInitializing` functions can be\\n     * used to initialize parent contracts.\\n     *\\n     * A reinitializer may be used after the original initialization step. This is essential to configure modules that\\n     * are added through upgrades and that require initialization.\\n     *\\n     * When `version` is 1, this modifier is similar to `initializer`, except that functions marked with `reinitializer`\\n     * cannot be nested. If one is invoked in the context of another, execution will revert.\\n     *\\n     * Note that versions can jump in increments greater than 1; this implies that if multiple reinitializers coexist in\\n     * a contract, executing them in the right order is up to the developer or operator.\\n     *\\n     * WARNING: setting the version to 255 will prevent any future reinitialization.\\n     *\\n     * Emits an {Initialized} event.\\n     */\\n    modifier reinitializer(uint8 version) {\\n        require(!_initializing && _initialized < version, \\\"Initializable: contract is already initialized\\\");\\n        _initialized = version;\\n        _initializing = true;\\n        _;\\n        _initializing = false;\\n        emit Initialized(version);\\n    }\\n\\n    /**\\n     * @dev Modifier to protect an initialization function so that it can only be invoked by functions with the\\n     * {initializer} and {reinitializer} modifiers, directly or indirectly.\\n     */\\n    modifier onlyInitializing() {\\n        require(_initializing, \\\"Initializable: contract is not initializing\\\");\\n        _;\\n    }\\n\\n    /**\\n     * @dev Locks the contract, preventing any future reinitialization. This cannot be part of an initializer call.\\n     * Calling this in the constructor of a contract will prevent that contract from being initialized or reinitialized\\n     * to any version. It is recommended to use this to lock implementation contracts that are designed to be called\\n     * through proxies.\\n     *\\n     * Emits an {Initialized} event the first time it is successfully executed.\\n     */\\n    function _disableInitializers() internal virtual {\\n        require(!_initializing, \\\"Initializable: contract is initializing\\\");\\n        if (_initialized != type(uint8).max) {\\n            _initialized = type(uint8).max;\\n            emit Initialized(type(uint8).max);\\n        }\\n    }\\n\\n    /**\\n     * @dev Returns the highest version that has been initialized. See {reinitializer}.\\n     */\\n    function _getInitializedVersion() internal view returns (uint8) {\\n        return _initialized;\\n    }\\n\\n    /**\\n     * @dev Returns `true` if the contract is currently initializing. See {onlyInitializing}.\\n     */\\n    function _isInitializing() internal view returns (bool) {\\n        return _initializing;\\n    }\\n}\\n\",\"keccak256\":\"0x89be10e757d242e9b18d5a32c9fbe2019f6d63052bbe46397a430a1d60d7f794\",\"license\":\"MIT\"},\"lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v4.9.0) (proxy/utils/UUPSUpgradeable.sol)\\n\\npragma solidity ^0.8.0;\\n\\nimport \\\"../../interfaces/draft-IERC1822Upgradeable.sol\\\";\\nimport \\\"../ERC1967/ERC1967UpgradeUpgradeable.sol\\\";\\nimport \\\"./Initializable.sol\\\";\\n\\n/**\\n * @dev An upgradeability mechanism designed for UUPS proxies. The functions included here can perform an upgrade of an\\n * {ERC1967Proxy}, when this contract is set as the implementation behind such a proxy.\\n *\\n * A security mechanism ensures that an upgrade does not turn off upgradeability accidentally, although this risk is\\n * reinstated if the upgrade retains upgradeability but removes the security mechanism, e.g. by replacing\\n * `UUPSUpgradeable` with a custom implementation of upgrades.\\n *\\n * The {_authorizeUpgrade} function must be overridden to include access restriction to the upgrade mechanism.\\n *\\n * _Available since v4.1._\\n */\\nabstract contract UUPSUpgradeable is Initializable, IERC1822ProxiableUpgradeable, ERC1967UpgradeUpgradeable {\\n    function __UUPSUpgradeable_init() internal onlyInitializing {\\n    }\\n\\n    function __UUPSUpgradeable_init_unchained() internal onlyInitializing {\\n    }\\n    /// @custom:oz-upgrades-unsafe-allow state-variable-immutable state-variable-assignment\\n    address private immutable __self = address(this);\\n\\n    /**\\n     * @dev Check that the execution is being performed through a delegatecall call and that the execution context is\\n     * a proxy contract with an implementation (as defined in ERC1967) pointing to self. This should only be the case\\n     * for UUPS and transparent proxies that are using the current contract as their implementation. Execution of a\\n     * function through ERC1167 minimal proxies (clones) would not normally pass this test, but is not guaranteed to\\n     * fail.\\n     */\\n    modifier onlyProxy() {\\n        require(address(this) != __self, \\\"Function must be called through delegatecall\\\");\\n        require(_getImplementation() == __self, \\\"Function must be called through active proxy\\\");\\n        _;\\n    }\\n\\n    /**\\n     * @dev Check that the execution is not being performed through a delegate call. This allows a function to be\\n     * callable on the implementing contract but not through proxies.\\n     */\\n    modifier notDelegated() {\\n        require(address(this) == __self, \\\"UUPSUpgradeable: must not be called through delegatecall\\\");\\n        _;\\n    }\\n\\n    /**\\n     * @dev Implementation of the ERC1822 {proxiableUUID} function. This returns the storage slot used by the\\n     * implementation. It is used to validate the implementation's compatibility when performing an upgrade.\\n     *\\n     * IMPORTANT: A proxy pointing at a proxiable contract should not be considered proxiable itself, because this risks\\n     * bricking a proxy that upgrades to it, by delegating to itself until out of gas. Thus it is critical that this\\n     * function revert if invoked through a proxy. This is guaranteed by the `notDelegated` modifier.\\n     */\\n    function proxiableUUID() external view virtual override notDelegated returns (bytes32) {\\n        return _IMPLEMENTATION_SLOT;\\n    }\\n\\n    /**\\n     * @dev Upgrade the implementation of the proxy to `newImplementation`.\\n     *\\n     * Calls {_authorizeUpgrade}.\\n     *\\n     * Emits an {Upgraded} event.\\n     *\\n     * @custom:oz-upgrades-unsafe-allow-reachable delegatecall\\n     */\\n    function upgradeTo(address newImplementation) public virtual onlyProxy {\\n        _authorizeUpgrade(newImplementation);\\n        _upgradeToAndCallUUPS(newImplementation, new bytes(0), false);\\n    }\\n\\n    /**\\n     * @dev Upgrade the implementation of the proxy to `newImplementation`, and subsequently execute the function call\\n     * encoded in `data`.\\n     *\\n     * Calls {_authorizeUpgrade}.\\n     *\\n     * Emits an {Upgraded} event.\\n     *\\n     * @custom:oz-upgrades-unsafe-allow-reachable delegatecall\\n     */\\n    function upgradeToAndCall(address newImplementation, bytes memory data) public payable virtual onlyProxy {\\n        _authorizeUpgrade(newImplementation);\\n        _upgradeToAndCallUUPS(newImplementation, data, true);\\n    }\\n\\n    /**\\n     * @dev Function that should revert when `msg.sender` is not authorized to upgrade the contract. Called by\\n     * {upgradeTo} and {upgradeToAndCall}.\\n     *\\n     * Normally, this function will use an xref:access.adoc[access control] modifier such as {Ownable-onlyOwner}.\\n     *\\n     * ```solidity\\n     * function _authorizeUpgrade(address) internal override onlyOwner {}\\n     * ```\\n     */\\n    function _authorizeUpgrade(address newImplementation) internal virtual;\\n\\n    /**\\n     * @dev This empty reserved space is put in place to allow future versions to add new\\n     * variables without shifting down storage in the inheritance chain.\\n     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps\\n     */\\n    uint256[50] private __gap;\\n}\\n\",\"keccak256\":\"0xb607cb94c27e89750f5ae2ccebcb94e654e926f6125f4fd4c6262c89875118ad\",\"license\":\"MIT\"},\"lib/openzeppelin-contracts-upgradeable/contracts/utils/AddressUpgradeable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v4.9.0) (utils/Address.sol)\\n\\npragma solidity ^0.8.1;\\n\\n/**\\n * @dev Collection of functions related to the address type\\n */\\nlibrary AddressUpgradeable {\\n    /**\\n     * @dev Returns true if `account` is a contract.\\n     *\\n     * [IMPORTANT]\\n     * ====\\n     * It is unsafe to assume that an address for which this function returns\\n     * false is an externally-owned account (EOA) and not a contract.\\n     *\\n     * Among others, `isContract` will return false for the following\\n     * types of addresses:\\n     *\\n     *  - an externally-owned account\\n     *  - a contract in construction\\n     *  - an address where a contract will be created\\n     *  - an address where a contract lived, but was destroyed\\n     *\\n     * Furthermore, `isContract` will also return true if the target contract within\\n     * the same transaction is already scheduled for destruction by `SELFDESTRUCT`,\\n     * which only has an effect at the end of a transaction.\\n     * ====\\n     *\\n     * [IMPORTANT]\\n     * ====\\n     * You shouldn't rely on `isContract` to protect against flash loan attacks!\\n     *\\n     * Preventing calls from contracts is highly discouraged. It breaks composability, breaks support for smart wallets\\n     * like Gnosis Safe, and does not provide security since it can be circumvented by calling from a contract\\n     * constructor.\\n     * ====\\n     */\\n    function isContract(address account) internal view returns (bool) {\\n        // This method relies on extcodesize/address.code.length, which returns 0\\n        // for contracts in construction, since the code is only stored at the end\\n        // of the constructor execution.\\n\\n        return account.code.length > 0;\\n    }\\n\\n    /**\\n     * @dev Replacement for Solidity's `transfer`: sends `amount` wei to\\n     * `recipient`, forwarding all available gas and reverting on errors.\\n     *\\n     * https://eips.ethereum.org/EIPS/eip-1884[EIP1884] increases the gas cost\\n     * of certain opcodes, possibly making contracts go over the 2300 gas limit\\n     * imposed by `transfer`, making them unable to receive funds via\\n     * `transfer`. {sendValue} removes this limitation.\\n     *\\n     * https://consensys.net/diligence/blog/2019/09/stop-using-soliditys-transfer-now/[Learn more].\\n     *\\n     * IMPORTANT: because control is transferred to `recipient`, care must be\\n     * taken to not create reentrancy vulnerabilities. Consider using\\n     * {ReentrancyGuard} or the\\n     * https://solidity.readthedocs.io/en/v0.8.0/security-considerations.html#use-the-checks-effects-interactions-pattern[checks-effects-interactions pattern].\\n     */\\n    function sendValue(address payable recipient, uint256 amount) internal {\\n        require(address(this).balance >= amount, \\\"Address: insufficient balance\\\");\\n\\n        (bool success, ) = recipient.call{value: amount}(\\\"\\\");\\n        require(success, \\\"Address: unable to send value, recipient may have reverted\\\");\\n    }\\n\\n    /**\\n     * @dev Performs a Solidity function call using a low level `call`. A\\n     * plain `call` is an unsafe replacement for a function call: use this\\n     * function instead.\\n     *\\n     * If `target` reverts with a revert reason, it is bubbled up by this\\n     * function (like regular Solidity function calls).\\n     *\\n     * Returns the raw returned data. To convert to the expected return value,\\n     * use https://solidity.readthedocs.io/en/latest/units-and-global-variables.html?highlight=abi.decode#abi-encoding-and-decoding-functions[`abi.decode`].\\n     *\\n     * Requirements:\\n     *\\n     * - `target` must be a contract.\\n     * - calling `target` with `data` must not revert.\\n     *\\n     * _Available since v3.1._\\n     */\\n    function functionCall(address target, bytes memory data) internal returns (bytes memory) {\\n        return functionCallWithValue(target, data, 0, \\\"Address: low-level call failed\\\");\\n    }\\n\\n    /**\\n     * @dev Same as {xref-Address-functionCall-address-bytes-}[`functionCall`], but with\\n     * `errorMessage` as a fallback revert reason when `target` reverts.\\n     *\\n     * _Available since v3.1._\\n     */\\n    function functionCall(\\n        address target,\\n        bytes memory data,\\n        string memory errorMessage\\n    ) internal returns (bytes memory) {\\n        return functionCallWithValue(target, data, 0, errorMessage);\\n    }\\n\\n    /**\\n     * @dev Same as {xref-Address-functionCall-address-bytes-}[`functionCall`],\\n     * but also transferring `value` wei to `target`.\\n     *\\n     * Requirements:\\n     *\\n     * - the calling contract must have an ETH balance of at least `value`.\\n     * - the called Solidity function must be `payable`.\\n     *\\n     * _Available since v3.1._\\n     */\\n    function functionCallWithValue(address target, bytes memory data, uint256 value) internal returns (bytes memory) {\\n        return functionCallWithValue(target, data, value, \\\"Address: low-level call with value failed\\\");\\n    }\\n\\n    /**\\n     * @dev Same as {xref-Address-functionCallWithValue-address-bytes-uint256-}[`functionCallWithValue`], but\\n     * with `errorMessage` as a fallback revert reason when `target` reverts.\\n     *\\n     * _Available since v3.1._\\n     */\\n    function functionCallWithValue(\\n        address target,\\n        bytes memory data,\\n        uint256 value,\\n        string memory errorMessage\\n    ) internal returns (bytes memory) {\\n        require(address(this).balance >= value, \\\"Address: insufficient balance for call\\\");\\n        (bool success, bytes memory returndata) = target.call{value: value}(data);\\n        return verifyCallResultFromTarget(target, success, returndata, errorMessage);\\n    }\\n\\n    /**\\n     * @dev Same as {xref-Address-functionCall-address-bytes-}[`functionCall`],\\n     * but performing a static call.\\n     *\\n     * _Available since v3.3._\\n     */\\n    function functionStaticCall(address target, bytes memory data) internal view returns (bytes memory) {\\n        return functionStaticCall(target, data, \\\"Address: low-level static call failed\\\");\\n    }\\n\\n    /**\\n     * @dev Same as {xref-Address-functionCall-address-bytes-string-}[`functionCall`],\\n     * but performing a static call.\\n     *\\n     * _Available since v3.3._\\n     */\\n    function functionStaticCall(\\n        address target,\\n        bytes memory data,\\n        string memory errorMessage\\n    ) internal view returns (bytes memory) {\\n        (bool success, bytes memory returndata) = target.staticcall(data);\\n        return verifyCallResultFromTarget(target, success, returndata, errorMessage);\\n    }\\n\\n    /**\\n     * @dev Same as {xref-Address-functionCall-address-bytes-}[`functionCall`],\\n     * but performing a delegate call.\\n     *\\n     * _Available since v3.4._\\n     */\\n    function functionDelegateCall(address target, bytes memory data) internal returns (bytes memory) {\\n        return functionDelegateCall(target, data, \\\"Address: low-level delegate call failed\\\");\\n    }\\n\\n    /**\\n     * @dev Same as {xref-Address-functionCall-address-bytes-string-}[`functionCall`],\\n     * but performing a delegate call.\\n     *\\n     * _Available since v3.4._\\n     */\\n    function functionDelegateCall(\\n        address target,\\n        bytes memory data,\\n        string memory errorMessage\\n    ) internal returns (bytes memory) {\\n        (bool success, bytes memory returndata) = target.delegatecall(data);\\n        return verifyCallResultFromTarget(target, success, returndata, errorMessage);\\n    }\\n\\n    /**\\n     * @dev Tool to verify that a low level call to smart-contract was successful, and revert (either by bubbling\\n     * the revert reason or using the provided one) in case of unsuccessful call or if target was not a contract.\\n     *\\n     * _Available since v4.8._\\n     */\\n    function verifyCallResultFromTarget(\\n        address target,\\n        bool success,\\n        bytes memory returndata,\\n        string memory errorMessage\\n    ) internal view returns (bytes memory) {\\n        if (success) {\\n            if (returndata.length == 0) {\\n                // only check isContract if the call was successful and the return data is empty\\n                // otherwise we already know that it was a contract\\n                require(isContract(target), \\\"Address: call to non-contract\\\");\\n            }\\n            return returndata;\\n        } else {\\n            _revert(returndata, errorMessage);\\n        }\\n    }\\n\\n    /**\\n     * @dev Tool to verify that a low level call was successful, and revert if it wasn't, either by bubbling the\\n     * revert reason or using the provided one.\\n     *\\n     * _Available since v4.3._\\n     */\\n    function verifyCallResult(\\n        bool success,\\n        bytes memory returndata,\\n        string memory errorMessage\\n    ) internal pure returns (bytes memory) {\\n        if (success) {\\n            return returndata;\\n        } else {\\n            _revert(returndata, errorMessage);\\n        }\\n    }\\n\\n    function _revert(bytes memory returndata, string memory errorMessage) private pure {\\n        // Look for revert reason and bubble it up if present\\n        if (returndata.length > 0) {\\n            // The easiest way to bubble the revert reason is using memory via assembly\\n            /// @solidity memory-safe-assembly\\n            assembly {\\n                let returndata_size := mload(returndata)\\n                revert(add(32, returndata), returndata_size)\\n            }\\n        } else {\\n            revert(errorMessage);\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0x9c80f545915582e63fe206c6ce27cbe85a86fc10b9cd2a0e8c9488fb7c2ee422\",\"license\":\"MIT\"},\"lib/openzeppelin-contracts-upgradeable/contracts/utils/ContextUpgradeable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts v4.4.1 (utils/Context.sol)\\n\\npragma solidity ^0.8.0;\\nimport \\\"../proxy/utils/Initializable.sol\\\";\\n\\n/**\\n * @dev Provides information about the current execution context, including the\\n * sender of the transaction and its data. While these are generally available\\n * via msg.sender and msg.data, they should not be accessed in such a direct\\n * manner, since when dealing with meta-transactions the account sending and\\n * paying for execution may not be the actual sender (as far as an application\\n * is concerned).\\n *\\n * This contract is only required for intermediate, library-like contracts.\\n */\\nabstract contract ContextUpgradeable is Initializable {\\n    function __Context_init() internal onlyInitializing {\\n    }\\n\\n    function __Context_init_unchained() internal onlyInitializing {\\n    }\\n    function _msgSender() internal view virtual returns (address) {\\n        return msg.sender;\\n    }\\n\\n    function _msgData() internal view virtual returns (bytes calldata) {\\n        return msg.data;\\n    }\\n\\n    /**\\n     * @dev This empty reserved space is put in place to allow future versions to add new\\n     * variables without shifting down storage in the inheritance chain.\\n     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps\\n     */\\n    uint256[50] private __gap;\\n}\\n\",\"keccak256\":\"0x963ea7f0b48b032eef72fe3a7582edf78408d6f834115b9feadd673a4d5bd149\",\"license\":\"MIT\"},\"lib/openzeppelin-contracts-upgradeable/contracts/utils/StorageSlotUpgradeable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v4.9.0) (utils/StorageSlot.sol)\\n// This file was procedurally generated from scripts/generate/templates/StorageSlot.js.\\n\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev Library for reading and writing primitive types to specific storage slots.\\n *\\n * Storage slots are often used to avoid storage conflict when dealing with upgradeable contracts.\\n * This library helps with reading and writing to such slots without the need for inline assembly.\\n *\\n * The functions in this library return Slot structs that contain a `value` member that can be used to read or write.\\n *\\n * Example usage to set ERC1967 implementation slot:\\n * ```solidity\\n * contract ERC1967 {\\n *     bytes32 internal constant _IMPLEMENTATION_SLOT = 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;\\n *\\n *     function _getImplementation() internal view returns (address) {\\n *         return StorageSlot.getAddressSlot(_IMPLEMENTATION_SLOT).value;\\n *     }\\n *\\n *     function _setImplementation(address newImplementation) internal {\\n *         require(Address.isContract(newImplementation), \\\"ERC1967: new implementation is not a contract\\\");\\n *         StorageSlot.getAddressSlot(_IMPLEMENTATION_SLOT).value = newImplementation;\\n *     }\\n * }\\n * ```\\n *\\n * _Available since v4.1 for `address`, `bool`, `bytes32`, `uint256`._\\n * _Available since v4.9 for `string`, `bytes`._\\n */\\nlibrary StorageSlotUpgradeable {\\n    struct AddressSlot {\\n        address value;\\n    }\\n\\n    struct BooleanSlot {\\n        bool value;\\n    }\\n\\n    struct Bytes32Slot {\\n        bytes32 value;\\n    }\\n\\n    struct Uint256Slot {\\n        uint256 value;\\n    }\\n\\n    struct StringSlot {\\n        string value;\\n    }\\n\\n    struct BytesSlot {\\n        bytes value;\\n    }\\n\\n    /**\\n     * @dev Returns an `AddressSlot` with member `value` located at `slot`.\\n     */\\n    function getAddressSlot(bytes32 slot) internal pure returns (AddressSlot storage r) {\\n        /// @solidity memory-safe-assembly\\n        assembly {\\n            r.slot := slot\\n        }\\n    }\\n\\n    /**\\n     * @dev Returns an `BooleanSlot` with member `value` located at `slot`.\\n     */\\n    function getBooleanSlot(bytes32 slot) internal pure returns (BooleanSlot storage r) {\\n        /// @solidity memory-safe-assembly\\n        assembly {\\n            r.slot := slot\\n        }\\n    }\\n\\n    /**\\n     * @dev Returns an `Bytes32Slot` with member `value` located at `slot`.\\n     */\\n    function getBytes32Slot(bytes32 slot) internal pure returns (Bytes32Slot storage r) {\\n        /// @solidity memory-safe-assembly\\n        assembly {\\n            r.slot := slot\\n        }\\n    }\\n\\n    /**\\n     * @dev Returns an `Uint256Slot` with member `value` located at `slot`.\\n     */\\n    function getUint256Slot(bytes32 slot) internal pure returns (Uint256Slot storage r) {\\n        /// @solidity memory-safe-assembly\\n        assembly {\\n            r.slot := slot\\n        }\\n    }\\n\\n    /**\\n     * @dev Returns an `StringSlot` with member `value` located at `slot`.\\n     */\\n    function getStringSlot(bytes32 slot) internal pure returns (StringSlot storage r) {\\n        /// @solidity memory-safe-assembly\\n        assembly {\\n            r.slot := slot\\n        }\\n    }\\n\\n    /**\\n     * @dev Returns an `StringSlot` representation of the string storage pointer `store`.\\n     */\\n    function getStringSlot(string storage store) internal pure returns (StringSlot storage r) {\\n        /// @solidity memory-safe-assembly\\n        assembly {\\n            r.slot := store.slot\\n        }\\n    }\\n\\n    /**\\n     * @dev Returns an `BytesSlot` with member `value` located at `slot`.\\n     */\\n    function getBytesSlot(bytes32 slot) internal pure returns (BytesSlot storage r) {\\n        /// @solidity memory-safe-assembly\\n        assembly {\\n            r.slot := slot\\n        }\\n    }\\n\\n    /**\\n     * @dev Returns an `BytesSlot` representation of the bytes storage pointer `store`.\\n     */\\n    function getBytesSlot(bytes storage store) internal pure returns (BytesSlot storage r) {\\n        /// @solidity memory-safe-assembly\\n        assembly {\\n            r.slot := store.slot\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0x07ac95acad040f1fb1f6120dd0aa5f702db69446e95f82613721879d30de0908\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x60a06040523060805234801561001457600080fd5b5060805161164861004c60003960008181610496015281816104df0152818161058e015281816105ce015261064a01526116486000f3fe6080604052600436106101105760003560e01c8063029d262e146101155780630ee0deba1461013757806315d250461461016257806321f8a721146101825780633659cfe6146101a25780634e1060fa146101c25780634f1ef286146101d757806352d1902d146101ea57806354fd4d501461020c5780635ab1bd531461023d5780635c1548fb1461025257806368e01df214610267578063715018a6146102875780638129fc1c1461029c5780638da5cb5b146102b15780639b6aaa47146102c6578063aaf10f42146102db578063ab7b4993146102f0578063c4b00e3a14610310578063ca446dd914610330578063e1dda2a914610350578063f2fde38b14610365578063ff904ba814610385575b600080fd5b34801561012157600080fd5b50610135610130366004610ef4565b6103a5565b005b34801561014357600080fd5b5061014c6103fe565b6040516101599190610f24565b60405180910390f35b34801561016e57600080fd5b5061013561017d366004610ef4565b61041f565b34801561018e57600080fd5b5061014c61019d366004610f43565b610471565b3480156101ae57600080fd5b506101356101bd366004610ef4565b61048c565b3480156101ce57600080fd5b5061014c61055d565b6101356101e5366004611069565b610584565b3480156101f657600080fd5b506101ff61063d565b60405161015991906110c6565b34801561021857600080fd5b506040805180820182526002815261763160f01b60208201529051610159919061112c565b34801561024957600080fd5b5061014c61069a565b34801561025e57600080fd5b5061014c6106b0565b34801561027357600080fd5b50610135610282366004610ef4565b6106c8565b34801561029357600080fd5b50610135610725565b3480156102a857600080fd5b50610135610739565b3480156102bd57600080fd5b5061014c61080b565b3480156102d257600080fd5b5061014c61081a565b3480156102e757600080fd5b5061014c610838565b3480156102fc57600080fd5b5061013561030b366004610ef4565b610842565b34801561031c57600080fd5b5061013561032b366004610ef4565b61088e565b34801561033c57600080fd5b5061013561034b36600461113d565b6108e2565b34801561035c57600080fd5b5061014c6109a1565b34801561037157600080fd5b50610135610380366004610ef4565b6109bf565b34801561039157600080fd5b506101356103a0366004610ef4565b6109f6565b6103ad610a4a565b6103c46910d3d31310551154905360b21b82610a79565b7f823c58e2969bcdf1301b932fcbced62d5d4617880949dd434df13d001b3a1162816040516103f39190610f24565b60405180910390a150565b600061041a6d4c49515549445f5354414b494e4760901b610471565b905090565b610427610a4a565b6104426d4c49515549445f5354414b494e4760901b82610a79565b7f28eee4c16ee82f20af2f6bbce9099830336463276722abd296c37fa5596c67a6816040516103f39190610f24565b600090815260c960205260409020546001600160a01b031690565b6001600160a01b037f00000000000000000000000000000000000000000000000000000000000000001630036104dd5760405162461bcd60e51b81526004016104d4906111aa565b60405180910390fd5b7f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031661050f610af4565b6001600160a01b0316146105355760405162461bcd60e51b81526004016104d4906111f1565b61053e81610b10565b6040805160008082526020820190925261055a91839190610b18565b50565b600061041a782624a8aaa4a22fa9aa20a5a4a723afa1a7a72a2927a62622a960391b610471565b6001600160a01b037f00000000000000000000000000000000000000000000000000000000000000001630036105cc5760405162461bcd60e51b81526004016104d4906111aa565b7f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03166105fe610af4565b6001600160a01b0316146106245760405162461bcd60e51b81526004016104d4906111f1565b61062d82610b10565b61063982826001610b18565b5050565b6000306001600160a01b037f000000000000000000000000000000000000000000000000000000000000000016146106875760405162461bcd60e51b81526004016104d490611256565b506000805160206115cc83398151915290565b600061041a67524547495354525960c01b610471565b600061041a6910d3d31310551154905360b21b610471565b6106d0610a4a565b6106f6782624a8aaa4a22fa9aa20a5a4a723afa1a7a72a2927a62622a960391b82610a79565b7f4ab24a8b7f91c7c94ba84b720a3a31ac1fddb8d9f0a95d3bc7ae681d94939b6c816040516103f39190610f24565b61072d610a4a565b6107376000610bff565b565b600054610100900460ff16158080156107595750600054600160ff909116105b8061077a575061076830610c51565b15801561077a575060005460ff166001145b6107965760405162461bcd60e51b81526004016104d4906112b1565b6000805460ff1916600117905580156107b9576000805461ff0019166101001790555b6107c1610c60565b6107c9610c8f565b801561055a576000805461ff00191690556040517f7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498906103f3906001906112d5565b6033546001600160a01b031690565b600061041a6f50524f544f434f4c5f5245574152445360801b610471565b600061041a610af4565b61084a610a4a565b61085f67524547495354525960c01b82610a79565b7fc533a624c353ec88e315b162298e52e2b02aa03d5fb5afdbf13445a26f1d10c7816040516103f39190610f24565b610896610a4a565b6108b36f50524f544f434f4c5f5245574152445360801b82610a79565b7f844c5b5e7a57c0a3f6ba450d4bd80548e696a994818c86029f517e0dbba50660816040516103f39190610f24565b6108ea610a4a565b600082815260c960205260409020546001600160a01b0390811690821681148061091b57506001600160a01b038216155b156109395760405163e6c4247b60e01b815260040160405180910390fd5b600083815260c960205260409081902080546001600160a01b0319166001600160a01b038516179055517f9ef0e8c8e52743bb38b83b17d9429141d494b8041ca6d616a6c77cebae9cd8b790610994908590849086906112e3565b60405180910390a1505050565b600061041a6f2922aba0a9222fa1a7a62622a1aa27a960811b610471565b6109c7610a4a565b6001600160a01b0381166109ed5760405162461bcd60e51b81526004016104d49061134e565b61055a81610bff565b6109fe610a4a565b610a1b6f2922aba0a9222fa1a7a62622a1aa27a960811b82610a79565b7f1bddb2a677915289a2247c53f1b129b2c0e3f267ef9bdbf00b9f59dd547e1317816040516103f39190610f24565b33610a5361080b565b6001600160a01b0316146107375760405162461bcd60e51b81526004016104d490611393565b600082815260c960205260409020546001600160a01b0382811691161480610aa857506001600160a01b038116155b15610ac65760405163e6c4247b60e01b815260040160405180910390fd5b600091825260c9602052604090912080546001600160a01b0319166001600160a01b03909216919091179055565b6000805160206115cc833981519152546001600160a01b031690565b61055a610a4a565b7f4910fdfa16fed3260ed0e7147f7cc6da11a60208b5b9406d12a635614ffd91435460ff1615610b5057610b4b83610cb6565b505050565b826001600160a01b03166352d1902d6040518163ffffffff1660e01b8152600401602060405180830381865afa925050508015610baa575060408051601f3d908101601f19168201909252610ba7918101906113ae565b60015b610bc65760405162461bcd60e51b81526004016104d49061141a565b6000805160206115cc8339815191528114610bf35760405162461bcd60e51b81526004016104d490611470565b50610b4b838383610d0a565b603380546001600160a01b038381166001600160a01b0319831681179093556040519116919082907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e090600090a35050565b6001600160a01b03163b151590565b600054610100900460ff16610c875760405162461bcd60e51b81526004016104d4906114c8565b610737610d35565b600054610100900460ff166107375760405162461bcd60e51b81526004016104d4906114c8565b610cbf81610c51565b610cdb5760405162461bcd60e51b81526004016104d490611522565b6000805160206115cc83398151915280546001600160a01b0319166001600160a01b0392909216919091179055565b610d1383610d65565b600082511180610d205750805b15610b4b57610d2f8383610da5565b50505050565b600054610100900460ff16610d5c5760405162461bcd60e51b81526004016104d4906114c8565b61073733610bff565b610d6e81610cb6565b6040516001600160a01b038216907fbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b90600090a250565b6060610dca83836040518060600160405280602781526020016115ec60279139610dd3565b90505b92915050565b6060600080856001600160a01b031685604051610df09190611554565b600060405180830381855af49150503d8060008114610e2b576040519150601f19603f3d011682016040523d82523d6000602084013e610e30565b606091505b5091509150610e4186838387610e4b565b9695505050505050565b60608315610e88578251600003610e8157610e6585610c51565b610e815760405162461bcd60e51b81526004016104d49061159b565b5081610e92565b610e928383610e9a565b949350505050565b815115610eaa5781518083602001fd5b8060405162461bcd60e51b81526004016104d4919061112c565b60006001600160a01b038216610dcd565b610ede81610ec4565b811461055a57600080fd5b8035610dcd81610ed5565b600060208284031215610f0957610f09600080fd5b6000610e928484610ee9565b610f1e81610ec4565b82525050565b60208101610dcd8284610f15565b80610ede565b8035610dcd81610f32565b600060208284031215610f5857610f58600080fd5b6000610e928484610f38565b601f01601f191690565b634e487b7160e01b600052604160045260246000fd5b610f8d82610f64565b81018181106001600160401b0382111715610faa57610faa610f6e565b6040525050565b6000610fbc60405190565b9050610fc88282610f84565b919050565b60006001600160401b03821115610fe657610fe6610f6e565b610fef82610f64565b60200192915050565b82818337506000910152565b600061101761101284610fcd565b610fb1565b90508281526020810184848401111561103257611032600080fd5b61103d848285610ff8565b509392505050565b600082601f83011261105957611059600080fd5b8135610e92848260208601611004565b6000806040838503121561107f5761107f600080fd5b600061108b8585610ee9565b92505060208301356001600160401b038111156110aa576110aa600080fd5b6110b685828601611045565b9150509250929050565b80610f1e565b60208101610dcd82846110c0565b60005b838110156110ef5781810151838201526020016110d7565b50506000910152565b6000611102825190565b8084526020840193506111198185602086016110d4565b61112281610f64565b9093019392505050565b60208082528101610dca81846110f8565b6000806040838503121561115357611153600080fd5b600061115f8585610f38565b92505060206110b685828601610ee9565b602c81526000602082016000805160206115ac83398151915281526b19195b1959d85d1958d85b1b60a21b602082015291505b5060400190565b60208082528101610dcd81611170565b602c81526000602082016000805160206115ac83398151915281526b6163746976652070726f787960a01b602082015291506111a3565b60208082528101610dcd816111ba565b603881526000602082017f555550535570677261646561626c653a206d757374206e6f742062652063616c8152771b1959081d1a1c9bdd59da0819195b1959d85d1958d85b1b60421b602082015291506111a3565b60208082528101610dcd81611201565b602e81526000602082017f496e697469616c697a61626c653a20636f6e747261637420697320616c72656181526d191e481a5b9a5d1a585b1a5e995960921b602082015291506111a3565b60208082528101610dcd81611266565b600060ff8216610dcd565b610f1e816112c1565b60208101610dcd82846112cc565b606081016112f182866110c0565b6112fe6020830185610f15565b610e926040830184610f15565b602681526000602082017f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206181526564647265737360d01b602082015291506111a3565b60208082528101610dcd8161130b565b60208082527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e6572910190815260005b5060200190565b60208082528101610dcd8161135e565b8051610dcd81610f32565b6000602082840312156113c3576113c3600080fd5b6000610e9284846113a3565b602e81526000602082017f45524331393637557067726164653a206e657720696d706c656d656e7461746981526d6f6e206973206e6f74205555505360901b602082015291506111a3565b60208082528101610dcd816113cf565b602981526000602082017f45524331393637557067726164653a20756e737570706f727465642070726f788152681a58589b195555525160ba1b602082015291506111a3565b60208082528101610dcd8161142a565b602b81526000602082017f496e697469616c697a61626c653a20636f6e7472616374206973206e6f74206981526a6e697469616c697a696e6760a81b602082015291506111a3565b60208082528101610dcd81611480565b602d81526000602082017f455243313936373a206e657720696d706c656d656e746174696f6e206973206e81526c1bdd08184818dbdb9d1c9858dd609a1b602082015291506111a3565b60208082528101610dcd816114d8565b600061153c825190565b61154a8185602086016110d4565b9290920192915050565b60006115608284611532565b9392505050565b601d81526000602082017f416464726573733a2063616c6c20746f206e6f6e2d636f6e74726163740000008152915061138c565b60208082528101610dcd8161156756fe46756e6374696f6e206d7573742062652063616c6c6564207468726f75676820360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc416464726573733a206c6f772d6c6576656c2064656c65676174652063616c6c206661696c6564a26469706673582212208d88f5afa2aebd053394268c6a21008d698acd51c6b302d21051665660c19e7b64736f6c63430008110033",
+  "deployedBytecode": "0x6080604052600436106101105760003560e01c8063029d262e146101155780630ee0deba1461013757806315d250461461016257806321f8a721146101825780633659cfe6146101a25780634e1060fa146101c25780634f1ef286146101d757806352d1902d146101ea57806354fd4d501461020c5780635ab1bd531461023d5780635c1548fb1461025257806368e01df214610267578063715018a6146102875780638129fc1c1461029c5780638da5cb5b146102b15780639b6aaa47146102c6578063aaf10f42146102db578063ab7b4993146102f0578063c4b00e3a14610310578063ca446dd914610330578063e1dda2a914610350578063f2fde38b14610365578063ff904ba814610385575b600080fd5b34801561012157600080fd5b50610135610130366004610ef4565b6103a5565b005b34801561014357600080fd5b5061014c6103fe565b6040516101599190610f24565b60405180910390f35b34801561016e57600080fd5b5061013561017d366004610ef4565b61041f565b34801561018e57600080fd5b5061014c61019d366004610f43565b610471565b3480156101ae57600080fd5b506101356101bd366004610ef4565b61048c565b3480156101ce57600080fd5b5061014c61055d565b6101356101e5366004611069565b610584565b3480156101f657600080fd5b506101ff61063d565b60405161015991906110c6565b34801561021857600080fd5b506040805180820182526002815261763160f01b60208201529051610159919061112c565b34801561024957600080fd5b5061014c61069a565b34801561025e57600080fd5b5061014c6106b0565b34801561027357600080fd5b50610135610282366004610ef4565b6106c8565b34801561029357600080fd5b50610135610725565b3480156102a857600080fd5b50610135610739565b3480156102bd57600080fd5b5061014c61080b565b3480156102d257600080fd5b5061014c61081a565b3480156102e757600080fd5b5061014c610838565b3480156102fc57600080fd5b5061013561030b366004610ef4565b610842565b34801561031c57600080fd5b5061013561032b366004610ef4565b61088e565b34801561033c57600080fd5b5061013561034b36600461113d565b6108e2565b34801561035c57600080fd5b5061014c6109a1565b34801561037157600080fd5b50610135610380366004610ef4565b6109bf565b34801561039157600080fd5b506101356103a0366004610ef4565b6109f6565b6103ad610a4a565b6103c46910d3d31310551154905360b21b82610a79565b7f823c58e2969bcdf1301b932fcbced62d5d4617880949dd434df13d001b3a1162816040516103f39190610f24565b60405180910390a150565b600061041a6d4c49515549445f5354414b494e4760901b610471565b905090565b610427610a4a565b6104426d4c49515549445f5354414b494e4760901b82610a79565b7f28eee4c16ee82f20af2f6bbce9099830336463276722abd296c37fa5596c67a6816040516103f39190610f24565b600090815260c960205260409020546001600160a01b031690565b6001600160a01b037f00000000000000000000000000000000000000000000000000000000000000001630036104dd5760405162461bcd60e51b81526004016104d4906111aa565b60405180910390fd5b7f00000000000000000000000000000000000000000000000000000000000000006001600160a01b031661050f610af4565b6001600160a01b0316146105355760405162461bcd60e51b81526004016104d4906111f1565b61053e81610b10565b6040805160008082526020820190925261055a91839190610b18565b50565b600061041a782624a8aaa4a22fa9aa20a5a4a723afa1a7a72a2927a62622a960391b610471565b6001600160a01b037f00000000000000000000000000000000000000000000000000000000000000001630036105cc5760405162461bcd60e51b81526004016104d4906111aa565b7f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03166105fe610af4565b6001600160a01b0316146106245760405162461bcd60e51b81526004016104d4906111f1565b61062d82610b10565b61063982826001610b18565b5050565b6000306001600160a01b037f000000000000000000000000000000000000000000000000000000000000000016146106875760405162461bcd60e51b81526004016104d490611256565b506000805160206115cc83398151915290565b600061041a67524547495354525960c01b610471565b600061041a6910d3d31310551154905360b21b610471565b6106d0610a4a565b6106f6782624a8aaa4a22fa9aa20a5a4a723afa1a7a72a2927a62622a960391b82610a79565b7f4ab24a8b7f91c7c94ba84b720a3a31ac1fddb8d9f0a95d3bc7ae681d94939b6c816040516103f39190610f24565b61072d610a4a565b6107376000610bff565b565b600054610100900460ff16158080156107595750600054600160ff909116105b8061077a575061076830610c51565b15801561077a575060005460ff166001145b6107965760405162461bcd60e51b81526004016104d4906112b1565b6000805460ff1916600117905580156107b9576000805461ff0019166101001790555b6107c1610c60565b6107c9610c8f565b801561055a576000805461ff00191690556040517f7f26b83ff96e1f2b6a682f133852f6798a09c465da95921460cefb3847402498906103f3906001906112d5565b6033546001600160a01b031690565b600061041a6f50524f544f434f4c5f5245574152445360801b610471565b600061041a610af4565b61084a610a4a565b61085f67524547495354525960c01b82610a79565b7fc533a624c353ec88e315b162298e52e2b02aa03d5fb5afdbf13445a26f1d10c7816040516103f39190610f24565b610896610a4a565b6108b36f50524f544f434f4c5f5245574152445360801b82610a79565b7f844c5b5e7a57c0a3f6ba450d4bd80548e696a994818c86029f517e0dbba50660816040516103f39190610f24565b6108ea610a4a565b600082815260c960205260409020546001600160a01b0390811690821681148061091b57506001600160a01b038216155b156109395760405163e6c4247b60e01b815260040160405180910390fd5b600083815260c960205260409081902080546001600160a01b0319166001600160a01b038516179055517f9ef0e8c8e52743bb38b83b17d9429141d494b8041ca6d616a6c77cebae9cd8b790610994908590849086906112e3565b60405180910390a1505050565b600061041a6f2922aba0a9222fa1a7a62622a1aa27a960811b610471565b6109c7610a4a565b6001600160a01b0381166109ed5760405162461bcd60e51b81526004016104d49061134e565b61055a81610bff565b6109fe610a4a565b610a1b6f2922aba0a9222fa1a7a62622a1aa27a960811b82610a79565b7f1bddb2a677915289a2247c53f1b129b2c0e3f267ef9bdbf00b9f59dd547e1317816040516103f39190610f24565b33610a5361080b565b6001600160a01b0316146107375760405162461bcd60e51b81526004016104d490611393565b600082815260c960205260409020546001600160a01b0382811691161480610aa857506001600160a01b038116155b15610ac65760405163e6c4247b60e01b815260040160405180910390fd5b600091825260c9602052604090912080546001600160a01b0319166001600160a01b03909216919091179055565b6000805160206115cc833981519152546001600160a01b031690565b61055a610a4a565b7f4910fdfa16fed3260ed0e7147f7cc6da11a60208b5b9406d12a635614ffd91435460ff1615610b5057610b4b83610cb6565b505050565b826001600160a01b03166352d1902d6040518163ffffffff1660e01b8152600401602060405180830381865afa925050508015610baa575060408051601f3d908101601f19168201909252610ba7918101906113ae565b60015b610bc65760405162461bcd60e51b81526004016104d49061141a565b6000805160206115cc8339815191528114610bf35760405162461bcd60e51b81526004016104d490611470565b50610b4b838383610d0a565b603380546001600160a01b038381166001600160a01b0319831681179093556040519116919082907f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e090600090a35050565b6001600160a01b03163b151590565b600054610100900460ff16610c875760405162461bcd60e51b81526004016104d4906114c8565b610737610d35565b600054610100900460ff166107375760405162461bcd60e51b81526004016104d4906114c8565b610cbf81610c51565b610cdb5760405162461bcd60e51b81526004016104d490611522565b6000805160206115cc83398151915280546001600160a01b0319166001600160a01b0392909216919091179055565b610d1383610d65565b600082511180610d205750805b15610b4b57610d2f8383610da5565b50505050565b600054610100900460ff16610d5c5760405162461bcd60e51b81526004016104d4906114c8565b61073733610bff565b610d6e81610cb6565b6040516001600160a01b038216907fbc7cd75a20ee27fd9adebab32041f755214dbc6bffa90cc0225b39da2e5c2d3b90600090a250565b6060610dca83836040518060600160405280602781526020016115ec60279139610dd3565b90505b92915050565b6060600080856001600160a01b031685604051610df09190611554565b600060405180830381855af49150503d8060008114610e2b576040519150601f19603f3d011682016040523d82523d6000602084013e610e30565b606091505b5091509150610e4186838387610e4b565b9695505050505050565b60608315610e88578251600003610e8157610e6585610c51565b610e815760405162461bcd60e51b81526004016104d49061159b565b5081610e92565b610e928383610e9a565b949350505050565b815115610eaa5781518083602001fd5b8060405162461bcd60e51b81526004016104d4919061112c565b60006001600160a01b038216610dcd565b610ede81610ec4565b811461055a57600080fd5b8035610dcd81610ed5565b600060208284031215610f0957610f09600080fd5b6000610e928484610ee9565b610f1e81610ec4565b82525050565b60208101610dcd8284610f15565b80610ede565b8035610dcd81610f32565b600060208284031215610f5857610f58600080fd5b6000610e928484610f38565b601f01601f191690565b634e487b7160e01b600052604160045260246000fd5b610f8d82610f64565b81018181106001600160401b0382111715610faa57610faa610f6e565b6040525050565b6000610fbc60405190565b9050610fc88282610f84565b919050565b60006001600160401b03821115610fe657610fe6610f6e565b610fef82610f64565b60200192915050565b82818337506000910152565b600061101761101284610fcd565b610fb1565b90508281526020810184848401111561103257611032600080fd5b61103d848285610ff8565b509392505050565b600082601f83011261105957611059600080fd5b8135610e92848260208601611004565b6000806040838503121561107f5761107f600080fd5b600061108b8585610ee9565b92505060208301356001600160401b038111156110aa576110aa600080fd5b6110b685828601611045565b9150509250929050565b80610f1e565b60208101610dcd82846110c0565b60005b838110156110ef5781810151838201526020016110d7565b50506000910152565b6000611102825190565b8084526020840193506111198185602086016110d4565b61112281610f64565b9093019392505050565b60208082528101610dca81846110f8565b6000806040838503121561115357611153600080fd5b600061115f8585610f38565b92505060206110b685828601610ee9565b602c81526000602082016000805160206115ac83398151915281526b19195b1959d85d1958d85b1b60a21b602082015291505b5060400190565b60208082528101610dcd81611170565b602c81526000602082016000805160206115ac83398151915281526b6163746976652070726f787960a01b602082015291506111a3565b60208082528101610dcd816111ba565b603881526000602082017f555550535570677261646561626c653a206d757374206e6f742062652063616c8152771b1959081d1a1c9bdd59da0819195b1959d85d1958d85b1b60421b602082015291506111a3565b60208082528101610dcd81611201565b602e81526000602082017f496e697469616c697a61626c653a20636f6e747261637420697320616c72656181526d191e481a5b9a5d1a585b1a5e995960921b602082015291506111a3565b60208082528101610dcd81611266565b600060ff8216610dcd565b610f1e816112c1565b60208101610dcd82846112cc565b606081016112f182866110c0565b6112fe6020830185610f15565b610e926040830184610f15565b602681526000602082017f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206181526564647265737360d01b602082015291506111a3565b60208082528101610dcd8161130b565b60208082527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e6572910190815260005b5060200190565b60208082528101610dcd8161135e565b8051610dcd81610f32565b6000602082840312156113c3576113c3600080fd5b6000610e9284846113a3565b602e81526000602082017f45524331393637557067726164653a206e657720696d706c656d656e7461746981526d6f6e206973206e6f74205555505360901b602082015291506111a3565b60208082528101610dcd816113cf565b602981526000602082017f45524331393637557067726164653a20756e737570706f727465642070726f788152681a58589b195555525160ba1b602082015291506111a3565b60208082528101610dcd8161142a565b602b81526000602082017f496e697469616c697a61626c653a20636f6e7472616374206973206e6f74206981526a6e697469616c697a696e6760a81b602082015291506111a3565b60208082528101610dcd81611480565b602d81526000602082017f455243313936373a206e657720696d706c656d656e746174696f6e206973206e81526c1bdd08184818dbdb9d1c9858dd609a1b602082015291506111a3565b60208082528101610dcd816114d8565b600061153c825190565b61154a8185602086016110d4565b9290920192915050565b60006115608284611532565b9392505050565b601d81526000602082017f416464726573733a2063616c6c20746f206e6f6e2d636f6e74726163740000008152915061138c565b60208082528101610dcd8161156756fe46756e6374696f6e206d7573742062652063616c6c6564207468726f75676820360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc416464726573733a206c6f772d6c6576656c2064656c65676174652063616c6c206661696c6564a26469706673582212208d88f5afa2aebd053394268c6a21008d698acd51c6b302d21051665660c19e7b64736f6c63430008110033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {
+      "getAddress(bytes32)": {
+        "params": {
+          "id": "Address identifier"
+        }
+      },
+      "initialize()": {
+        "details": "Contract initializer function."
+      },
+      "owner()": {
+        "details": "Returns the address of the current owner."
+      },
+      "proxiableUUID()": {
+        "details": "Implementation of the ERC1822 {proxiableUUID} function. This returns the storage slot used by the implementation. It is used to validate the implementation's compatibility when performing an upgrade. IMPORTANT: A proxy pointing at a proxiable contract should not be considered proxiable itself, because this risks bricking a proxy that upgrades to it, by delegating to itself until out of gas. Thus it is critical that this function revert if invoked through a proxy. This is guaranteed by the `notDelegated` modifier."
+      },
+      "renounceOwnership()": {
+        "details": "Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner."
+      },
+      "setAddress(bytes32,address)": {
+        "details": "Only triggered by resolver owner",
+        "params": {
+          "id": "Address Identifier",
+          "newAddress": "Contract implementation address"
+        }
+      },
+      "setCollateralAddress(address)": {
+        "details": "Only triggered by resolver owner",
+        "params": {
+          "newAddress": "StorageProviderCollateral smart contract address"
+        }
+      },
+      "setLiquidStakingAddress(address)": {
+        "details": "Only triggered by resolver owner",
+        "params": {
+          "newAddress": "LiquidStaking smart contract address"
+        }
+      },
+      "setLiquidStakingControllerAddress(address)": {
+        "details": "Only triggered by resolver owner",
+        "params": {
+          "newAddress": "LiquidStakingController smart contract address"
+        }
+      },
+      "setProtocolRewardsAddress(address)": {
+        "details": "Only triggered by resolver owner",
+        "params": {
+          "newAddress": "Protocol Rewards address"
+        }
+      },
+      "setRegistryAddress(address)": {
+        "details": "Only triggered by resolver owner",
+        "params": {
+          "newAddress": "StorageProviderRegistry smart contract address"
+        }
+      },
+      "setRewardCollectorAddress(address)": {
+        "details": "Only triggered by resolver owner",
+        "params": {
+          "newAddress": "RewardCollector address"
+        }
+      },
+      "transferOwnership(address)": {
+        "details": "Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner."
+      },
+      "upgradeTo(address)": {
+        "custom:oz-upgrades-unsafe-allow-reachable": "delegatecall",
+        "details": "Upgrade the implementation of the proxy to `newImplementation`. Calls {_authorizeUpgrade}. Emits an {Upgraded} event."
+      },
+      "upgradeToAndCall(address,bytes)": {
+        "custom:oz-upgrades-unsafe-allow-reachable": "delegatecall",
+        "details": "Upgrade the implementation of the proxy to `newImplementation`, and subsequently execute the function call encoded in `data`. Calls {_authorizeUpgrade}. Emits an {Upgraded} event."
+      }
+    },
+    "title": "Resolver contract used to resolve registered addresses in the protocol by their identifiers",
+    "version": 1
+  },
+  "userdoc": {
+    "events": {
+      "AddressSet(bytes32,address,address)": {
+        "notice": "Emitted when new address set"
+      },
+      "CollateralAddressUpdated(address)": {
+        "notice": "Emitted when StorageProviderCollateral address updated"
+      },
+      "LiquidStakingAddressUpdated(address)": {
+        "notice": "Emitted when LiquidStaking address updated"
+      },
+      "LiquidStakingControllerAddressUpdated(address)": {
+        "notice": "Emitted when LiquidStaking address updated"
+      },
+      "ProtocolRewardsAddressUpdated(address)": {
+        "notice": "Emitted when Protocol Rewards address updated"
+      },
+      "RegistryAddressUpdated(address)": {
+        "notice": "Emitted when StorageProviderRegistry address updated"
+      },
+      "RewardCollectorAddressUpdated(address)": {
+        "notice": "Emitted when RewardCollector address updated"
+      }
+    },
+    "kind": "user",
+    "methods": {
+      "getAddress(bytes32)": {
+        "notice": "Returns an address of a contract by its identifier"
+      },
+      "getCollateral()": {
+        "notice": "Returns an address of a Storage Provider Collateral contract"
+      },
+      "getImplementation()": {
+        "notice": "Returns the implementation contract"
+      },
+      "getLiquidStaking()": {
+        "notice": "Returns an address of a Liquid Staking contract"
+      },
+      "getLiquidStakingController()": {
+        "notice": "Returns an address of a Liquid Staking Controller contract"
+      },
+      "getProtocolRewards()": {
+        "notice": "Returns a ProtocolRewards address"
+      },
+      "getRegistry()": {
+        "notice": "Returns an address of a Storage Provider Registry contract"
+      },
+      "getRewardCollector()": {
+        "notice": "Returns an address of a Reward Collector contract"
+      },
+      "setAddress(bytes32,address)": {
+        "notice": "Sets a `newAddress` for a contract by `id`"
+      },
+      "setCollateralAddress(address)": {
+        "notice": "Update StorageProviderCollateral smart contract address"
+      },
+      "setLiquidStakingAddress(address)": {
+        "notice": "Update LiquidStaking smart contract address"
+      },
+      "setLiquidStakingControllerAddress(address)": {
+        "notice": "Update LiquidStakingController address"
+      },
+      "setProtocolRewardsAddress(address)": {
+        "notice": "Update Protocol Rewards address"
+      },
+      "setRegistryAddress(address)": {
+        "notice": "Update StorageProviderRegistry smart contract address"
+      },
+      "setRewardCollectorAddress(address)": {
+        "notice": "Update Reward Collector contract address"
+      },
+      "version()": {
+        "notice": "Returns the version of clFIL token contract"
+      }
+    },
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 16433,
+        "contract": "contracts/Resolver.sol:Resolver",
+        "label": "_initialized",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_uint8"
+      },
+      {
+        "astId": 16436,
+        "contract": "contracts/Resolver.sol:Resolver",
+        "label": "_initializing",
+        "offset": 1,
+        "slot": "0",
+        "type": "t_bool"
+      },
+      {
+        "astId": 18313,
+        "contract": "contracts/Resolver.sol:Resolver",
+        "label": "__gap",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_array(t_uint256)50_storage"
+      },
+      {
+        "astId": 15772,
+        "contract": "contracts/Resolver.sol:Resolver",
+        "label": "_owner",
+        "offset": 0,
+        "slot": "51",
+        "type": "t_address"
+      },
+      {
+        "astId": 15892,
+        "contract": "contracts/Resolver.sol:Resolver",
+        "label": "__gap",
+        "offset": 0,
+        "slot": "52",
+        "type": "t_array(t_uint256)49_storage"
+      },
+      {
+        "astId": 16415,
+        "contract": "contracts/Resolver.sol:Resolver",
+        "label": "__gap",
+        "offset": 0,
+        "slot": "101",
+        "type": "t_array(t_uint256)50_storage"
+      },
+      {
+        "astId": 16730,
+        "contract": "contracts/Resolver.sol:Resolver",
+        "label": "__gap",
+        "offset": 0,
+        "slot": "151",
+        "type": "t_array(t_uint256)50_storage"
+      },
+      {
+        "astId": 1317,
+        "contract": "contracts/Resolver.sol:Resolver",
+        "label": "_addresses",
+        "offset": 0,
+        "slot": "201",
+        "type": "t_mapping(t_bytes32,t_address)"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_array(t_uint256)49_storage": {
+        "base": "t_uint256",
+        "encoding": "inplace",
+        "label": "uint256[49]",
+        "numberOfBytes": "1568"
+      },
+      "t_array(t_uint256)50_storage": {
+        "base": "t_uint256",
+        "encoding": "inplace",
+        "label": "uint256[50]",
+        "numberOfBytes": "1600"
+      },
+      "t_bool": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_bytes32": {
+        "encoding": "inplace",
+        "label": "bytes32",
+        "numberOfBytes": "32"
+      },
+      "t_mapping(t_bytes32,t_address)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => address)",
+        "numberOfBytes": "32",
+        "value": "t_address"
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      },
+      "t_uint8": {
+        "encoding": "inplace",
+        "label": "uint8",
+        "numberOfBytes": "1"
+      }
+    }
+  }
+}

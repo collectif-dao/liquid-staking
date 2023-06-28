@@ -10,7 +10,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 	const resolver = await deployments.get("Resolver");
 
 	const adminFee = 0;
-	const baseProfitShare = 3000;
+	const baseProfitShare = 4000;
 	const liquidityCap = ethers.utils.parseEther("1000000");
 
 	await deployAndSaveContract("LiquidStakingController", [adminFee, baseProfitShare, resolver.address, liquidityCap, false], hre);
