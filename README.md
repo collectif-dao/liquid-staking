@@ -59,7 +59,7 @@ A **Storage Providers Registry** is a database that maintains a record of all th
 
 A **Miner Collateral Module** is a system that allows Storage Providers to pledge collateral in order to participate in the staking process. The Miner collateral module can help to reduce the risks associated with staking, such as the risk of being penalized (or "slashed") for misbehaving on the network.
 
-** Pledge Oracle ** provides an estimation of the current size of collateral for pledging a sector
+**Pledge Oracle** provides an estimation of the current size of collateral for pledging a sector
 
 
 ## Filcoin native features
