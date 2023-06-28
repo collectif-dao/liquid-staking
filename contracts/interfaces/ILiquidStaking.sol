@@ -1,11 +1,20 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.17;
 
 interface ILiquidStaking {
 	/**
 	 * @notice Emitted when user is staked wFIL to the Liquid Staking
 	 * @param user User's address
-	 * @param user Original owner of clFIL tokens
+	 * @param owner Owner of clFIL tokens
+	 * @param assets Total wFIL amount staked
+	 * @param shares Total clFIL amount staked
+	 */
+	event Stake(address indexed user, address indexed owner, uint256 assets, uint256 shares);
+
+	/**
+	 * @notice Emitted when user is unstaked wFIL from the Liquid Staking
+	 * @param user User's address
+	 * @param owner Original owner of clFIL tokens
 	 * @param assets Total wFIL amount unstaked
 	 * @param shares Total clFIL amount unstaked
 	 */
@@ -13,23 +22,17 @@ interface ILiquidStaking {
 
 	/**
 	 * @notice Emitted when storage provider is withdrawing FIL for pledge
-	 * @param miner Storage Provider address
-	 * @param assets Total FIL amount to pledge
-	 * @param sectorNumber Sector number to be sealed
+	 * @param ownerId Storage Provider's owner ID
+	 * @param minerId Storage Provider's miner actor ID
+	 * @param amount Total FIL amount to pledge
 	 */
-	event Pledge(bytes miner, uint256 assets, uint64 sectorNumber);
+	event Pledge(uint64 ownerId, uint64 minerId, uint256 amount);
 
 	/**
-	 * @notice Emitted when collateral address is updated
-	 * @param collateral StorageProviderCollateral contract address
+	 * @notice Emitted when storage provider's pledge is returned back to the LSP
+	 * @param amount Total FIL amount of repayment
 	 */
-	event SetCollateralAddress(address indexed collateral);
-
-	/**
-	 * @notice Emitted when registry address is updated
-	 * @param registry StorageProviderRegistry contract address
-	 */
-	event SetRegistryAddress(address indexed registry);
+	event PledgeRepayment(uint256 amount);
 
 	/**
 	 * @notice Stake FIL to the Liquid Staking pool and get clFIL in return
@@ -56,17 +59,23 @@ interface ILiquidStaking {
 
 	/**
 	 * @notice Pledge FIL assets from liquid staking pool to miner pledge for one sector
-	 * @param sectorNumber Sector number to be sealed
-	 * @param proof Sector proof for sealing
+	 * @param amount Amount of FIL to pledge from Liquid Staking Pool
+	 * @param _minerId Storage Provider Miner ID
 	 */
-	function pledge(uint64 sectorNumber, bytes memory proof) external;
+	function pledge(uint256 amount, uint64 _minerId) external;
 
 	/**
-	 * @notice Pledge FIL assets from liquid staking pool to miner pledge for multiple sectors
-	 * @param sectorNumbers Sector number to be sealed
-	 * @param proofs Sector proof for sealing
+	 * @notice Restakes `assets` for a specified `target` address
+	 * @param assets Amount of assets to restake
+	 * @param receiver f4 address to receive clFIL tokens
 	 */
-	function pledgeAggregate(uint64[] memory sectorNumbers, bytes[] memory proofs) external;
+	function restake(uint256 assets, address receiver) external returns (uint256 shares);
+
+	/**
+	 * @notice Triggered when pledge is repaid on the Reward Collector
+	 * @param amount Amount of pledge repayment
+	 */
+	function repayPledge(uint256 amount) external;
 
 	/**
 	 * @notice Returns pool usage ratio to determine what percentage of FIL
@@ -75,19 +84,13 @@ interface ILiquidStaking {
 	function getUsageRatio() external view returns (uint256);
 
 	/**
-	 * @notice Updates StorageProviderCollateral contract address
-	 * @param newAddr StorageProviderCollateral contract address
-	 */
-	function setCollateralAddress(address newAddr) external;
-
-	/**
 	 * @notice Returns the amount of WFIL available on the liquid staking contract
 	 */
 	function totalFilAvailable() external view returns (uint256);
 
 	/**
-	 * @notice Updates StorageProviderRegistry contract address
-	 * @param newAddr StorageProviderRegistry contract address
+	 * @notice Returns total amount of fees held by LSP for a specific SP with `_ownerId`
+	 * @param _ownerId Storage Provider owner ID
 	 */
-	function setRegistryAddress(address newAddr) external;
+	function totalFees(uint64 _ownerId) external view returns (uint256);
 }

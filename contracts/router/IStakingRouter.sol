@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.10;
 
-import "fei-protocol/erc4626/interfaces/IERC4626.sol";
+import {IERC4626} from "fei-protocol/erc4626/interfaces/IERC4626.sol";
 
 interface IStakingRouter {
 	/**
@@ -23,9 +23,5 @@ interface IStakingRouter {
 	 * @param to Receiver of withdrawn shares (converted into assets)
 	 * @param minAmountOut Minimal amount of assets expected to be received by the user, reverts if actual amount less
 	 */
-	function redeemMax(
-		IERC4626 vault,
-		address to,
-		uint256 minAmountOut
-	) external payable returns (uint256 amountOut);
+	function redeemMax(IERC4626 vault, address to, uint256 minAmountOut) external payable returns (uint256 amountOut);
 }

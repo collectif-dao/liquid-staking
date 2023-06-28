@@ -9,6 +9,16 @@
           "singleQuote": false,
           "bracketSpacing": false
         }
+      },
+      {
+        "files": ["*.ts", "*.js"],
+        "options": {
+          "printWidth": 140,
+          "tabWidth": 4,
+          "useTabs": true,
+          "singleQuote": false,
+          "bracketSpacing": true
+        }
       }
     ]
   }

@@ -1,20 +1,22 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.17;
 
-import {ClFILToken} from "./ClFIL.sol";
-import {Multicall} from "fei-protocol/erc4626/external/Multicall.sol";
-import {SelfPermit} from "fei-protocol/erc4626/external/SelfPermit.sol";
-import {ReentrancyGuard} from "solmate/utils/ReentrancyGuard.sol";
-import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
-import {MinerAPI} from "filecoin-solidity/contracts/v0.8/MinerAPI.sol";
-import {MinerTypes} from "filecoin-solidity/contracts/v0.8/types/MinerTypes.sol";
+import {ClFILToken, MathUpgradeable} from "./ClFIL.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {SafeTransferLib} from "./libraries/SafeTransferLib.sol";
+import {CommonTypes} from "filecoin-solidity/contracts/v0.8/types/CommonTypes.sol";
+import {FilAddresses} from "filecoin-solidity/contracts/v0.8/utils/FilAddresses.sol";
+import {FilAddress} from "fevmate/utils/FilAddress.sol";
 import {SendAPI} from "filecoin-solidity/contracts/v0.8/SendAPI.sol";
-import "./libraries/Bytes.sol";
 
-import "./interfaces/ILiquidStaking.sol";
-import "./interfaces/IStorageProviderCollateralClient.sol";
-import "./interfaces/IStorageProviderRegistryClient.sol";
-import "./interfaces/IPledgeOracleClient.sol";
+import {ILiquidStaking} from "./interfaces/ILiquidStaking.sol";
+import {ILiquidStakingControllerClient as IStakingControllerClient} from "./interfaces/ILiquidStakingControllerClient.sol";
+import {IStorageProviderCollateralClient as ICollateralClient} from "./interfaces/IStorageProviderCollateralClient.sol";
+import {IStorageProviderRegistryClient as IRegistryClient} from "./interfaces/IStorageProviderRegistryClient.sol";
+import {IResolverClient} from "./interfaces/IResolverClient.sol";
 
 /**
  * @title LiquidStaking contract allows users to stake/unstake FIL to earn
@@ -25,43 +27,62 @@ import "./interfaces/IPledgeOracleClient.sol";
  * While staking FIL user would get clFIL token in exchange, the token follows ERC4626
  * standard and it's price is recalculated once mining rewards are distributed to the
  * liquid staking pool and once new FIL is deposited. Please note that LiquidStaking contract
- * only works with Wrapped Filecoin (wFIL) token, there for users could use Multicall contract
- * for wrap/unwrap operations.
- *
- * Please use the following multi-call pattern to wrap/unwrap FIL:
- *
- * For Deposits with wrapping:
- *     bytes[] memory data = new bytes[](2);
- *     data[0] = abi.encodeWithSelector(PeripheryPayments.wrapWFIL.selector);
- *     data[1] = abi.encodeWithSelector(LiquidStaking.stake.selector, amount);
- *     router.multicall{value: amount}(data);
- *
- * For Withdrawals with unwrapping:
- *     bytes[] memory data = new bytes[](2);
- *     data[0] = abi.encodeWithSelector(StakingRouter.unstake.selector, amount);
- *     data[1] = abi.encodeWithSelector(PeripheryPayments.unwrapWFIL.selector, amount, address(this));
- *     router.multicall{value: amount}(data);
+ * performs wrapping of the native FIL into Wrapped Filecoin (WFIL) token.
  */
-contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, ReentrancyGuard {
+contract LiquidStaking is
+	ILiquidStaking,
+	Initializable,
+	ClFILToken,
+	ReentrancyGuardUpgradeable,
+	AccessControlUpgradeable,
+	UUPSUpgradeable
+{
 	using SafeTransferLib for *;
+	using FilAddress for address;
 
-	event OwnershipTransferred(address indexed user, address indexed newOwner);
+	error InvalidAccess();
+	error ERC4626ZeroShares();
+	error InactiveActor();
+	error ActiveSlashing();
+	error InsufficientFunds();
+	error InvalidOwner();
+
+	uint256 private constant BASIS_POINTS = 10000;
 
 	/// @notice The current total amount of FIL that is allocated to SPs.
 	uint256 public totalFilPledged;
-	uint256 private constant BASIS_POINTS = 10000;
 
-	IStorageProviderCollateralClient internal collateral;
-	IStorageProviderRegistryClient internal registry;
-	IPledgeOracleClient internal oracle;
+	IResolverClient internal resolver;
 
-	address public owner;
+	bytes32 private constant LIQUID_STAKING_ADMIN = keccak256("LIQUID_STAKING_ADMIN");
+	bytes32 private constant FEE_DISTRIBUTOR = keccak256("FEE_DISTRIBUTOR");
 
-	constructor(address _wFIL, address _oracle) ClFILToken(_wFIL) {
-		oracle = IPledgeOracleClient(_oracle);
-		owner = msg.sender;
+	modifier onlyAdmin() {
+		if (!hasRole(LIQUID_STAKING_ADMIN, msg.sender)) revert InvalidAccess();
+		_;
+	}
 
-		emit OwnershipTransferred(address(0), msg.sender);
+	/**
+	 * @dev Contract initializer function.
+	 * @param _wFIL WFIL token contract address
+	 * @param _resolver Resolver contract address
+	 * @param _initialDeposit Initial deposit to the pool to prevent the inflation attack
+	 */
+	function initialize(address _wFIL, address _resolver, uint256 _initialDeposit) public initializer {
+		__AccessControl_init();
+		__ReentrancyGuard_init();
+		__ClFILToken_init(_wFIL);
+		__UUPSUpgradeable_init();
+
+		resolver = IResolverClient(_resolver);
+
+		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+		grantRole(LIQUID_STAKING_ADMIN, msg.sender);
+		_setRoleAdmin(LIQUID_STAKING_ADMIN, DEFAULT_ADMIN_ROLE);
+		grantRole(FEE_DISTRIBUTOR, msg.sender);
+		_setRoleAdmin(FEE_DISTRIBUTOR, DEFAULT_ADMIN_ROLE);
+
+		if (_initialDeposit > 0) deposit(_initialDeposit, address(this));
 	}
 
 	receive() external payable virtual {}
@@ -76,132 +97,124 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 	 */
 	function stake() external payable nonReentrant returns (uint256 shares) {
 		uint256 assets = msg.value;
+		address receiver = msg.sender.normalize();
 
-		// Check for rounding error since we round down in previewDeposit.
-		require((shares = previewDeposit(assets)) != 0, "ZERO_SHARES");
+		if (assets > maxDeposit(receiver)) revert ERC4626Overflow();
+		shares = previewDeposit(assets);
 
-		_wrapWETH9(address(this));
+		if (shares == 0) revert ERC4626ZeroShares();
 
-		_mint(msg.sender, shares);
+		WFIL.deposit{value: assets}();
 
-		emit Deposit(msg.sender, msg.sender, assets, shares);
+		_mint(receiver, shares);
 
-		afterDeposit(assets, shares);
+		emit Deposit(_msgSender(), receiver, assets, shares);
 	}
 
 	/**
 	 * @notice Unstake FIL from the Liquid Staking pool and burn clFIL tokens
 	 * @param shares Total clFIL amount to burn (unstake)
-	 * @param _owner Original owner of clFIL tokens
+	 * @param owner Original owner of clFIL tokens
+	 * @param owner Receiver of FIL assets
 	 * @dev Please note that unstake amount has to be clFIL shares (not FIL assets)
 	 */
-	function unstake(uint256 shares, address _owner) external nonReentrant returns (uint256 assets) {
-		if (msg.sender != _owner) {
-			uint256 allowed = allowance[_owner][msg.sender]; // Saves gas for limited approvals.
+	function unstake(uint256 shares, address owner) external nonReentrant returns (uint256 assets) {
+		if (shares > maxRedeem(owner)) revert ERC4626Overflow();
 
-			if (allowed != type(uint256).max) allowance[_owner][msg.sender] = allowed - shares;
+		address receiver = msg.sender.normalize();
+		owner = owner.normalize();
+
+		assets = previewRedeem(shares);
+
+		if (receiver != owner) {
+			_spendAllowance(owner, receiver, shares);
 		}
 
-		// Check for rounding error since we round down in previewRedeem.
-		require((assets = previewRedeem(shares)) != 0, "ZERO_ASSETS");
+		_burn(owner, shares);
 
-		beforeWithdraw(assets, shares);
+		emit Unstaked(msg.sender, owner, assets, shares);
 
-		_burn(_owner, shares);
-
-		emit Unstaked(msg.sender, _owner, assets, shares);
-
-		WFIL.withdraw(assets);
-		msg.sender.safeTransferETH(assets);
+		_unwrapWFIL(receiver, assets);
 	}
 
 	/**
 	 * @notice Unstake FIL from the Liquid Staking pool and burn clFIL tokens
 	 * @param assets Total FIL amount to unstake
-	 * @param _owner Original owner of clFIL tokens
+	 * @param owner Original owner of clFIL tokens
+	 * @param owner Receiver of FIL assets
 	 */
-	function unstakeAssets(uint256 assets, address _owner) external nonReentrant returns (uint256 shares) {
-		shares = previewWithdraw(assets); // No need to check for rounding error, previewWithdraw rounds up.
+	function unstakeAssets(uint256 assets, address owner) external nonReentrant returns (uint256 shares) {
+		if (assets > maxWithdraw(owner)) revert ERC4626Overflow();
 
-		if (msg.sender != _owner) {
-			uint256 allowed = allowance[_owner][msg.sender]; // Saves gas for limited approvals.
+		address receiver = msg.sender.normalize();
+		owner = owner.normalize();
 
-			if (allowed != type(uint256).max) allowance[_owner][msg.sender] = allowed - shares;
+		shares = previewWithdraw(assets);
+		if (receiver != owner) {
+			_spendAllowance(owner, receiver, shares);
 		}
 
-		beforeWithdraw(assets, shares);
+		_burn(owner, shares);
 
-		_burn(_owner, shares);
+		emit Unstaked(receiver, owner, assets, shares);
 
-		emit Unstaked(msg.sender, _owner, assets, shares);
-
-		WFIL.withdraw(assets);
-		msg.sender.safeTransferETH(assets);
+		_unwrapWFIL(receiver, assets);
 	}
 
 	/**
 	 * @notice Pledge FIL assets from liquid staking pool to miner pledge for one sector
-	 * @param sectorNumber Sector number to be sealed
-	 * @param proof Sector proof for sealing
+	 * @param amount Amount of FIL to pledge from Liquid Staking Pool
+	 * @param _minerId Storage Provider Miner ID
 	 */
-	function pledge(uint64 sectorNumber, bytes memory proof) external virtual nonReentrant {
-		uint256 assets = oracle.getPledgeFees();
-		require(assets <= totalAssets(), "PLEDGE_WITHDRAWAL_OVERFLOW");
+	function pledge(uint256 amount, uint64 _minerId) external virtual nonReentrant {
+		if (amount > totalFilAvailable()) revert InvalidParams();
 
-		bytes memory provider = abi.encodePacked(msg.sender);
-		collateral.lock(provider, assets);
+		address ownerAddr = msg.sender.normalize();
+		(bool isID, uint64 ownerId) = ownerAddr.getActorID();
+		if (!isID) revert InactiveActor();
 
-		(, , bytes memory miner, , , , , ) = registry.getStorageProvider(provider);
+		if (!IRegistryClient(resolver.getRegistry()).isActualOwner(ownerId, _minerId)) revert InvalidOwner();
 
-		emit Pledge(miner, assets, sectorNumber);
+		ICollateralClient collateral = ICollateralClient(resolver.getCollateral());
+		if (collateral.activeSlashings(ownerId)) revert ActiveSlashing();
 
-		WFIL.withdraw(assets);
+		collateral.lock(ownerId, _minerId, amount);
 
-		totalFilPledged += assets;
+		emit Pledge(ownerId, _minerId, amount);
 
-		SendAPI.send(miner, assets); // send FIL to the miner actor
+		WFIL.withdraw(amount);
+
+		totalFilPledged += amount;
+
+		SendAPI.send(CommonTypes.FilActorId.wrap(_minerId), amount); // send FIL to the miner actor
 	}
 
 	/**
-	 * @notice Pledge FIL assets from liquid staking pool to miner pledge for multiple sectors
-	 * @param sectorNumbers Sector number to be sealed
-	 * @param proofs Sector proof for sealing
+	 * @notice Restakes `assets` for a specified `target` address
+	 * @param assets Amount of assets to restake
+	 * @param receiver f4 address to receive clFIL tokens
 	 */
-	function pledgeAggregate(uint64[] memory sectorNumbers, bytes[] memory proofs) external virtual nonReentrant {
-		require(sectorNumbers.length == proofs.length, "INVALID_PARAMS");
-		uint256 pledgePerSector = oracle.getPledgeFees();
-		uint256 totalPledge = pledgePerSector * sectorNumbers.length;
+	function restake(uint256 assets, address receiver) external returns (uint256 shares) {
+		if (msg.sender != resolver.getRewardCollector()) revert InvalidAccess();
+		if (assets > maxDeposit(receiver)) revert ERC4626Overflow();
+		shares = previewDeposit(assets);
+		if (shares == 0) revert ERC4626ZeroShares();
 
-		require(totalPledge <= totalAssets(), "PLEDGE_WITHDRAWAL_OVERFLOW");
+		_mint(receiver, shares);
 
-		bytes memory provider = abi.encodePacked(msg.sender);
-		collateral.lock(provider, totalPledge);
-
-		(, , bytes memory miner, , , , , ) = registry.getStorageProvider(provider);
-
-		for (uint256 i = 0; i < sectorNumbers.length; i++) {
-			emit Pledge(miner, pledgePerSector, sectorNumbers[i]);
-		}
-
-		WFIL.withdraw(totalPledge);
-
-		totalFilPledged += totalPledge;
-
-		SendAPI.send(miner, totalPledge); // send FIL to the miner actor
+		emit Deposit(receiver, receiver, assets, shares);
 	}
 
-	function withdrawRewards(bytes memory miner, uint256 amount) external virtual nonReentrant {
-		MinerTypes.WithdrawBalanceParams memory params;
-		params.amount_requested = Bytes.toBytes(amount);
+	/**
+	 * @notice Triggered when pledge is repaid on the Reward Collector
+	 * @param amount Amount of pledge repayment
+	 */
+	function repayPledge(uint256 amount) external {
+		if (msg.sender != resolver.getRewardCollector()) revert InvalidAccess();
 
-		MinerTypes.WithdrawBalanceReturn memory response = MinerAPI.withdrawBalance(miner, params);
+		totalFilPledged -= amount;
 
-		uint256 withdrawn = Bytes.toUint256(response.amount_withdrawn, 0);
-		require(withdrawn == amount, "INCORRECT_WITHDRAWAL_AMOUNT");
-
-		WFIL.deposit{value: withdrawn}();
-		// TODO: Increase rewards, recalculate locked rewards
-		registry.increaseRewards(miner, withdrawn, 0);
+		emit PledgeRepayment(amount);
 	}
 
 	/**
@@ -213,50 +226,26 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 	}
 
 	/**
-	 * @notice Returns pool usage ratio to determine what percentage of FIL
-	 * is pledged compared to the total amount of FIL staked.
+	 * @notice Returns total amount of fees held by LSP for a specific SP with `_ownerId`
+	 * @param _ownerId Storage Provider owner ID
 	 */
-	function getUsageRatio() public view virtual returns (uint256) {
-		return (totalFilPledged * BASIS_POINTS) / (totalFilAvailable() + totalFilPledged);
+	function totalFees(uint64 _ownerId) external view virtual override returns (uint256) {
+		return IStakingControllerClient(resolver.getLiquidStakingController()).totalFees(_ownerId, address(this));
 	}
 
 	/**
-	 * @notice Updates StorageProviderCollateral contract address
-	 * @param newAddr StorageProviderCollateral contract address
+	 * @notice Returns pool usage ratio to determine what percentage of FIL
+	 * is pledged compared to the total amount of FIL staked.
 	 */
-	function setCollateralAddress(address newAddr) public {
-		_onlyOwner();
-		collateral = IStorageProviderCollateralClient(newAddr);
-
-		emit SetCollateralAddress(newAddr);
+	function getUsageRatio() external view virtual returns (uint256) {
+		return (totalFilPledged * BASIS_POINTS) / (totalFilAvailable() + totalFilPledged);
 	}
 
 	/**
 	 * @notice Returns the amount of WFIL available on the liquid staking contract
 	 */
 	function totalFilAvailable() public view returns (uint256) {
-		return asset.balanceOf(address(this));
-	}
-
-	/**
-	 * @notice Updates StorageProviderRegistry contract address
-	 * @param newAddr StorageProviderRegistry contract address
-	 */
-	function setRegistryAddress(address newAddr) public {
-		_onlyOwner();
-		registry = IStorageProviderRegistryClient(newAddr);
-
-		emit SetRegistryAddress(newAddr);
-	}
-
-	/**
-	 * @notice Wraps FIL into WFIL and transfers it to the `_recipient` address
-	 * @param _recipient WFIL recipient address
-	 */
-	function _wrapWETH9(address _recipient) internal {
-		uint256 amount = msg.value;
-		WFIL.deposit{value: amount}();
-		WFIL.safeTransfer(_recipient, amount);
+		return WFIL.balanceOf(address(this));
 	}
 
 	/**
@@ -265,7 +254,7 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 	 */
 	function _unwrapWFIL(address _recipient, uint256 _amount) internal {
 		uint256 balanceWETH9 = WFIL.balanceOf(address(this));
-		require(balanceWETH9 >= _amount, "Insufficient WETH9");
+		if (balanceWETH9 < _amount) revert InsufficientFunds();
 
 		if (balanceWETH9 > 0) {
 			WFIL.withdraw(_amount);
@@ -273,14 +262,61 @@ contract LiquidStaking is ILiquidStaking, ClFILToken, Multicall, SelfPermit, Ree
 		}
 	}
 
-	function _onlyOwner() private view {
-		require(msg.sender == owner, "UNAUTHORIZED");
+	/**
+	 * @notice UUPS Upgradeable function to update the liquid staking pool implementation
+	 * @dev Only triggered by contract admin
+	 */
+	function _authorizeUpgrade(address newImplementation) internal override onlyAdmin {}
+
+	/**
+	 * @notice Returns the version of clFIL token contract
+	 */
+	function version() external pure virtual returns (string memory) {
+		return "v1";
 	}
 
-	function transferOwnership(address newOwner) public virtual {
-		_onlyOwner();
-		owner = newOwner;
+	/**
+	 * @notice Returns the implementation contract
+	 */
+	function getImplementation() external view returns (address) {
+		return _getImplementation();
+	}
 
-		emit OwnershipTransferred(msg.sender, newOwner);
+	/** @dev See {IERC4626-maxDeposit}. */
+	function maxDeposit(address) public view virtual override returns (uint256) {
+		uint256 liquidityCap = IStakingControllerClient(resolver.getLiquidStakingController()).liquidityCap();
+
+		if (liquidityCap > 0) {
+			return liquidityCap - totalFilAvailable();
+		}
+
+		return type(uint256).max;
+	}
+
+	/** @dev See {IERC4626-maxMint}. */
+	function maxMint(address) public view virtual override returns (uint256) {
+		uint256 liquidityCap = IStakingControllerClient(resolver.getLiquidStakingController()).liquidityCap();
+
+		if (liquidityCap != 0) {
+			return convertToShares(liquidityCap - totalFilAvailable());
+		}
+
+		return type(uint256).max;
+	}
+
+	/** @dev See {IERC4626-maxWithdraw}. */
+	function maxWithdraw(address owner) public view virtual override returns (uint256) {
+		return
+			IStakingControllerClient(resolver.getLiquidStakingController()).withdrawalsActivated()
+				? _convertToAssets(balanceOf(owner), MathUpgradeable.Rounding.Down)
+				: 0;
+	}
+
+	/** @dev See {IERC4626-maxRedeem}. */
+	function maxRedeem(address owner) public view virtual override returns (uint256) {
+		return
+			IStakingControllerClient(resolver.getLiquidStakingController()).withdrawalsActivated()
+				? balanceOf(owner)
+				: 0;
 	}
 }

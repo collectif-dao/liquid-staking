@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.17;
 
 import "../../LiquidStaking.sol";
 import {IMinerActorMock} from "./MinerActorMock.sol";
-import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
+import {MinerMockAPI as MockAPI} from "filecoin-solidity/contracts/v0.8/mocks/MinerMockAPI.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 /**
  * @title Liquid Staking Mock contract
@@ -12,73 +13,68 @@ import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 contract LiquidStakingMock is LiquidStaking {
 	using SafeTransferLib for *;
 
+	bytes32 private constant LIQUID_STAKING_ADMIN = keccak256("LIQUID_STAKING_ADMIN");
+	bytes32 private constant FEE_DISTRIBUTOR = keccak256("FEE_DISTRIBUTOR");
+
 	IMinerActorMock private minerActorMock;
+	MockAPI private mockAPI;
 
-	constructor(address _wFIL, address minerActor, address _oracle) LiquidStaking(_wFIL, _oracle) {
+	uint64 public ownerId;
+	address private ownerAddr;
+
+	uint256 private constant BASIS_POINTS = 10000;
+
+	function initialize(
+		address _wFIL,
+		address minerActor,
+		uint64 _ownerId,
+		address _ownerAddr,
+		address _minerApiMock,
+		address _resolver,
+		uint256 _initialDeposit
+	) public initializer {
+		__AccessControl_init();
+		__ReentrancyGuard_init();
+		__ClFILToken_init(_wFIL);
+		__UUPSUpgradeable_init();
+
+		resolver = IResolverClient(_resolver);
+
+		_setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+		grantRole(LIQUID_STAKING_ADMIN, msg.sender);
+		_setRoleAdmin(LIQUID_STAKING_ADMIN, DEFAULT_ADMIN_ROLE);
+		grantRole(FEE_DISTRIBUTOR, msg.sender);
+		_setRoleAdmin(FEE_DISTRIBUTOR, DEFAULT_ADMIN_ROLE);
+
 		minerActorMock = IMinerActorMock(minerActor);
-	}
+		ownerId = _ownerId;
+		ownerAddr = _ownerAddr;
 
-	function pledge(uint64 sectorNumber, bytes memory proof) external virtual override nonReentrant {
-		uint256 assets = oracle.getPledgeFees();
-		require(assets <= totalAssets(), "PLEDGE_WITHDRAWAL_OVERFLOW");
+		mockAPI = MockAPI(_minerApiMock);
 
-		bytes memory provider = abi.encodePacked(msg.sender);
-		collateral.lock(provider, assets);
-
-		(, , bytes memory miner, , , , , ) = registry.getStorageProvider(provider);
-
-		emit Pledge(miner, assets, sectorNumber);
-
-		WFIL.withdraw(assets);
-
-		totalFilPledged += assets;
-
-		msg.sender.safeTransferETH(assets);
+		if (_initialDeposit > 0) deposit(_initialDeposit, address(this));
 	}
 
 	/**
-	 * @notice Pledge FIL assets from liquid staking pool to miner pledge for multiple sectors
-	 * @param sectorNumbers Sector number to be sealed
-	 * @param proofs Sector proof for sealing
+	 * @notice Pledge FIL assets from liquid staking pool to miner pledge for one or multiple sectors
+	 * @param amount Amount of FIL to be pledged from Liquid Staking Pool
 	 */
-	function pledgeAggregate(
-		uint64[] memory sectorNumbers,
-		bytes[] memory proofs
-	) external virtual override nonReentrant {
-		require(sectorNumbers.length == proofs.length, "INVALID_PARAMS");
-		uint256 pledgePerSector = oracle.getPledgeFees();
-		uint256 totalPledge = pledgePerSector * sectorNumbers.length;
+	function pledge(uint256 amount, uint64 _minerId) external virtual override nonReentrant {
+		if (amount > totalAssets()) revert InvalidParams();
 
-		require(totalPledge <= totalAssets(), "PLEDGE_WITHDRAWAL_OVERFLOW");
+		if (!IRegistryClient(resolver.getRegistry()).isActualOwner(ownerId, _minerId)) revert InvalidOwner();
 
-		bytes memory provider = abi.encodePacked(msg.sender);
-		collateral.lock(provider, totalPledge);
+		ICollateralClient collateral = ICollateralClient(resolver.getCollateral());
+		if (collateral.activeSlashings(ownerId)) revert ActiveSlashing();
 
-		(, , bytes memory miner, , , , , ) = registry.getStorageProvider(provider);
+		collateral.lock(ownerId, _minerId, amount);
 
-		for (uint256 i = 0; i < sectorNumbers.length; i++) {
-			emit Pledge(miner, pledgePerSector, sectorNumbers[i]);
-		}
+		emit Pledge(ownerId, _minerId, amount);
 
-		WFIL.withdraw(totalPledge);
+		WFIL.withdraw(amount);
 
-		totalFilPledged += totalPledge;
+		totalFilPledged += amount;
 
-		msg.sender.safeTransferETH(totalPledge);
-	}
-
-	function withdrawRewards(bytes memory miner, uint256 amount) external virtual override nonReentrant {
-		MinerTypes.WithdrawBalanceParams memory params;
-		params.amount_requested = Bytes.toBytes(amount);
-
-		MinerTypes.WithdrawBalanceReturn memory response = minerActorMock.withdrawBalance(miner, params);
-
-		uint256 withdrawn = Bytes.toUint256(response.amount_withdrawn, 0);
-		require(withdrawn == amount, "INCORRECT_WITHDRAWAL_AMOUNT");
-
-		WFIL.deposit{value: withdrawn}();
-
-		// TODO: Increase rewards, recalculate locked rewards
-		registry.increaseRewards(miner, withdrawn, 0);
+		address(minerActorMock).safeTransferETH(amount);
 	}
 }

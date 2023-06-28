@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.17;
 
-import {PledgeOracle} from "../PledgeOracle.sol";
+import {PledgeOracle} from "../oracle/PledgeOracle.sol";
 import {DSTestPlus} from "solmate/test/utils/DSTestPlus.sol";
 
 contract PledgeOracleTest is DSTestPlus {

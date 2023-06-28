@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.16;
+pragma solidity ^0.8.17;
 
-import "./interfaces/IPledgeOracle.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import "../interfaces/IPledgeOracle.sol";
+import {AccessControl} from "@oz/contracts/access/AccessControl.sol";
 
 /**
  * @title Pledge Oracle allows to record PreCommitDeposit and InitialPledge

@@ -6,11 +6,11 @@ import "../contracts/interfaces/IStorageProviderRegistry.sol";
 import "../contracts/interfaces/ILiquidStaking.sol";
 
 contract AfterDeploymentScript is Script {
-	address private router = 0x23452f45D78940eDf620fa3929ab98E26356d1A5;
-	address private stakingAddr = 0xDBc572c2E175442867CA95a9502de3A39d4D4C8a;
-	address private collateralAddr = 0x1d2e9B77cfbD33F0c64E5Dc08d78776E68a3867A;
-	address private registryAddr = 0x3FFaF5f2F102d651A49EBc91576b2305058c42Ab;
-	address private wfil = 0x100318977B758AcBF9B78Aad3623D04468eca070;
+	address private router = 0xdD983F73765022a96bf8970Da6A0CdEf7830Abc1;
+	address private stakingAddr = 0x0C5e71f8cC828D12C19AB807d793ebB4c832C837;
+	address private collateralAddr = 0xD43D81D79455526222B006a34300990b228b5457;
+	address private registryAddr = 0xD2e3c87b83D77Ba725adC7ac8c40289558d06585;
+	address private wfil = 0x652DC2a67dE2C24c2B29f5016DBcF500f75eCfCe;
 
 	function run() external {
 		uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
@@ -19,9 +19,10 @@ contract AfterDeploymentScript is Script {
 		ILiquidStaking staking = ILiquidStaking(stakingAddr);
 		IStorageProviderRegistry registry = IStorageProviderRegistry(registryAddr);
 
-		registry.setCollateralAddress(collateralAddr);
-		staking.setCollateralAddress(collateralAddr);
-		staking.setRegistryAddress(registryAddr);
+		// registry.setCollateralAddress(collateralAddr);
+		// staking.setCollateralAddress(collateralAddr);
+		// staking.setRegistryAddress(registryAddr);
+		// registry.registerPool(address(staking));
 
 		vm.stopBroadcast();
 	}
