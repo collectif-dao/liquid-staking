@@ -22,15 +22,7 @@ export const deployAndSaveContract = async (name: string, args: unknown[], hre: 
 
 	let Factory: ContractFactory;
 
-	if (chainId.chainId == 31337) {
-		Factory = await ethers.getContractFactory(name);
-	} else {
-		const provider = new ethers.providers.FallbackProvider([ethers.provider], 1);
-		provider.getFeeData = async () => feeData;
-		const signer = new ethers.Wallet(process.env.PRIVATE_KEY).connect(provider);
-
-		Factory = await ethers.getContractFactory(name, signer);
-	}
+	Factory = await ethers.getContractFactory(name);
 
 	let contract: Contract;
 
