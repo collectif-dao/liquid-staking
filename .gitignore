@@ -64,5 +64,5 @@ abi/
 # Local deployments artifacts
 deployments/localnet
 
-# Open zeppelin artefacts
-.openzeppelin
+# Open zeppelin artifacts
+.openzeppelin/unknown-31415926.json

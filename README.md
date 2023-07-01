@@ -69,6 +69,34 @@ Protocol interacts with Filecoin built-in Miner actors via [Filecoin Solidity li
 
 ## Deployments
 
+### Filecoin Mainnet
+
+- WFIL: [`0x60E1773636CF5E4A227d9AC24F20fEca034ee25A`](https://filfox.info/en/address/0x60E1773636CF5E4A227d9AC24F20fEca034ee25A)
+
+- Liquid Staking Pool: [`0xd0437765D1Dc0e2fA14E97d290F135eFdf1a8a9A`](https://filfox.info/en/address/0xd0437765D1Dc0e2fA14E97d290F135eFdf1a8a9A)
+
+  - Implementation: [`0x47c14daDE9D16e963af745BBaD6f86a0424760eB`](https://filfox.info/en/address/0x47c14daDE9D16e963af745BBaD6f86a0424760eB)
+
+- Liquid Staking Controller: [`0x9B0e598329D12d985F209cC8346090Fc30371a1B`](https://filfox.info/en/address/0x9B0e598329D12d985F209cC8346090Fc30371a1B)
+
+  - Implementation: [`0x37c8D7Ed062c7068da6184c6482A9f230aDCf51a`](https://filfox.info/en/address/0x37c8D7Ed062c7068da6184c6482A9f230aDCf51a)
+
+- Storage Provider Registry: [`0x34150FdEd1e598866E5111718e4F5D5af2517f98`](https://filfox.info/en/address/0x34150FdEd1e598866E5111718e4F5D5af2517f98)
+
+  - Implementation: [`0x87F102415df0Eb6E57291D678185eC42b1a21C90`](https://filfox.info/en/address/0x87F102415df0Eb6E57291D678185eC42b1a21C90)
+
+- Storage Provider Collateral: [`0x3D52874772C66466c93E36cc3782946fd0FA7666`](https://filfox.info/en/address/0x3D52874772C66466c93E36cc3782946fd0FA7666)
+
+  - Implementation: [`0x0F4094F18D00C86f2201aF494B592d1A9B1705Ea`](https://filfox.info/en/address/0x0F4094F18D00C86f2201aF494B592d1A9B1705Ea)
+
+- Resolver: [`0x577AA248DeB2EAaAfDb1137339F367C54cAf9B3d`](https://filfox.info/en/address/0x577AA248DeB2EAaAfDb1137339F367C54cAf9B3d)
+
+  - Implementation: [`0xC5Ef60783Fd1C6e7A6f37537BA3062466bcdc5D1`](https://filfox.info/en/address/0xC5Ef60783Fd1C6e7A6f37537BA3062466bcdc5D1)
+
+- Reward Collector: [`0x57f5cbca75C410589ae88Fab5ED2e9dA32a0b306`](https://filfox.info/en/address/0x57f5cbca75C410589ae88Fab5ED2e9dA32a0b306)
+
+  - Implementation: [`0xAfF50E1dabDA629A0F08De122e3f44837370Db8b`](https://filfox.info/en/address/0xAfF50E1dabDA629A0F08De122e3f44837370Db8b)
+
 ### Filecoin Calibration testnet
 
 - WFIL: [`0xaC26a4Ab9cF2A8c5DBaB6fb4351ec0F4b07356c4`](https://calibration.filfox.info/en/address/0xaC26a4Ab9cF2A8c5DBaB6fb4351ec0F4b07356c4)

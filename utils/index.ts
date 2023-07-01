@@ -9,6 +9,8 @@ export const getWFIL = async (chainId: number, deployments: DeploymentsExtension
 		wFIL = (await deployments.get("WFIL")).address;
 	} else if (chainId == 314159) {
 		return "0xaC26a4Ab9cF2A8c5DBaB6fb4351ec0F4b07356c4";
+	} else if (chainId == 314) {
+		return "0x60E1773636CF5E4A227d9AC24F20fEca034ee25A";
 	}
 
 	return wFIL;
@@ -30,7 +32,7 @@ export const deployAndSaveContract = async (name: string, args: unknown[], hre: 
 		initializer: "initialize",
 		unsafeAllow: ["delegatecall"],
 		kind: "uups",
-		timeout: 600000,
+		timeout: 1000000,
 	});
 	await contract.deployed();
 

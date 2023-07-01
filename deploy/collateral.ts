@@ -8,7 +8,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 	const chainId = await ethers.provider.getNetwork();
 	const wFIL = await getWFIL(chainId.chainId, deployments);
 	const resolver = await deployments.get("Resolver");
-	const baseRequirements = 2725;
+	const baseRequirements = 3000;
 	await deployAndSaveContract("StorageProviderCollateral", [wFIL, resolver.address, baseRequirements], hre);
 };
 
