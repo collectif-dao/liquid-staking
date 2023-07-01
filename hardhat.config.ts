@@ -7,6 +7,7 @@ import "@nomicfoundation/hardhat-toolbox";
 import "hardhat-preprocessor";
 import "hardhat-deploy";
 import "@nomiclabs/hardhat-ethers";
+import "@nomicfoundation/hardhat-ledger";
 // import "@nomicfoundation/hardhat-foundry";
 import * as path from "path";
 import "./tasks";
@@ -77,21 +78,15 @@ const config: HardhatUserConfig = {
 		filecoin: {
 			url: `${process.env.FILECOIN_MAINNET_RPC_URL}`,
 			chainId: 314,
-			accounts: [process.env.PRIVATE_KEY],
+			ledgerAccounts: [`${process.env.DEPLOYER_ADDRESS}`],
 			live: true,
 			saveDeployments: true,
-		},
-		hyperspace: {
-			url: `${process.env.HYPERSPACE_RPC_URL}`,
-			chainId: 3141,
-			accounts: [process.env.PRIVATE_KEY],
-			live: true,
-			saveDeployments: true,
+			timeout: 1000000,
 		},
 		calibration: {
 			url: `${process.env.CALIBRATION_RPC_URL}`,
 			chainId: 314159,
-			accounts: [process.env.PRIVATE_KEY],
+			ledgerAccounts: [`${process.env.DEPLOYER_ADDRESS}`],
 			live: true,
 			saveDeployments: true,
 		},

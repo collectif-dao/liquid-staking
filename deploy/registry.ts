@@ -7,7 +7,7 @@ const deployFunction: DeployFunction = async function (hre: HardhatRuntimeEnviro
 	const { deployments, ethers } = hre;
 
 	const resolver = await deployments.get("Resolver");
-	const maxAllocation = ethers.utils.parseEther("1000000");
+	const maxAllocation = ethers.utils.parseEther("100000");
 
 	await deployAndSaveContract("StorageProviderRegistry", [maxAllocation, resolver.address], hre);
 };
