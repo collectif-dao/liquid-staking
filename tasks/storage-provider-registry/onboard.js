@@ -1,11 +1,11 @@
 import { callRpc } from "../utils";
 
 task("onboard", "Onboard a miner")
-	.addParam("minerId", "Miner id", "f02239446")
-	.addParam("allocationLimit", "Overall FIL allocation for a storage provider", "100000")
-	.addParam("dailyAllocation", "Daily FIL allocation for a storage provider", "5000")
-	.addParam("repayment", "Repayment amount for a storage provider", "136139")
-	.addParam("lastEpoch", "Last epoch", "5205618")
+	.addParam("minerId", "Miner id", "t01000")
+	.addParam("allocationLimit", "Overall FIL allocation for a storage provider", "10000")
+	.addParam("dailyAllocation", "Daily FIL allocation for a storage provider", "1000")
+	.addParam("repayment", "Repayment amount for a storage provider", "12000")
+	.addParam("lastEpoch", "Last epoch", "897999909")
 	.setAction(async (taskArgs) => {
 		const accounts = await ethers.getSigners();
 		const signer = accounts[0];
