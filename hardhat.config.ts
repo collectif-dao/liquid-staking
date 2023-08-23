@@ -89,6 +89,7 @@ const config: HardhatUserConfig = {
 			ledgerAccounts: [`${process.env.DEPLOYER_ADDRESS}`],
 			live: true,
 			saveDeployments: true,
+			timeout: 1000000,
 		},
 	},
 	preprocess: {

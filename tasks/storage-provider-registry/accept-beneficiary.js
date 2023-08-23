@@ -9,14 +9,17 @@ task("accept-beneficiary", "Accept beneficiary change.")
 		let { minerId } = taskArgs;
 		minerId = ethers.BigNumber.from(minerId.slice(2));
 
+		const feeData = await ethers.provider.getFeeData();
+		const overrides = {
+			maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+			maxFeePerGas: feeData.maxFeePerGas,
+		};
+
 		const StorageProviderRegistryFactory = await ethers.getContractFactory("StorageProviderRegistry");
 		const storageProviderRegistryDeployment = await hre.deployments.get("StorageProviderRegistry");
 		const storageProviderRegistry = StorageProviderRegistryFactory.attach(storageProviderRegistryDeployment.address);
 
-		const priorityFee = await callRpc("eth_maxPriorityFeePerGas");
-		let tx = await storageProviderRegistry.connect(signer).acceptBeneficiaryAddress(minerId, {
-			maxPriorityFeePerGas: priorityFee,
-		});
+		let tx = await storageProviderRegistry.connect(signer).acceptBeneficiaryAddress(minerId, overrides);
 
 		let receipt = await tx.wait();
 		console.log(receipt);

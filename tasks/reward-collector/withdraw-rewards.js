@@ -11,15 +11,17 @@ task("withdraw-rewards", "Withdraw miner's rewards")
 		minerId = ethers.BigNumber.from(minerId.slice(2));
 		amount = ethers.utils.parseEther(amount);
 
+		const feeData = await ethers.provider.getFeeData();
+		const overrides = {
+			maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+			maxFeePerGas: feeData.maxFeePerGas,
+		};
+
 		const RewardCollectorFactory = await ethers.getContractFactory("RewardCollector");
 		const RewardCollectorDeployment = await hre.deployments.get("RewardCollector");
 		const rewardCollector = RewardCollectorFactory.attach(RewardCollectorDeployment.address);
 
-		const priorityFee = await callRpc("eth_maxPriorityFeePerGas");
-		let tx = await rewardCollector.connect(signer).withdrawRewards(minerId, amount, {
-			maxPriorityFeePerGas: priorityFee,
-		});
-
+		let tx = await rewardCollector.connect(signer).withdrawRewards(minerId, amount, overrides);
 		let receipt = await tx.wait();
 		console.log(receipt);
 	});
