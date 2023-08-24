@@ -164,7 +164,7 @@ contract RewardCollector is
 		WFIL.deposit{value: vars.protocolShare}();
 		WFIL.transfer(stakingPool, vars.protocolShare - vars.protocolFees);
 
-		SendAPI.send(CommonTypes.FilActorId.wrap(minerId), vars.spShare);
+		SendAPI.send(CommonTypes.FilActorId.wrap(ownerId), vars.spShare);
 
 		registry.increaseRewards(minerId, vars.stakingProfit);
 		ICollateralClient(resolver.getCollateral()).fit(ownerId);
@@ -229,7 +229,7 @@ contract RewardCollector is
 	 * @notice Returns the version of clFIL token contract
 	 */
 	function version() external pure virtual returns (string memory) {
-		return "v1";
+		return "v2";
 	}
 
 	/**

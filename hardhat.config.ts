@@ -81,7 +81,7 @@ const config: HardhatUserConfig = {
 			ledgerAccounts: [`${process.env.DEPLOYER_ADDRESS}`],
 			live: true,
 			saveDeployments: true,
-			timeout: 1000000,
+			timeout: 2600000,
 		},
 		calibration: {
 			url: `${process.env.CALIBRATION_RPC_URL}`,
@@ -89,6 +89,7 @@ const config: HardhatUserConfig = {
 			ledgerAccounts: [`${process.env.DEPLOYER_ADDRESS}`],
 			live: true,
 			saveDeployments: true,
+			timeout: 2600000,
 		},
 	},
 	preprocess: {

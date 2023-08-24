@@ -9,7 +9,7 @@ export function hexToBytes(hex) {
 export async function callRpc(method, params) {
 	var options = {
 		method: "POST",
-		url: "http://localhost:1234/rpc/v0",
+		url: "https://filecoin-mainnet.chainstacklabs.com/rpc/v1",
 		headers: {
 			"Content-Type": "application/json",
 		},

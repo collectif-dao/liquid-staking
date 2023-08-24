@@ -1326,7 +1326,7 @@
             "label": "_roles",
             "offset": 0,
             "slot": "151",
-            "type": "t_mapping(t_bytes32,t_struct(RoleData)15387_storage)",
+            "type": "t_mapping(t_bytes32,t_struct(RoleData)16123_storage)",
             "contract": "AccessControlUpgradeable",
             "src": "lib/openzeppelin-contracts-upgradeable/contracts/access/AccessControlUpgradeable.sol:62"
           },
@@ -1358,7 +1358,7 @@
             "label": "resolver",
             "offset": 0,
             "slot": "301",
-            "type": "t_contract(IResolverClient)6057",
+            "type": "t_contract(IResolverClient)6793",
             "contract": "RewardCollector",
             "src": "contracts/RewardCollector.sol:44"
           },
@@ -1366,7 +1366,7 @@
             "label": "WFIL",
             "offset": 0,
             "slot": "302",
-            "type": "t_contract(IWFIL)8450",
+            "type": "t_contract(IWFIL)9186",
             "contract": "RewardCollector",
             "src": "contracts/RewardCollector.sol:45"
           }
@@ -1392,11 +1392,11 @@
             "label": "bytes32",
             "numberOfBytes": "32"
           },
-          "t_contract(IResolverClient)6057": {
+          "t_contract(IResolverClient)6793": {
             "label": "contract IResolverClient",
             "numberOfBytes": "20"
           },
-          "t_contract(IWFIL)8450": {
+          "t_contract(IWFIL)9186": {
             "label": "contract IWFIL",
             "numberOfBytes": "20"
           },
@@ -1404,11 +1404,181 @@
             "label": "mapping(address => bool)",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_bytes32,t_struct(RoleData)15387_storage)": {
+          "t_mapping(t_bytes32,t_struct(RoleData)16123_storage)": {
             "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
             "numberOfBytes": "32"
           },
-          "t_struct(RoleData)15387_storage": {
+          "t_struct(RoleData)16123_storage": {
+            "label": "struct AccessControlUpgradeable.RoleData",
+            "members": [
+              {
+                "label": "members",
+                "type": "t_mapping(t_address,t_bool)",
+                "offset": 0,
+                "slot": "0"
+              },
+              {
+                "label": "adminRole",
+                "type": "t_bytes32",
+                "offset": 0,
+                "slot": "1"
+              }
+            ],
+            "numberOfBytes": "64"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
+    },
+    "af2485a2c1d1f646ff7dc9abdd7f3ea63aeaf5f2badcbbce6093bf0ef47ac45b": {
+      "address": "0xA3a70163Edc8C119B73Ea6cA184CCD589A5f9b7a",
+      "txHash": "0x86a214cbee7812d55b86387762d4e7b4bceec5bffd68e77973eb5001ef4d5437",
+      "layout": {
+        "solcVersion": "0.8.17",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol:63",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol:68"
+          },
+          {
+            "label": "_status",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_uint256",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "lib/openzeppelin-contracts-upgradeable/contracts/security/ReentrancyGuardUpgradeable.sol:38"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "2",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "ReentrancyGuardUpgradeable",
+            "src": "lib/openzeppelin-contracts-upgradeable/contracts/security/ReentrancyGuardUpgradeable.sol:88"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "lib/openzeppelin-contracts-upgradeable/contracts/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC165Upgradeable",
+            "src": "lib/openzeppelin-contracts-upgradeable/contracts/utils/introspection/ERC165Upgradeable.sol:41"
+          },
+          {
+            "label": "_roles",
+            "offset": 0,
+            "slot": "151",
+            "type": "t_mapping(t_bytes32,t_struct(RoleData)16123_storage)",
+            "contract": "AccessControlUpgradeable",
+            "src": "lib/openzeppelin-contracts-upgradeable/contracts/access/AccessControlUpgradeable.sol:62"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "152",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "AccessControlUpgradeable",
+            "src": "lib/openzeppelin-contracts-upgradeable/contracts/access/AccessControlUpgradeable.sol:260"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "201",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC1967UpgradeUpgradeable",
+            "src": "lib/openzeppelin-contracts-upgradeable/contracts/proxy/ERC1967/ERC1967UpgradeUpgradeable.sol:169"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "251",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "UUPSUpgradeable",
+            "src": "lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/UUPSUpgradeable.sol:111"
+          },
+          {
+            "label": "resolver",
+            "offset": 0,
+            "slot": "301",
+            "type": "t_contract(IResolverClient)6793",
+            "contract": "RewardCollectorV2",
+            "src": "contracts/RewardCollectorV2.sol:44"
+          },
+          {
+            "label": "WFIL",
+            "offset": 0,
+            "slot": "302",
+            "type": "t_contract(IWFIL)9186",
+            "contract": "RewardCollectorV2",
+            "src": "contracts/RewardCollectorV2.sol:45"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_bytes32": {
+            "label": "bytes32",
+            "numberOfBytes": "32"
+          },
+          "t_contract(IResolverClient)6793": {
+            "label": "contract IResolverClient",
+            "numberOfBytes": "20"
+          },
+          "t_contract(IWFIL)9186": {
+            "label": "contract IWFIL",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_bytes32,t_struct(RoleData)16123_storage)": {
+            "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
+            "numberOfBytes": "32"
+          },
+          "t_struct(RoleData)16123_storage": {
             "label": "struct AccessControlUpgradeable.RoleData",
             "members": [
               {

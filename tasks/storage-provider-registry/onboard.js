@@ -22,12 +22,15 @@ task("onboard", "Onboard a miner")
 		const storageProviderRegistryDeployment = await hre.deployments.get("StorageProviderRegistry");
 		const storageProviderRegistry = StorageProviderRegistryFactory.attach(storageProviderRegistryDeployment.address);
 
-		const priorityFee = await callRpc("eth_maxPriorityFeePerGas");
+		const feeData = await ethers.provider.getFeeData();
+		const overrides = {
+			maxPriorityFeePerGas: feeData.maxPriorityFeePerGas,
+			maxFeePerGas: feeData.maxFeePerGas,
+		};
+
 		let tx = await storageProviderRegistry
 			.connect(signer)
-			.onboardStorageProvider(minerId, allocationLimit, dailyAllocation, repayment, lastEpoch, {
-				maxPriorityFeePerGas: priorityFee,
-			});
+			.onboardStorageProvider(minerId, allocationLimit, dailyAllocation, repayment, lastEpoch, overrides);
 
 		let receipt = await tx.wait();
 		console.log(receipt);
