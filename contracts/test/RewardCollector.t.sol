@@ -156,6 +156,7 @@ contract RewardCollectorTest is DSTestPlus {
 	}
 
 	function testWithdrawRewards(uint256 amount) public {
+		
 		hevm.assume(amount != 0 && amount < MAX_ALLOCATION && amount > 1 ether);
 		hevm.deal(address(this), amount);
 
@@ -182,7 +183,7 @@ contract RewardCollectorTest is DSTestPlus {
 
 		require(address(minerActor).balance == withdrawAmount + dailyAllocation, "INVALID_BALANCE");
 		require(staking.totalAssets() == amount, "INVALID_BALANCE");
-
+		emit log_named_uint("aliceOwnerAddr.balance", aliceOwnerAddr.balance);
 		rewardCollector.withdrawRewards(aliceMinerId, withdrawAmount);
 
 		uint256 protocolFees = (withdrawAmount * adminFee) / BASIS_POINTS;
@@ -197,6 +198,8 @@ contract RewardCollectorTest is DSTestPlus {
 		emit log_named_uint("protocolFees", protocolFees);
 		emit log_named_uint("staking.totalAssets()", staking.totalAssets());
 		emit log_named_uint("amount + stakingShare", amount + stakingShare);
+
+		revert();
 
 		require(address(minerActor).balance == dailyAllocation, "INVALID_BALANCE");
 		require(aliceOwnerAddr.balance == spShare, "INVALID_BALANCE");

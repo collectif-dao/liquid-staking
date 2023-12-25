@@ -27,3 +27,9 @@ exports.getBalance = require("./liquid-staking/get-balance");
 // --- Reward Collector ---
 exports.withdrawRewards = require("./reward-collector/withdraw-rewards");
 exports.withdrawPledge = require("./reward-collector/withdraw-pledge");
+
+// --- Storage Provider Stats ---
+exports.getPledgeHistory = require("./storage-provider-stats/get-pledge-history");
+
+// --- Pool Stats ---
+exports.getStakingHistory = require("./pool-stats/get-staking-history");

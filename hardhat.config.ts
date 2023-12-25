@@ -76,9 +76,10 @@ const config: HardhatUserConfig = {
 			live: true,
 		},
 		filecoin: {
-			url: `${process.env.FILECOIN_MAINNET_RPC_URL}`,
+			url: `${process.env.FILECOIN_MAINNET_ARCHIVAL_RPC_URL}`,
 			chainId: 314,
-			ledgerAccounts: [`${process.env.DEPLOYER_ADDRESS}`],
+			accounts: [process.env.PRIVATE_KEY],
+			// ledgerAccounts: [`${process.env.DEPLOYER_ADDRESS}`],
 			live: true,
 			saveDeployments: true,
 			timeout: 1000000,
@@ -86,7 +87,7 @@ const config: HardhatUserConfig = {
 		calibration: {
 			url: `${process.env.CALIBRATION_RPC_URL}`,
 			chainId: 314159,
-			ledgerAccounts: [`${process.env.DEPLOYER_ADDRESS}`],
+			// ledgerAccounts: [`${process.env.DEPLOYER_ADDRESS}`],
 			live: true,
 			saveDeployments: true,
 		},

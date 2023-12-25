@@ -1,18 +1,18 @@
 task("get-sp-info", "Get info by owner id")
-	.addParam("minerId", "Owner id", "t01000")
+	.addParam("minerid", "Owner id", "t01000")
 	.setAction(async (taskArgs) => {
-		let { minerId } = taskArgs;
-		minerId = ethers.BigNumber.from(minerId.slice(2));
+		let { minerid } = taskArgs;
+		minerid = ethers.BigNumber.from(minerid.slice(2));
 
 		const StorageProviderRegistryFactory = await ethers.getContractFactory("StorageProviderRegistry");
 		const storageProviderRegistryDeployment = await hre.deployments.get("StorageProviderRegistry");
 		const storageProviderRegistry = StorageProviderRegistryFactory.attach(storageProviderRegistryDeployment.address);
 
 		try {
-			const sp = await storageProviderRegistry.storageProviders(minerId);
-			const allocations = await storageProviderRegistry.allocations(minerId);
-			const restakings = await storageProviderRegistry.restakings(minerId);
-			const status = await storageProviderRegistry.syncedBeneficiary(minerId);
+			const sp = await storageProviderRegistry.storageProviders(minerid);
+			const allocations = await storageProviderRegistry.allocations(minerid);
+			const restakings = await storageProviderRegistry.restakings(minerid);
+			const status = await storageProviderRegistry.syncedBeneficiary(minerid);
 
 			console.log("Is active SP: ", sp.active);
 			console.log("Is onboarded SP: ", sp.onboarded);

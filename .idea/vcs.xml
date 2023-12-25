@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="VcsDirectoryMappings">
+    <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/ERC4626" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/ERC4626/lib/ds-test" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/ERC4626/lib/solmate" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/ERC4626/lib/solmate/lib/ds-test" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/buffer" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/fevmate" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/filecoin-solidity" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/filecoin-solidity/lib/buffer" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/filecoin-solidity/lib/solidity-bignumber" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/filecoin-solidity/lib/solidity-cborutils" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/filecoin-solidity/testing/builtin-actors" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/forge-std" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/forge-std/lib/ds-test" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/openzeppelin-contracts" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/openzeppelin-contracts-upgradeable" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/openzeppelin-contracts-upgradeable/lib/erc4626-tests" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/openzeppelin-contracts-upgradeable/lib/forge-std" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/openzeppelin-contracts-upgradeable/lib/forge-std/lib/ds-test" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/openzeppelin-contracts/lib/erc4626-tests" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/openzeppelin-contracts/lib/forge-std" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/openzeppelin-contracts/lib/forge-std/lib/ds-test" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/solidity-BigNumber" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/solidity-cborutils" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/solmate" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/lib/solmate/lib/ds-test" vcs="Git" />
+  </component>
+</project>
