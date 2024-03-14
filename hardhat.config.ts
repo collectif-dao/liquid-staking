@@ -87,6 +87,7 @@ const config: HardhatUserConfig = {
 		calibration: {
 			url: `${process.env.CALIBRATION_RPC_URL}`,
 			chainId: 314159,
+			accounts: [process.env.PRIVATE_KEY],
 			// ledgerAccounts: [`${process.env.DEPLOYER_ADDRESS}`],
 			live: true,
 			saveDeployments: true,

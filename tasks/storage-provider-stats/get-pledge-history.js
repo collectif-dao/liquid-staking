@@ -8,23 +8,22 @@ task("get-pledge-history", "Get pledge data by owner id")
 		const LiquidStakingDeployment = await hre.deployments.get("LiquidStaking");
 		const liquidStaking = LiquidStakingFactory.attach(LiquidStakingDeployment.address);
 
-		console.log(liquidStaking.filters.Pledge());
 
-		// try {
-		// 	const startBlock = 2995888;
-		// 	const endBlock = -1;
-		// 	const pledgeEvents = await liquidStaking.queryFilter(liquidStaking.filters.Pledge(), startBlock, endBlock);
+		try {
+			const startBlock = 2995888;
+			const endBlock = -1;
+			const pledgeEvents = await liquidStaking.queryFilter(liquidStaking.filters.Pledge(), startBlock, endBlock);
 
-		// 	const totalPledge = pledgeEvents.reduce((acc, event) => {
-		// 		return acc.add(event.args.amount);
-		// 	}, ethers.BigNumber.from(0));
+			const totalPledge = pledgeEvents.reduce((acc, event) => {
+				return acc.add(event.args.amount);
+			}, ethers.BigNumber.from(0));
 
-		// 	console.log('totalPledge in attoFIL: ', totalPledge.toString(), ' attoFIL');
-		// 	console.log('totalPledge in FIL: ', ethers.utils.formatEther(totalPledge), ' FIL');
+			console.log('totalPledge in attoFIL: ', totalPledge.toString(), ' attoFIL');
+			console.log('totalPledge in FIL: ', ethers.utils.formatEther(totalPledge), ' FIL');
 
-		// } catch (e) {
-		// 	console.log(e);
-		// }
+		} catch (e) {
+			console.log(e);
+		}
 	});
 
 module.exports = {};

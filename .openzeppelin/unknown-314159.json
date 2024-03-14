@@ -2,40 +2,40 @@
   "manifestVersion": "3.2",
   "proxies": [
     {
-      "address": "0x4867b084C9F5DE0705376d6dcef966c69f8d37a3",
-      "txHash": "0xd65a0f6fab387410d5b44f1365076e16bb8aec3fc687c912dcee532a4bd5e62b",
+      "address": "0x92e42443702a835Dba4103D568959Db89F150715",
+      "txHash": "0x522161e1dc5e3bbdc853e3b01f23793b13de8a8d69286bfe898d3731e20026b0",
       "kind": "uups"
     },
     {
-      "address": "0x98A79c415aF7b4c0c2C8fB440796D02652AbDF87",
-      "txHash": "0x4ce0d57ccf57b2f0b1a0c4cf80cd44dd32f87caebb0b97307f4369567427680e",
+      "address": "0xf03bcBd21bcb4E8560EE525445cAd527D9FA13Af",
+      "txHash": "0x15cc26ee6ed9959cd23784c4a302cc3fab20bd446ba9ccb03eb0954b41ce14a1",
       "kind": "uups"
     },
     {
-      "address": "0xE5222EC4A4B3A64320A04EA81d51D110ca329Df2",
-      "txHash": "0x6d970c54bdd6d81db09d5a9479c8105e423573b2b9d256a34c135935d3aaea8f",
+      "address": "0x3A4329CC60462a9DE5767D6245AFE237e12eB73b",
+      "txHash": "0xb1aeba195745e00fb0bdc00449ed8a10d59c4c9bbe31992d8ae6702a4ea007e4",
       "kind": "uups"
     },
     {
-      "address": "0x19AAB7dD96E9EedF9E232fE56d1736f53205834a",
-      "txHash": "0xca31bdeb9f99edefa3f1d8a394e869e8c181671ffcedec217fd499532a3d1299",
+      "address": "0x945d2B61CB6f5f46B1DF749489e8480eAa6d4fF2",
+      "txHash": "0x13a3076bfd725ca9f73aaef0c9136967c9d00e511cd6bb7024675477eb135cd6",
       "kind": "uups"
     },
     {
-      "address": "0xCc6C40Da237F2311e6D8e8e7832b1f76aA6115E4",
-      "txHash": "0x7c87ffccf460fe022000c6633edf915de2343b76d5945c843c92cef34290c75f",
+      "address": "0x90c0f425D840b744e4722a5F1EFAeBF6b61fc8e6",
+      "txHash": "0x36add22aa4891bd2de9ad679c782df82229a20f87b931a7a5023dd4df679e229",
       "kind": "uups"
     },
     {
-      "address": "0x577AA248DeB2EAaAfDb1137339F367C54cAf9B3d",
-      "txHash": "0xf5814e86397ed7a0301c98b2614244a1b6bdb61aee5834974440463d356524f0",
+      "address": "0xbeF694D61fe94f03F1e6a49e06b9b948E0a57876",
+      "txHash": "0xd8c69bb343fa77115f5446d3e2b46e0b99e154435fb7b2e7197962d1e7b09c31",
       "kind": "uups"
     }
   ],
   "impls": {
     "af652e7e88a434cd9273a3ba1528fc7cf4004a45e8a909d1d3e53695a05f4dd8": {
-      "address": "0xbD4a58BfAB72F5b11De69ED120467B51358FDf08",
-      "txHash": "0xafe455a47ebe8dbebcbe75349211d9319d51f603c391c0c4602d3bf68a37bbb3",
+      "address": "0x24B0747364fff4F3928F8D8BA87093180fc0a4bE",
+      "txHash": "0xefc7d66ff38e16ca612f717ca85c694267e35b7582b50bc9a0df520d19287c95",
       "layout": {
         "solcVersion": "0.8.17",
         "storage": [
@@ -142,8 +142,8 @@
       }
     },
     "65bcbe0530866f15b7994cf1f7cf3bbf989895dbf443f0d52f0d02e196d19e64": {
-      "address": "0x34Df18Bd874A48699c87FCd6c4aA6f97BAdF0C7d",
-      "txHash": "0x7684d1927378e03a86ff64811100c5e1fd41e3496ff5429cffd78f03237c12ed",
+      "address": "0xF5Ac17fD8BAF7aF03Fb58DF739fD41d40fD9c315",
+      "txHash": "0xb7efc86c5f244ae95498c6b23324b00bc11ad28eec885d11b5d1ecf9852f09e3",
       "layout": {
         "solcVersion": "0.8.17",
         "storage": [
@@ -184,7 +184,7 @@
             "label": "_roles",
             "offset": 0,
             "slot": "101",
-            "type": "t_mapping(t_bytes32,t_struct(RoleData)15387_storage)",
+            "type": "t_mapping(t_bytes32,t_struct(RoleData)15413_storage)",
             "contract": "AccessControlUpgradeable",
             "src": "lib/openzeppelin-contracts-upgradeable/contracts/access/AccessControlUpgradeable.sol:62"
           },
@@ -232,7 +232,7 @@
             "label": "collaterals",
             "offset": 0,
             "slot": "301",
-            "type": "t_mapping(t_uint64,t_struct(SPCollateral)2495_storage)",
+            "type": "t_mapping(t_uint64,t_struct(SPCollateral)2521_storage)",
             "contract": "StorageProviderCollateral",
             "src": "contracts/StorageProviderCollateral.sol:51"
           },
@@ -272,7 +272,7 @@
             "label": "resolver",
             "offset": 0,
             "slot": "306",
-            "type": "t_contract(IResolverClient)6057",
+            "type": "t_contract(IResolverClient)6083",
             "contract": "StorageProviderCollateral",
             "src": "contracts/StorageProviderCollateral.sol:67"
           },
@@ -280,7 +280,7 @@
             "label": "WFIL",
             "offset": 0,
             "slot": "307",
-            "type": "t_contract(IWFIL)8450",
+            "type": "t_contract(IWFIL)8476",
             "contract": "StorageProviderCollateral",
             "src": "contracts/StorageProviderCollateral.sol:68"
           }
@@ -306,11 +306,11 @@
             "label": "bytes32",
             "numberOfBytes": "32"
           },
-          "t_contract(IResolverClient)6057": {
+          "t_contract(IResolverClient)6083": {
             "label": "contract IResolverClient",
             "numberOfBytes": "20"
           },
-          "t_contract(IWFIL)8450": {
+          "t_contract(IWFIL)8476": {
             "label": "contract IWFIL",
             "numberOfBytes": "20"
           },
@@ -318,7 +318,7 @@
             "label": "mapping(address => bool)",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_bytes32,t_struct(RoleData)15387_storage)": {
+          "t_mapping(t_bytes32,t_struct(RoleData)15413_storage)": {
             "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
             "numberOfBytes": "32"
           },
@@ -326,7 +326,7 @@
             "label": "mapping(uint64 => bool)",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_uint64,t_struct(SPCollateral)2495_storage)": {
+          "t_mapping(t_uint64,t_struct(SPCollateral)2521_storage)": {
             "label": "mapping(uint64 => struct StorageProviderCollateral.SPCollateral)",
             "numberOfBytes": "32"
           },
@@ -334,7 +334,7 @@
             "label": "mapping(uint64 => uint256)",
             "numberOfBytes": "32"
           },
-          "t_struct(RoleData)15387_storage": {
+          "t_struct(RoleData)15413_storage": {
             "label": "struct AccessControlUpgradeable.RoleData",
             "members": [
               {
@@ -352,7 +352,7 @@
             ],
             "numberOfBytes": "64"
           },
-          "t_struct(SPCollateral)2495_storage": {
+          "t_struct(SPCollateral)2521_storage": {
             "label": "struct StorageProviderCollateral.SPCollateral",
             "members": [
               {
@@ -386,8 +386,8 @@
       }
     },
     "dae13302f3a54ee65c297d6381076b62c207a82462c91341f23d4579be5f7889": {
-      "address": "0x5262A885B18c9536001952f909f000c4DD13faDF",
-      "txHash": "0x97ca6e1c9caf923f6db3f8b5773b2edb8e10c0893bbf6876e494c2378dece0bd",
+      "address": "0x2A98dcC3AB484e616A3D083F4439e784c1147545",
+      "txHash": "0xac3ccd94eb08cb6786a738e663415e04a078bc453783a8f55ec414b4f8efa6d0",
       "layout": {
         "solcVersion": "0.8.17",
         "storage": [
@@ -428,7 +428,7 @@
             "label": "_roles",
             "offset": 0,
             "slot": "101",
-            "type": "t_mapping(t_bytes32,t_struct(RoleData)15387_storage)",
+            "type": "t_mapping(t_bytes32,t_struct(RoleData)15413_storage)",
             "contract": "AccessControlUpgradeable",
             "src": "lib/openzeppelin-contracts-upgradeable/contracts/access/AccessControlUpgradeable.sol:62"
           },
@@ -492,7 +492,7 @@
             "label": "resolver",
             "offset": 1,
             "slot": "254",
-            "type": "t_contract(IResolverClient)6057",
+            "type": "t_contract(IResolverClient)6083",
             "contract": "LiquidStakingController",
             "src": "contracts/LiquidStakingController.sol:22"
           },
@@ -526,7 +526,7 @@
             "label": "bytes32",
             "numberOfBytes": "32"
           },
-          "t_contract(IResolverClient)6057": {
+          "t_contract(IResolverClient)6083": {
             "label": "contract IResolverClient",
             "numberOfBytes": "20"
           },
@@ -534,7 +534,7 @@
             "label": "mapping(address => bool)",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_bytes32,t_struct(RoleData)15387_storage)": {
+          "t_mapping(t_bytes32,t_struct(RoleData)15413_storage)": {
             "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
             "numberOfBytes": "32"
           },
@@ -542,7 +542,7 @@
             "label": "mapping(bytes32 => uint256)",
             "numberOfBytes": "32"
           },
-          "t_struct(RoleData)15387_storage": {
+          "t_struct(RoleData)15413_storage": {
             "label": "struct AccessControlUpgradeable.RoleData",
             "members": [
               {
@@ -572,8 +572,8 @@
       }
     },
     "3068ad641c2d83385d20cbb315e4bf469cef3d57acbe84edf114775607b87e5e": {
-      "address": "0xa9D2d7F420D24fC92E8A5cB5bcb6445F74940270",
-      "txHash": "0xa3985077391b348d1533f869b4a59c4cb31307c0fc2b4a9f869fbadd83bd2729",
+      "address": "0x04e1Dd02c1A6d720dA2266F27caB74829bb67EEE",
+      "txHash": "0xa94c65f93d91111f45e52c6761d3844cf7b2decc0af8a5cd09455cc86a4d37b2",
       "layout": {
         "solcVersion": "0.8.17",
         "storage": [
@@ -654,7 +654,7 @@
             "label": "_asset",
             "offset": 0,
             "slot": "101",
-            "type": "t_contract(IERC20Upgradeable)17505",
+            "type": "t_contract(IERC20Upgradeable)17531",
             "contract": "ERC4626Upgradeable",
             "src": "contracts/libraries/tokens/ERC4626Upgradeable.sol:56"
           },
@@ -678,7 +678,7 @@
             "label": "WFIL",
             "offset": 0,
             "slot": "151",
-            "type": "t_contract(IWFIL)8450",
+            "type": "t_contract(IWFIL)8476",
             "contract": "ClFILToken",
             "src": "contracts/ClFIL.sol:15"
           },
@@ -710,7 +710,7 @@
             "label": "_roles",
             "offset": 0,
             "slot": "252",
-            "type": "t_mapping(t_bytes32,t_struct(RoleData)15387_storage)",
+            "type": "t_mapping(t_bytes32,t_struct(RoleData)15413_storage)",
             "contract": "AccessControlUpgradeable",
             "src": "lib/openzeppelin-contracts-upgradeable/contracts/access/AccessControlUpgradeable.sol:62"
           },
@@ -750,7 +750,7 @@
             "label": "resolver",
             "offset": 0,
             "slot": "403",
-            "type": "t_contract(IResolverClient)6057",
+            "type": "t_contract(IResolverClient)6083",
             "contract": "LiquidStaking",
             "src": "contracts/LiquidStaking.sol:55"
           }
@@ -780,15 +780,15 @@
             "label": "bytes32",
             "numberOfBytes": "32"
           },
-          "t_contract(IERC20Upgradeable)17505": {
+          "t_contract(IERC20Upgradeable)17531": {
             "label": "contract IERC20Upgradeable",
             "numberOfBytes": "20"
           },
-          "t_contract(IResolverClient)6057": {
+          "t_contract(IResolverClient)6083": {
             "label": "contract IResolverClient",
             "numberOfBytes": "20"
           },
-          "t_contract(IWFIL)8450": {
+          "t_contract(IWFIL)8476": {
             "label": "contract IWFIL",
             "numberOfBytes": "20"
           },
@@ -804,7 +804,7 @@
             "label": "mapping(address => uint256)",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_bytes32,t_struct(RoleData)15387_storage)": {
+          "t_mapping(t_bytes32,t_struct(RoleData)15413_storage)": {
             "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
             "numberOfBytes": "32"
           },
@@ -812,7 +812,7 @@
             "label": "string",
             "numberOfBytes": "32"
           },
-          "t_struct(RoleData)15387_storage": {
+          "t_struct(RoleData)15413_storage": {
             "label": "struct AccessControlUpgradeable.RoleData",
             "members": [
               {
@@ -842,8 +842,8 @@
       }
     },
     "1475c62e5f8da1e0512d0ab6c848e886db8884e278174a72ecdcf8739a8b1848": {
-      "address": "0x4cEf33B5022b8e3A7f431E6D146DB8748f7Fa1a5",
-      "txHash": "0x3bfb7bea59f3fa907b9b22436ac0f29d7d070e7270a37f47e0349beefa4942a0",
+      "address": "0xBCA4BA0593E13200d7ba9342B0e0E5df467E1485",
+      "txHash": "0xfeba673a9132c19991ffe01f4e2e9df9816985511fa10efd011237f2022d2ae6",
       "layout": {
         "solcVersion": "0.8.17",
         "storage": [
@@ -884,7 +884,7 @@
             "label": "_roles",
             "offset": 0,
             "slot": "101",
-            "type": "t_mapping(t_bytes32,t_struct(RoleData)15387_storage)",
+            "type": "t_mapping(t_bytes32,t_struct(RoleData)15413_storage)",
             "contract": "AccessControlUpgradeable",
             "src": "lib/openzeppelin-contracts-upgradeable/contracts/access/AccessControlUpgradeable.sol:62"
           },
@@ -932,7 +932,7 @@
             "label": "storageProviders",
             "offset": 0,
             "slot": "301",
-            "type": "t_mapping(t_uint64,t_struct(StorageProvider)8464_storage)",
+            "type": "t_mapping(t_uint64,t_struct(StorageProvider)8490_storage)",
             "contract": "StorageProviderRegistry",
             "src": "contracts/StorageProviderRegistry.sol:59"
           },
@@ -940,7 +940,7 @@
             "label": "allocations",
             "offset": 0,
             "slot": "302",
-            "type": "t_mapping(t_uint64,t_struct(SPAllocation)8477_storage)",
+            "type": "t_mapping(t_uint64,t_struct(SPAllocation)8503_storage)",
             "contract": "StorageProviderRegistry",
             "src": "contracts/StorageProviderRegistry.sol:62"
           },
@@ -948,7 +948,7 @@
             "label": "restakings",
             "offset": 0,
             "slot": "303",
-            "type": "t_mapping(t_uint64,t_struct(SPRestaking)8482_storage)",
+            "type": "t_mapping(t_uint64,t_struct(SPRestaking)8508_storage)",
             "contract": "StorageProviderRegistry",
             "src": "contracts/StorageProviderRegistry.sol:65"
           },
@@ -956,7 +956,7 @@
             "label": "allocationRequests",
             "offset": 0,
             "slot": "304",
-            "type": "t_mapping(t_uint64,t_struct(AllocationRequest)8487_storage)",
+            "type": "t_mapping(t_uint64,t_struct(AllocationRequest)8513_storage)",
             "contract": "StorageProviderRegistry",
             "src": "contracts/StorageProviderRegistry.sol:68"
           },
@@ -996,7 +996,7 @@
             "label": "minerIds",
             "offset": 0,
             "slot": "309",
-            "type": "t_mapping(t_uint64,t_struct(UintSet)20163_storage)",
+            "type": "t_mapping(t_uint64,t_struct(UintSet)20189_storage)",
             "contract": "StorageProviderRegistry",
             "src": "contracts/StorageProviderRegistry.sol:83"
           },
@@ -1012,7 +1012,7 @@
             "label": "resolver",
             "offset": 0,
             "slot": "311",
-            "type": "t_contract(IResolverClient)6057",
+            "type": "t_contract(IResolverClient)6083",
             "contract": "StorageProviderRegistry",
             "src": "contracts/StorageProviderRegistry.sol:89"
           }
@@ -1042,7 +1042,7 @@
             "label": "bytes32",
             "numberOfBytes": "32"
           },
-          "t_contract(IResolverClient)6057": {
+          "t_contract(IResolverClient)6083": {
             "label": "contract IResolverClient",
             "numberOfBytes": "20"
           },
@@ -1054,7 +1054,7 @@
             "label": "mapping(address => bool)",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_bytes32,t_struct(RoleData)15387_storage)": {
+          "t_mapping(t_bytes32,t_struct(RoleData)15413_storage)": {
             "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
             "numberOfBytes": "32"
           },
@@ -1066,23 +1066,23 @@
             "label": "mapping(uint64 => bool)",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_uint64,t_struct(AllocationRequest)8487_storage)": {
+          "t_mapping(t_uint64,t_struct(AllocationRequest)8513_storage)": {
             "label": "mapping(uint64 => struct StorageProviderTypes.AllocationRequest)",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_uint64,t_struct(SPAllocation)8477_storage)": {
+          "t_mapping(t_uint64,t_struct(SPAllocation)8503_storage)": {
             "label": "mapping(uint64 => struct StorageProviderTypes.SPAllocation)",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_uint64,t_struct(SPRestaking)8482_storage)": {
+          "t_mapping(t_uint64,t_struct(SPRestaking)8508_storage)": {
             "label": "mapping(uint64 => struct StorageProviderTypes.SPRestaking)",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_uint64,t_struct(StorageProvider)8464_storage)": {
+          "t_mapping(t_uint64,t_struct(StorageProvider)8490_storage)": {
             "label": "mapping(uint64 => struct StorageProviderTypes.StorageProvider)",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_uint64,t_struct(UintSet)20163_storage)": {
+          "t_mapping(t_uint64,t_struct(UintSet)20189_storage)": {
             "label": "mapping(uint64 => struct EnumerableSetUpgradeable.UintSet)",
             "numberOfBytes": "32"
           },
@@ -1090,7 +1090,7 @@
             "label": "mapping(uint64 => uint64)",
             "numberOfBytes": "32"
           },
-          "t_struct(AllocationRequest)8487_storage": {
+          "t_struct(AllocationRequest)8513_storage": {
             "label": "struct StorageProviderTypes.AllocationRequest",
             "members": [
               {
@@ -1108,7 +1108,7 @@
             ],
             "numberOfBytes": "64"
           },
-          "t_struct(RoleData)15387_storage": {
+          "t_struct(RoleData)15413_storage": {
             "label": "struct AccessControlUpgradeable.RoleData",
             "members": [
               {
@@ -1126,7 +1126,7 @@
             ],
             "numberOfBytes": "64"
           },
-          "t_struct(SPAllocation)8477_storage": {
+          "t_struct(SPAllocation)8503_storage": {
             "label": "struct StorageProviderTypes.SPAllocation",
             "members": [
               {
@@ -1168,7 +1168,7 @@
             ],
             "numberOfBytes": "192"
           },
-          "t_struct(SPRestaking)8482_storage": {
+          "t_struct(SPRestaking)8508_storage": {
             "label": "struct StorageProviderTypes.SPRestaking",
             "members": [
               {
@@ -1186,7 +1186,7 @@
             ],
             "numberOfBytes": "64"
           },
-          "t_struct(Set)19691_storage": {
+          "t_struct(Set)19717_storage": {
             "label": "struct EnumerableSetUpgradeable.Set",
             "members": [
               {
@@ -1204,7 +1204,7 @@
             ],
             "numberOfBytes": "64"
           },
-          "t_struct(StorageProvider)8464_storage": {
+          "t_struct(StorageProvider)8490_storage": {
             "label": "struct StorageProviderTypes.StorageProvider",
             "members": [
               {
@@ -1240,12 +1240,12 @@
             ],
             "numberOfBytes": "64"
           },
-          "t_struct(UintSet)20163_storage": {
+          "t_struct(UintSet)20189_storage": {
             "label": "struct EnumerableSetUpgradeable.UintSet",
             "members": [
               {
                 "label": "_inner",
-                "type": "t_struct(Set)19691_storage",
+                "type": "t_struct(Set)19717_storage",
                 "offset": 0,
                 "slot": "0"
               }
@@ -1268,8 +1268,8 @@
       }
     },
     "c67f5b9eba0fe46e3aa9902629661e7d5c424094f9feda81a0430f6aa7dc66bf": {
-      "address": "0xC5Ef60783Fd1C6e7A6f37537BA3062466bcdc5D1",
-      "txHash": "0x27a26980c9cd4cb43e7a07fa510a727fae21250852da67412d9768b1204311b2",
+      "address": "0xab3e8Bc97D824B476220EAb80D02D1F62923D6Ed",
+      "txHash": "0x02eabf45328367d6f43ba9f3802088d2cf62a7480c0dfda0c7470f53f1c9612b",
       "layout": {
         "solcVersion": "0.8.17",
         "storage": [
@@ -1326,7 +1326,7 @@
             "label": "_roles",
             "offset": 0,
             "slot": "151",
-            "type": "t_mapping(t_bytes32,t_struct(RoleData)15387_storage)",
+            "type": "t_mapping(t_bytes32,t_struct(RoleData)15413_storage)",
             "contract": "AccessControlUpgradeable",
             "src": "lib/openzeppelin-contracts-upgradeable/contracts/access/AccessControlUpgradeable.sol:62"
           },
@@ -1358,7 +1358,7 @@
             "label": "resolver",
             "offset": 0,
             "slot": "301",
-            "type": "t_contract(IResolverClient)6057",
+            "type": "t_contract(IResolverClient)6083",
             "contract": "RewardCollector",
             "src": "contracts/RewardCollector.sol:44"
           },
@@ -1366,7 +1366,7 @@
             "label": "WFIL",
             "offset": 0,
             "slot": "302",
-            "type": "t_contract(IWFIL)8450",
+            "type": "t_contract(IWFIL)8476",
             "contract": "RewardCollector",
             "src": "contracts/RewardCollector.sol:45"
           }
@@ -1392,11 +1392,11 @@
             "label": "bytes32",
             "numberOfBytes": "32"
           },
-          "t_contract(IResolverClient)6057": {
+          "t_contract(IResolverClient)6083": {
             "label": "contract IResolverClient",
             "numberOfBytes": "20"
           },
-          "t_contract(IWFIL)8450": {
+          "t_contract(IWFIL)8476": {
             "label": "contract IWFIL",
             "numberOfBytes": "20"
           },
@@ -1404,11 +1404,11 @@
             "label": "mapping(address => bool)",
             "numberOfBytes": "32"
           },
-          "t_mapping(t_bytes32,t_struct(RoleData)15387_storage)": {
+          "t_mapping(t_bytes32,t_struct(RoleData)15413_storage)": {
             "label": "mapping(bytes32 => struct AccessControlUpgradeable.RoleData)",
             "numberOfBytes": "32"
           },
-          "t_struct(RoleData)15387_storage": {
+          "t_struct(RoleData)15413_storage": {
             "label": "struct AccessControlUpgradeable.RoleData",
             "members": [
               {

@@ -23,6 +23,7 @@ exports.stake = require("./liquid-staking/stake");
 exports.pledge = require("./liquid-staking/pledge");
 exports.totalFIL = require("./liquid-staking/total-fil");
 exports.getBalance = require("./liquid-staking/get-balance");
+exports.encode = require("./liquid-staking/encode");
 
 // --- Reward Collector ---
 exports.withdrawRewards = require("./reward-collector/withdraw-rewards");
@@ -33,3 +34,6 @@ exports.getPledgeHistory = require("./storage-provider-stats/get-pledge-history"
 
 // --- Pool Stats ---
 exports.getStakingHistory = require("./pool-stats/get-staking-history");
+
+// --- Liquid Staking Controller ----
+exports.activateWithdrawals = require("./liquid-staking/activate-withdrawals");
